@@ -563,9 +563,9 @@ body {
 .navbar-brand { display: flex; flex-direction: column; justify-content: center; }
 .navbar-logo {
   font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 14px;
-  font-weight: 500;
-  letter-spacing: 0.15em;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #111;
 }
