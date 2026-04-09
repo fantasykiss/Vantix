@@ -562,15 +562,12 @@ body {
 }
 .navbar-brand { display: flex; flex-direction: column; justify-content: center; }
 .navbar-logo {
-  font-size: 1.75rem;
-  font-weight: 650;
-  letter-spacing: 0.07em;
+  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  font-size: 14px;
+  font-weight: 500;
+  letter-spacing: 0.15em;
   text-transform: uppercase;
   color: #111;
-  line-height: 0.9;
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  transform: scaleY(1.15);
-  display: inline-block;
 }
 .navbar-tagline {
   font-size: 10px;
