@@ -549,36 +549,118 @@ body {
 
 /* ── Navbar ── */
 .navbar {
-  height: 58px;
-  background: #faf9f7;
-  border-bottom: 1px solid #111;
+  height: 72px;
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(207, 196, 197, 0.25);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 36px;
+  padding: 0 40px;
   position: sticky;
   top: 0;
   z-index: 200;
+  font-family: 'DM Sans', sans-serif;
 }
-.navbar-brand { display: flex; flex-direction: column; justify-content: center; }
+.navbar-brand {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex-shrink: 0;
+}
 .navbar-logo {
-  font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 22px;
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
   color: #111;
+  line-height: 1;
 }
 .navbar-tagline {
-  font-size: 10px;
-  color: #e74c3c;
-  letter-spacing: 0.22em;
+  font-size: 9px;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  margin-top: 3px;
-  font-weight: 500;
-  opacity: 0.85;
+  color: #e74c3c;
+  margin-top: 4px;
+  font-weight: 400;
 }
-.navbar-actions { display: flex; align-items: center; gap: 8px; }
+.navbar-center {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  flex: 1;
+  padding: 0 40px;
+}
+.navbar-filter-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.navbar-filter-label {
+  font-size: 8px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #aaa;
+  font-family: 'DM Sans', sans-serif;
+}
+.navbar-filter-value {
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #111;
+  font-weight: 500;
+  border-bottom: 1.5px solid #111;
+  padding-bottom: 3px;
+  font-family: 'DM Sans', sans-serif;
+}
+.navbar-filter-value select,
+.navbar-filter-value input[type="date"] {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #111;
+  font-weight: 500;
+  background: transparent;
+  border: none;
+  outline: none;
+  cursor: pointer;
+  padding: 0;
+  appearance: none;
+  -webkit-appearance: none;
+}
+.navbar-filter-value select {
+  padding-right: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23666' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0 center;
+}
+.navbar-divider {
+  width: 1px;
+  height: 28px;
+  background: rgba(207, 196, 197, 0.4);
+  flex-shrink: 0;
+}
+.navbar-live {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.navbar-live-val {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #555;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-family: 'DM Sans', sans-serif;
+  white-space: nowrap;
+  min-width: 120px;
+}
+.navbar-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
 .btn {
   font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 10px;
@@ -594,6 +676,9 @@ body {
   background: transparent;
   border: 1px solid #e8e6e2;
   color: #555;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .btn-ghost:hover { border-color: #111; color: #111; }
 .btn-black {
@@ -602,19 +687,20 @@ body {
   border: 1px solid #111;
 }
 .btn-black:hover { background: #333; border-color: #333; }
-
-/* ── Filter Bar ── */
-.filter-bar {
-  background: #faf9f7;
-  border-bottom: 1px solid #e8e6e2;
-  padding: 10px 36px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  position: sticky;
-  top: 58px;
-  z-index: 100;
+.btn-primary-outline {
+  background: transparent;
+  border: 1.5px solid #111;
+  color: #111;
+  font-weight: 700;
+  letter-spacing: 0.18em;
 }
+.btn-primary-outline:hover {
+  background: #111;
+  color: #fff;
+}
+
+/* ── Filter Bar (통합됨 — 사용 안 함) ── */
+.filter-bar { display: none; }
 .filter-bar select {
   font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
   font-size: 11px;
@@ -659,49 +745,71 @@ body {
 /* ── Summary Strip ── */
 .summary-strip {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  border-top: 1px solid #111;
-  border-bottom: 1px solid #e8e6e2;
-  background: #faf9f7;
-  scroll-margin-top: 42px;
+  grid-template-columns: 3fr 7fr;
+  gap: 0;
+  background: #fbf9f8;
+  margin-bottom: 0;
+}
+.summary-row2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0;
+  background: #fbf9f8;
+  margin-bottom: 24px;
 }
 .sum-card {
   padding: 32px 36px;
   border-right: 1px solid #e8e6e2;
   position: relative;
+  background: #ffffff;
 }
-.sum-card:last-child { border-right: none; }
+.sum-card.gray {
+  background: #f5f3f3;
+}
+.sum-card.wide {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
 .sum-card.clickable { cursor: pointer; }
 .sum-card.clickable:hover { background: #f7f5f2; }
 .sum-label {
-  font-size: 10px;
+  font-size: 9px;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
-  color: #111;
-  font-weight: 300;
-  margin-bottom: 8px;
+  color: #999;
+  margin-bottom: 16px;
+  font-family: 'DM Sans', sans-serif;
 }
 .sum-value {
-  font-size: 56px;
-  font-weight: 400;
-  color: #111;
-  line-height: 1;
-  margin-bottom: 10px;
+  font-size: 52px;
+  font-weight: 800;
   letter-spacing: -0.02em;
-  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  color: #111;
 }
-.sum-value.amber { color: #b7770d; }
-.sum-value.red { color: #8b1a1a; }
+.sum-value.amber { color: #d97706; }
+.sum-value.red   { color: #e74c3c; }
 .sum-spark {
+  margin-top: 12px;
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 6px;
+  flex-direction: column;
+  gap: 4px;
 }
-.sum-delta { font-size: 10px; color: #aaa; font-weight: 300; letter-spacing: 0.5px; }
+.sum-delta { font-size: 11px; color: #999; }
 .sum-delta.up { color: #8b1a1a; }
 .sum-delta.down { color: #16a34a; }
-.sum-hint { font-size: 9px; color: #ccc; font-weight: 300; margin-top: 6px; letter-spacing: 0.15em; text-transform: uppercase; }
+.sum-hint { font-size: 9px; color: #bbb; letter-spacing: 0.08em; }
+.trend-area {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+.trend-area svg {
+  width: 100%;
+  height: 100px;
+}
 .risk-level-text { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
 .risk-sub { font-size: 10px; color: #aaa; margin-top: 6px; letter-spacing: 0.5px; }
 
@@ -1157,9 +1265,8 @@ body {
 
 /* ── Responsive ── */
 @media (max-width: 768px) {
-  .summary-strip { grid-template-columns: repeat(2, 1fr); }
-  .summary-strip .sum-card:nth-child(2) { border-right: none; }
-  .summary-strip .sum-card:nth-child(3) { border-right: 1px solid #e8e6e2; }
+  .summary-strip { grid-template-columns: 1fr; }
+  .summary-row2 { grid-template-columns: 1fr; }
   .main-content { padding: 16px; }
   .masonry-grid { columns: 1; }
   .ai-strip { padding: 12px 16px; flex-direction: column; gap: 10px; }
@@ -1180,7 +1287,6 @@ body {
   .tab-card-title { font-size: 12px; color: #111; line-height: 1.5; margin-bottom: 6px; }
   .tab-card-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .tab-card-date { font-size: 10px; color: #bbb; }
-  .filter-bar { padding: 8px 16px; }
   .bottom-section { margin: 0 16px 24px; }
 }
 #tab-card-list { display: none !important; }
@@ -1195,22 +1301,53 @@ body {
 
 <!-- Navbar -->
 <nav class="navbar">
-  <div class="navbar-brand">
-    <div class="navbar-logo">VANTIX</div>
-    <div class="navbar-tagline">AI Project Risk Intelligence</div>
+  <a href="/" style="text-decoration: none; color: inherit;">
+    <div class="navbar-brand">
+      <div class="navbar-logo">VANTIX</div>
+      <div class="navbar-tagline">AI Project Risk Intelligence</div>
+    </div>
+  </a>
+
+  <div class="navbar-center">
+    <div class="navbar-filter-item">
+      <div class="navbar-filter-label">Project</div>
+      <div class="navbar-filter-value">
+        <select id="projectSelect" onchange="onProjectChange()">
+          <option value="">전체 프로젝트</option>
+        </select>
+      </div>
+    </div>
+    <div class="navbar-divider"></div>
+    <div class="navbar-filter-item">
+      <div class="navbar-filter-label">Since</div>
+      <div class="navbar-filter-value">
+        <input type="date" id="filterDateInput" value="__DEFAULT_UPDATED_AFTER__" onchange="onDateChange()" title="조회 기준일" style="opacity:0;position:absolute;width:0;height:0;">
+        <span id="filterDateDisplay" onclick="document.getElementById('filterDateInput').showPicker()" style="cursor:pointer;">__DEFAULT_UPDATED_AFTER__</span>
+      </div>
+    </div>
+    <div class="navbar-divider"></div>
+    <div class="navbar-live">
+      <div class="navbar-filter-label">Status</div>
+      <div class="navbar-live-val">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:#16a34a;"></span>
+        <span id="cacheAge">—</span>&nbsp;·&nbsp;<span class="live-indicator" style="color:#16a34a;font-weight:700;">LIVE</span>
+      </div>
+    </div>
   </div>
+
   <div class="navbar-actions">
-    <button class="btn btn-ghost" onclick="openReport()" style="display:inline-flex;align-items:center;gap:5px;">
-      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
-      <span class="btn-text-mobile">리포트</span>
-    </button>
     <button class="btn btn-ghost" onclick="forceRefresh()" style="display:inline-flex;align-items:center;gap:5px;" title="강제 갱신">
       <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M2 7a5 5 0 1 0 1-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 2v3h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
       <span class="btn-text-mobile">강제 갱신</span>
     </button>
-    <button class="btn btn-black" onclick="loadData()" style="display:inline-flex;align-items:center;gap:5px;" title="새로 고침">
+    <button class="btn btn-ghost" onclick="loadData()" style="display:inline-flex;align-items:center;gap:5px;" title="새로 고침">
       <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 2a5 5 0 1 1 0 10A5 5 0 0 1 7 2z" stroke="currentColor" stroke-width="1.1"/><path d="M7 5v2.5l1.5 1.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
       <span class="btn-text-mobile">새로 고침</span>
+    </button>
+    <div class="navbar-divider"></div>
+    <button class="btn btn-primary-outline" onclick="openReport()" style="display:inline-flex;align-items:center;gap:5px;">
+      <svg width="12" height="12" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+      <span class="btn-text-mobile">리포트</span>
     </button>
     <button class="btn-icon" onclick="openSettingsModal()" title="설정">
       <img src="/setupicon.png" alt="설정">
@@ -1218,33 +1355,67 @@ body {
   </div>
 </nav>
 
-<!-- Filter Bar -->
-<div class="filter-bar">
-  <select id="projectSelect" onchange="onProjectChange()">
-    <option value="">전체 프로젝트</option>
-  </select>
-  <input type="date" id="filterDateInput" class="filter-date-input" value="__DEFAULT_UPDATED_AFTER__" onchange="onDateChange()" title="조회 기준일">
-  <span class="filter-live">
-    <span id="cacheAge">—</span>
-    &nbsp;·&nbsp;
-    <span class="live-indicator"><span style="color:#16a34a;font-weight:700;">LIVE</span></span>
-  </span>
+<!-- Summary Strip -->
+<div class="summary-strip">
+
+  <!-- 프로젝트 위험도 (3) -->
+  <div class="sum-card" id="card-risk" style="background:#ffffff;border-right:1px solid rgba(207,196,197,0.3);">
+    <div class="sum-label">프로젝트 위험도</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+      <span id="risk-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;"></span>
+      <span class="sum-value" id="risk-level-text" style="font-size:36px;color:#ccc;">—</span>
+    </div>
+    <div style="height:3px;background:#e5e5e5;margin-bottom:6px;">
+      <div id="risk-gauge-fill" style="height:100%;width:0%;background:#ccc;transition:width 0.6s ease;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:8px;">
+      <span style="font-size:8px;color:#16a34a;letter-spacing:0.1em;">LOW</span>
+      <span style="font-size:8px;color:#fb923c;letter-spacing:0.1em;">HIGH</span>
+      <span style="font-size:8px;color:#c0392b;letter-spacing:0.1em;">CRITICAL</span>
+    </div>
+    <div class="risk-sub" id="risk-sub">—</div>
+    <div id="risk-gauge-wrap" style="position:relative;">
+      <div id="risk-tooltip" style="display:none;position:absolute;bottom:calc(100% + 8px);left:0;background:#111;color:#fff;font-size:11px;line-height:1.7;padding:10px 14px;white-space:nowrap;z-index:999;pointer-events:none;">
+        <div style="font-weight:600;margin-bottom:4px;">점수 산정 기준</div>
+        <div>마감 초과 비율 × 60점</div>
+        <div>마감 임박 비율 × 30점</div>
+        <div>진행 대기 비율 × 10점</div>
+      </div>
+    </div>
+    <div style="height:0.5px;background:#e8e8e8;margin:8px 0;"></div>
+    <div id="risk-ai-comment" style="font-size:11px;color:#111;font-weight:600;line-height:1.6;display:flex;gap:5px;align-items:flex-start;">
+      <span style="color:#e74c3c;flex-shrink:0;">✦</span>
+      <span id="risk-ai-comment-text">분석 중...</span>
+    </div>
+    <div class="sum-hint" style="margin-top:6px;">위험경보 ↓</div>
+  </div>
+
+  <!-- Risk Score Trend (7) -->
+  <div class="sum-card gray wide" style="background:#f5f3f3;">
+    <div class="sum-label">Risk Score Trend / 위험 지수 추이</div>
+    <svg id="spark-risk" viewBox="0 0 600 100" preserveAspectRatio="none">
+    </svg>
+    <div class="sum-delta"><span id="delta-risk" style="color:#e74c3c;"></span></div>
+  </div>
+
 </div>
 
-<!-- Summary Cards -->
-<div class="summary-strip">
-  <!-- Card 1: 전체 이슈 -->
-  <div class="sum-card" id="card-total">
-    <div class="sum-label">전체 이슈</div>
+<!-- Summary Row 2 -->
+<div class="summary-row2">
+
+  <!-- 전체 이슈 -->
+  <div class="sum-card" id="card-total" style="background:#ffffff;">
+    <div class="sum-label">Total Issues</div>
     <div class="sum-value" id="val-total">—</div>
     <div class="sum-spark">
       <svg id="spark-total" width="60" height="18" viewBox="0 0 60 18"></svg>
-      <span class="sum-delta" id="delta-total">— 유지</span>
+      <span class="sum-delta" id="delta-total">— No Change</span>
     </div>
   </div>
-  <!-- Card 2: 오픈 이슈 -->
-  <div class="sum-card clickable" id="card-open" onclick="goToTab('assignee')">
-    <div class="sum-label">오픈 이슈</div>
+
+  <!-- 오픈 이슈 -->
+  <div class="sum-card clickable" id="card-open" onclick="goToTab('assignee')" style="background:#f5f3f3 !important;">
+    <div class="sum-label">Open Issues</div>
     <div class="sum-value amber" id="val-open">—</div>
     <div class="sum-spark">
       <svg id="spark-open" width="60" height="18" viewBox="0 0 60 18"></svg>
@@ -1252,53 +1423,18 @@ body {
     </div>
     <div class="sum-hint">담당자별 현황 ↓</div>
   </div>
-  <!-- Card 3: 마감 초과 -->
-  <div class="sum-card clickable" id="card-overdue" onclick="goToTab('overdue')">
-    <div class="sum-label">마감 초과</div>
+
+  <!-- 마감 초과 -->
+  <div class="sum-card clickable" id="card-overdue" onclick="goToTab('overdue')" style="background:#e4e2e2 !important;">
+    <div class="sum-label">Overdue</div>
     <div class="sum-value red" id="val-overdue">—</div>
     <div class="sum-spark">
       <svg id="spark-overdue" width="60" height="18" viewBox="0 0 60 18"></svg>
       <span class="sum-delta" id="delta-overdue">—</span>
     </div>
-    <div class="sum-hint">마감 초과 이슈 ↓</div>
+    <div class="sum-hint">Overdue Issues ↓</div>
   </div>
-  <!-- Card 4: 프로젝트 위험도 -->
-  <div class="sum-card clickable" id="card-risk" onclick="goToTab('overdue')">
-    <div class="sum-label">프로젝트 위험도</div>
-    <div id="risk-level-row" style="margin-bottom:6px;">
-      <span class="risk-dot" id="risk-dot" style="background:#ccc;"></span>
-      <span class="risk-level-text" id="risk-level-text" style="color:#ccc;">—</span>
-    </div>
-    <div class="risk-gauge-wrap" id="risk-gauge-wrap" style="position:relative;">
-      <div style="height:4px;background:#e5e5e5;border-radius:2px;overflow:hidden;margin-bottom:3px;">
-        <div id="risk-gauge-fill" style="height:100%;width:0%;border-radius:2px;transition:width 0.6s ease;background:#ccc;"></div>
-      </div>
-      <div style="display:flex;justify-content:space-between;margin-bottom:4px;">
-        <span style="font-size:9px;color:#16a34a;letter-spacing:0.04em;font-family:'Inter',sans-serif;">LOW</span>
-        <span style="font-size:9px;color:#fb923c;letter-spacing:0.04em;font-family:'Inter',sans-serif;">HIGH</span>
-        <span style="font-size:9px;color:#c0392b;letter-spacing:0.04em;font-family:'Inter',sans-serif;">CRITICAL</span>
-      </div>
-      <div class="risk-sub" id="risk-sub">—</div>
-      <div id="risk-tooltip" style="display:none;position:absolute;bottom:calc(100% + 8px);left:0;background:#111;color:#fff;font-size:11px;line-height:1.7;padding:10px 14px;border-radius:6px;white-space:nowrap;z-index:999;pointer-events:none;">
-        <div style="font-weight:600;margin-bottom:4px;letter-spacing:0.04em;">점수 산정 기준</div>
-        <div>마감 초과 비율 × 60점</div>
-        <div>마감 임박 비율 × 30점</div>
-        <div>진행 대기 비율 × 10점</div>
-        <div style="border-top:0.5px solid rgba(255,255,255,0.2);margin-top:6px;padding-top:6px;">
-          <span style="color:#f87171;">Critical</span> ≥30 &nbsp;
-          <span style="color:#fb923c;">High</span> ≥15 &nbsp;
-          <span style="color:#fbbf24;">Medium</span> ≥5 &nbsp;
-          <span style="color:#34d399;">Low</span> &lt;5
-        </div>
-      </div>
-    </div>
-    <div style="height:0.5px;background:#e8e8e8;margin:8px 0;"></div>
-    <div id="risk-ai-comment" style="font-size:11px;color:#111;font-weight:600;line-height:1.6;min-height:16px;display:flex;gap:5px;align-items:flex-start;">
-      <span style="color:#e74c3c;flex-shrink:0;">✦</span>
-      <span id="risk-ai-comment-text">분석 중...</span>
-    </div>
-    <div class="sum-hint" style="margin-top:6px;">위험경보 ↓</div>
-  </div>
+
 </div>
 
 <!-- AI Summary Strip (full-width, below KPI) -->
@@ -1698,26 +1834,56 @@ function renderSummaryCards() {
   var d = allData;
   var trend = d.trend_7days || {};
 
+  // Risk Score Trend — spark-risk (전체 위험 추이)
+  var riskTrendData = trend.open || [];
+  if (riskTrendData.length < 2) riskTrendData = [0, 5, 10, 8, 15, 20, 18]; // 더미 라인
+  var sparkRiskSvg = document.getElementById('spark-risk');
+  if (sparkRiskSvg) {
+    var W = 600, H = 100;
+    var mn = Math.min.apply(null, riskTrendData);
+    var mx = Math.max.apply(null, riskTrendData);
+    var range = mx - mn || 1;
+    var pts = riskTrendData.map(function(v, i) {
+      var x = (i / (riskTrendData.length - 1)) * W;
+      var y = H - ((v - mn) / range) * (H - 10) - 5;
+      return x.toFixed(1) + ',' + y.toFixed(1);
+    }).join(' ');
+    sparkRiskSvg.innerHTML = '<polyline points="' + pts + '" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
+  }
+  var deltaRiskEl = document.getElementById('delta-risk');
+  if (deltaRiskEl) {
+    var dRisk = trend.delta_open || 0;
+    deltaRiskEl.textContent = dRisk === 0 ? '— 변동 없음' : (dRisk > 0 ? '+' + dRisk + ' 상승' : dRisk + ' 하락');
+  }
+
   // Card 1 — 전체 이슈
-  document.getElementById('val-total').textContent = (d.total_issues !== undefined && d.total_issues !== null) ? d.total_issues : '—';
+  var valTotalEl = document.getElementById('val-total');
+  if (valTotalEl) valTotalEl.textContent = (d.total_issues !== undefined && d.total_issues !== null) ? d.total_issues : '—';
   renderSparkline('spark-total', trend.open || [], '#999');
-  document.getElementById('delta-total').textContent = '— 유지';
+  var deltaTotalEl = document.getElementById('delta-total');
+  if (deltaTotalEl) deltaTotalEl.textContent = '— No Change';
 
   // Card 2 — 오픈 이슈
-  document.getElementById('val-open').textContent = (d.open_issues !== undefined && d.open_issues !== null) ? d.open_issues : '—';
+  var valOpenEl = document.getElementById('val-open');
+  if (valOpenEl) valOpenEl.textContent = (d.open_issues !== undefined && d.open_issues !== null) ? d.open_issues : '—';
   renderSparkline('spark-open', trend.open || [], '#b7770d');
   var dOpen = trend.delta_open || 0;
   var deltaOpenEl = document.getElementById('delta-open');
-  deltaOpenEl.textContent = dOpen === 0 ? '— 유지' : (dOpen > 0 ? '+' + dOpen + ' 증가' : dOpen + ' 감소');
-  deltaOpenEl.className = 'sum-delta ' + (dOpen > 0 ? 'up' : dOpen < 0 ? 'down' : '');
+  if (deltaOpenEl) {
+    deltaOpenEl.textContent = dOpen === 0 ? '— No Change' : (dOpen > 0 ? '+' + dOpen + ' Increase' : dOpen + ' Decrease');
+    deltaOpenEl.className = 'sum-delta ' + (dOpen > 0 ? 'up' : dOpen < 0 ? 'down' : '');
+  }
 
   // Card 3 — 마감 초과
-  document.getElementById('val-overdue').textContent = (d.overdue !== undefined && d.overdue !== null) ? d.overdue : '—';
+  var valOverdueEl = document.getElementById('val-overdue');
+  if (valOverdueEl) valOverdueEl.textContent = (d.overdue !== undefined && d.overdue !== null) ? d.overdue : '—';
   renderSparkline('spark-overdue', trend.overdue || [], '#c0392b');
   var dOverdue = trend.delta_overdue || 0;
   var deltaOverdueEl = document.getElementById('delta-overdue');
-  deltaOverdueEl.textContent = dOverdue === 0 ? '— 유지' : (dOverdue > 0 ? '+' + dOverdue + ' 증가' : dOverdue + ' 감소');
-  deltaOverdueEl.className = 'sum-delta ' + (dOverdue > 0 ? 'up' : dOverdue < 0 ? 'down' : '');
+  if (deltaOverdueEl) {
+    deltaOverdueEl.textContent = dOverdue === 0 ? '— No Change' : (dOverdue > 0 ? '+' + dOverdue + ' Increase' : dOverdue + ' Decrease');
+    deltaOverdueEl.className = 'sum-delta ' + (dOverdue > 0 ? 'up' : dOverdue < 0 ? 'down' : '');
+  }
 
   // Card 4 — 위험도
   var riskList = d.project_risk || [];
@@ -1743,10 +1909,9 @@ function renderSummaryCards() {
 
   if (topRisk) {
     var rc = RISK_COLORS[topRisk.risk_level] || { dot: '#ccc', text: '#999' };
-    dotEl.style.background = rc.dot;
-    levelEl.textContent = topRisk.risk_level;
-    levelEl.style.color = rc.text;
-    subEl.textContent = '';
+    if (dotEl) dotEl.style.background = rc.dot;
+    if (levelEl) { levelEl.textContent = topRisk.risk_level; levelEl.style.color = rc.text; }
+    if (subEl) subEl.textContent = '';
     // 게이지 바
     var gaugeFill = document.getElementById('risk-gauge-fill');
     if (gaugeFill) {
@@ -1779,15 +1944,23 @@ function renderSummaryCards() {
         })
         .catch(function() { commentEl.textContent = '—'; });
     }
+    // val-risk, val-risk-detail 업데이트
+    var valRiskEl = document.getElementById('val-risk');
+    if (valRiskEl) valRiskEl.textContent = topRisk.risk_level ? topRisk.risk_level.toUpperCase() : '—';
+    var valRiskDetailEl = document.getElementById('val-risk-detail');
+    if (valRiskDetailEl) valRiskDetailEl.textContent = topRisk.name || '—';
   } else {
-    dotEl.style.background = '#34d399';
-    levelEl.textContent = 'Low';
-    levelEl.style.color = '#16a34a';
-    subEl.textContent = '위험 프로젝트 없음';
+    if (dotEl) dotEl.style.background = '#34d399';
+    if (levelEl) { levelEl.textContent = 'Low'; levelEl.style.color = '#16a34a'; }
+    if (subEl) subEl.textContent = '위험 프로젝트 없음';
     var gaugeFill = document.getElementById('risk-gauge-fill');
-    if (gaugeFill) { gaugeFill.style.width = '0%'; }
+    if (gaugeFill) gaugeFill.style.width = '0%';
     var commentEl = document.getElementById('risk-ai-comment-text');
     if (commentEl) commentEl.textContent = '위험 프로젝트 없음';
+    var valRiskEl = document.getElementById('val-risk');
+    if (valRiskEl) valRiskEl.textContent = 'LOW';
+    var valRiskDetailEl = document.getElementById('val-risk-detail');
+    if (valRiskDetailEl) valRiskDetailEl.textContent = '위험 프로젝트 없음';
   }
   var gaugeWrap = document.getElementById('risk-gauge-wrap');
   var tooltip = document.getElementById('risk-tooltip');
@@ -1797,8 +1970,10 @@ function renderSummaryCards() {
   }
 
   // Update badges
-  document.getElementById('badge-overdue').textContent = d.overdue || 0;
-  document.getElementById('badge-imminent').textContent = (d.imminent_issues || []).length;
+  var badgeOverdueEl = document.getElementById('badge-overdue');
+  if (badgeOverdueEl) badgeOverdueEl.textContent = d.overdue || 0;
+  var badgeImminentEl = document.getElementById('badge-imminent');
+  if (badgeImminentEl) badgeImminentEl.textContent = (d.imminent_issues || []).length;
 }
 
 // ============================================================
@@ -2520,6 +2695,11 @@ function getShortName(uname) {
 // Boot
 // ============================================================
 document.addEventListener('DOMContentLoaded', init);
+</script>
+<script>
+  document.getElementById('filterDateInput').addEventListener('change', function() {
+    document.getElementById('filterDateDisplay').textContent = this.value.replace(/-/g, '.');
+  });
 </script>
 </body>
 </html>"""
