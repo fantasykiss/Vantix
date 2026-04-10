@@ -1717,7 +1717,7 @@ body {
     <div class="ai-bar-labels" id="riskChartLabels"></div>
   </div>
 
-  <div class="ai-card-dark" style="background-color:#111111;">
+  <div class="ai-card-dark" style="background:rgb(17,17,17);">
     <div>
       <div class="ai-label-mono">AI Analysis</div>
       <div class="ai-card-headline" id="aiHeadline">분석 중...</div>
