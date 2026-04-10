@@ -954,7 +954,7 @@ body {
 }
 .ai-chart-area {
   position: relative;
-  height: 130px;
+  height: 220px;
 }
 .ai-gridlines {
   position: absolute;
