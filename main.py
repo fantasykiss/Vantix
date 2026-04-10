@@ -3366,6 +3366,7 @@ async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026
     )
     top_user_name = short_name(top_user[0]) if top_user[0] else "없음"
     prompt = (
+        f"첫 줄은 반드시 10자 이내 핵심 한 문장으로 작성하고 줄바꿈 후 본문을 작성하세요.\n"
         f"다음 주간 프로젝트 현황을 PM 보고용으로 3~5문장으로 요약해줘.\n"
         f"전체이슈: {dashboard.get('total_issues', 0)}, 오픈: {dashboard.get('open_issues', 0)}, "
         f"마감초과: {dashboard.get('overdue', 0)}건\n"
