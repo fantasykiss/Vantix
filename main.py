@@ -2911,13 +2911,13 @@ function renderRiskChart(history) {
 
 /* ── AI Text Card ── */
 async function generateAiSummary() {
-  var bodyEl    = document.getElementById('aiSummaryText');
-  var headEl    = document.getElementById('aiHeadline');
-  bodyEl.textContent = '분석 중...';
+  var el    = document.getElementById('aiSummaryText');
+  var headEl = document.getElementById('aiHeadline');
+  el.textContent = '분석 중...';
   if (headEl) headEl.textContent = '분석 중...';
 
   // Render chart immediately with current data
-  renderRiskChart(allData);
+  loadRiskHistory();
 
   try {
     var params = new URLSearchParams({ project_id: currentProjectId, updated_after: currentUpdatedAfter });
@@ -2925,19 +2925,18 @@ async function generateAiSummary() {
     var data = await res.json();
     if (data.summary) {
       aiSummaryText = data.summary;
-      bodyEl.className = 'ai-card-body';
       var lines = data.summary.trim().split(String.fromCharCode(10));
       var headlineEl = document.getElementById('aiHeadline');
       if (headlineEl && lines.length > 1) {
         headlineEl.textContent = lines[0];
-        bodyEl.innerHTML = lines.slice(1).join('<br>').trim();
+        el.innerHTML = lines.slice(1).join('<br>').trim();
       } else {
         if (headlineEl) headlineEl.textContent = '';
-        bodyEl.innerHTML = data.summary.split(String.fromCharCode(10)).join('<br>');
+        el.innerHTML = data.summary.split(String.fromCharCode(10)).join('<br>');
       }
     } else if (data.error) {
       if (headEl) headEl.textContent = 'AI 오류';
-      bodyEl.textContent = data.error;
+      el.textContent = data.error;
     }
   } catch(e) {
     if (headEl) headEl.textContent = '요청 실패';
