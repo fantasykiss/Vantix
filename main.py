@@ -971,7 +971,7 @@ body {
   height: 100%;
   display: flex;
   align-items: flex-end;
-  gap: 10px;
+  gap: 20px;
   border-bottom: 1px solid #e8e6e2;
 }
 .ai-bar-group {
