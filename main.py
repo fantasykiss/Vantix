@@ -835,7 +835,7 @@ body {
 }
 .ai-chart-card {
   background: #fff;
-  border-radius: 10px;
+  border-radius: 0;
   border: 0.5px solid #e0ddd8;
   padding: 20px;
   position: relative;
@@ -1040,7 +1040,7 @@ body {
   background: #fff;
   color: #111;
   border: none;
-  border-radius: 4px;
+  border-radius: 0;
   padding: 10px 16px;
   font-family: 'DM Sans', sans-serif;
   font-size: 10px;
@@ -1052,7 +1052,7 @@ body {
 }
 .ai-card-dark {
   background: rgb(17,17,17);
-  border-radius: 10px;
+  border-radius: 0;
   padding: 20px;
   display: flex;
   flex-direction: column;
