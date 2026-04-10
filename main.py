@@ -1050,6 +1050,42 @@ body {
   cursor: pointer;
   width: 100%;
 }
+.ai-card-dark {
+  background: rgb(17,17,17);
+  border-radius: 10px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+.ai-label-mono {
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.15em;
+  color: #555;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+.ai-card-headline {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.25;
+  letter-spacing: -0.02em;
+  margin-bottom: 12px;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.ai-card-body-text {
+  font-family: 'DM Sans', sans-serif;
+  font-size: 11px;
+  color: #888;
+  line-height: 1.6;
+  margin-bottom: 20px;
+}
 
 /* ── Main Content ── */
 .main-content {
