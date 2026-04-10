@@ -1017,13 +1017,16 @@ body {
 }
 .ai-card-headline {
   font-family: 'DM Sans', sans-serif;
-  font-size: 20px;
+  font-size: 18px;
   font-weight: 700;
   color: #fff;
   line-height: 1.25;
   letter-spacing: -0.02em;
   margin-bottom: 12px;
-  white-space: pre-line;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 .ai-card-body-text {
   font-family: 'DM Sans', sans-serif;
