@@ -1699,7 +1699,6 @@ body {
 
 </div>
 
-<!-- AI Analysis Section -->
 <div class="ai-analysis-section" id="sec-ai-summary">
   <div class="ai-chart-card">
     <div class="ai-chart-header">
@@ -1710,7 +1709,7 @@ body {
           <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#333;"></div> AVG</div>
           <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#c0392b;"></div> CRITICAL</div>
         </div>
-        <button class="ai-gear-btn" id="riskGearBtn" onclick="toggleRiskSettings()">⚙</button>
+        <button class="ai-gear-btn" id="riskGearBtn" onclick="toggleRiskSettings()">&#9881;</button>
       </div>
     </div>
     <div class="ai-settings-panel" id="riskSettingsPanel">
@@ -1752,14 +1751,13 @@ body {
     </div>
     <div class="ai-bar-labels" id="riskChartLabels"></div>
   </div>
-
-  <div class="ai-card-dark" style="background:rgb(17,17,17);">
+  <div class="ai-card-dark">
     <div>
       <div class="ai-label-mono">AI Analysis</div>
       <div class="ai-card-headline" id="aiHeadline">분석 중...</div>
       <div class="ai-card-body-text" id="aiSummaryText">데이터를 불러오는 중입니다.</div>
     </div>
-    <button class="ai-refresh-btn" onclick="generateAiSummary()">↺ &nbsp; REFRESH ANALYSIS</button>
+    <button class="ai-refresh-btn" onclick="generateAiSummary()">&#8635; &nbsp; REFRESH ANALYSIS</button>
   </div>
 </div>
 
