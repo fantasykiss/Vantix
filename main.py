@@ -2966,15 +2966,22 @@ async function generateAiSummary() {
     var data = await res.json();
     if (data.summary) {
       aiSummaryText = data.summary;
-      var lines = data.summary.trim().split(String.fromCharCode(10));
+      var lines = data.summary.trim().split(String.fromCharCode(10)).filter(function(l){ return l.trim(); });
       var headlineEl = document.getElementById('aiHeadline');
-      if (headlineEl && lines.length > 1) {
-        headlineEl.textContent = lines[0];
-        el.innerHTML = lines.slice(1).join('<br>').trim();
-      } else {
-        if (headlineEl) headlineEl.textContent = '';
-        el.innerHTML = data.summary.split(String.fromCharCode(10)).join('<br>');
-      }
+      if (headlineEl) headlineEl.textContent = lines[0] || '';
+      var bodyLines = lines.slice(1);
+      el.innerHTML = bodyLines.map(function(line) {
+        var isS1 = /^상황1?:/.test(line);
+        var isS2 = /^상황2:/.test(line);
+        var key = line.split(':')[0] + ':';
+        var val = line.slice(key.length).trim();
+        var keyColor = '#444';
+        var valColor = isS1 ? '#e05a4e' : isS2 ? '#d4824a' : '#aaa';
+        return '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;">' +
+          '<span style="font-family:DM Mono,monospace;font-size:9px;color:' + keyColor + ';text-transform:uppercase;letter-spacing:0.08em;min-width:40px;padding-top:2px;flex-shrink:0;">' + key + '</span>' +
+          '<span style="font-size:11px;color:' + valColor + ';line-height:1.5;">' + escHtml(val) + '</span>' +
+          '</div>';
+      }).join('');
     } else if (data.error) {
       if (headEl) headEl.textContent = 'AI 오류';
       el.textContent = data.error;
