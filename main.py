@@ -2731,15 +2731,16 @@ async function generateAiSummary() {
     var data = await res.json();
     if (data.summary) {
       aiSummaryText = data.summary;
-
-      // Extract first sentence as headline
-      var lines = data.summary.split('\n').map(function(l){ return l.trim(); }).filter(Boolean);
-      if (headEl) {
-        headEl.textContent = lines[0] || '분석 완료';
+      bodyEl.className = 'ai-card-body';
+      var lines = data.summary.trim().split(String.fromCharCode(10));
+      var headlineEl = document.getElementById('aiHeadline');
+      if (headlineEl && lines.length > 1) {
+        headlineEl.textContent = lines[0];
+        bodyEl.innerHTML = lines.slice(1).join('<br>').trim();
+      } else {
+        if (headlineEl) headlineEl.textContent = '';
+        bodyEl.innerHTML = data.summary.split(String.fromCharCode(10)).join('<br>');
       }
-      // Rest of text goes to body
-      var bodyLines = lines.slice(1).join('\n');
-      bodyEl.innerHTML = bodyLines.split('\n').join('<br>');
     } else if (data.error) {
       if (headEl) headEl.textContent = 'AI 오류';
       bodyEl.textContent = data.error;
