@@ -2853,6 +2853,62 @@ function renderRiskChart(data) {
   container.innerHTML = html;
 }
 
+// ── Risk Chart ──
+var _riskDow = 3;   // 기본: 목요일
+var _riskWeeks = 8;
+
+function toggleRiskSettings() {
+  var panel = document.getElementById('riskSettingsPanel');
+  var btn = document.getElementById('riskGearBtn');
+  panel.classList.toggle('open');
+  btn.classList.toggle('active');
+}
+function setDow(el, val) {
+  el.parentElement.querySelectorAll('.ai-dow-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  _riskDow = val;
+}
+function setWeeks(el, val) {
+  el.parentElement.querySelectorAll('.ai-dow-btn').forEach(function(b){ b.classList.remove('active'); });
+  el.classList.add('active');
+  _riskWeeks = val;
+}
+function applyRiskSettings() {
+  localStorage.setItem('riskDow', _riskDow);
+  localStorage.setItem('riskWeeks', _riskWeeks);
+  document.getElementById('riskSettingsPanel').classList.remove('open');
+  document.getElementById('riskGearBtn').classList.remove('active');
+  loadRiskHistory();
+}
+async function loadRiskHistory() {
+  try {
+    var params = new URLSearchParams({
+      project_id: currentProjectId,
+      dow: _riskDow,
+      weeks: _riskWeeks
+    });
+    var res = await fetch('/api/risk-history?' + params);
+    var data = await res.json();
+    renderRiskChart(data.history || []);
+  } catch(e) {
+    console.error('risk history load failed', e);
+  }
+}
+function renderRiskChart(history) {
+  var bars = document.getElementById('riskChartBars');
+  var labels = document.getElementById('riskChartLabels');
+  if (!bars || !history.length) return;
+  var maxScore = Math.max.apply(null, history.map(function(d){ return d.score; })) || 1;
+  bars.innerHTML = history.map(function(d) {
+    var h = Math.max(4, Math.round((d.score / maxScore) * 100));
+    var cls = d.level === 'Critical' ? 'critical' : d.level === 'Low' ? 'low' : 'normal';
+    return '<div class="ai-bar-group"><div class="ai-bar ' + cls + '" style="height:' + h + '%;"></div></div>';
+  }).join('');
+  labels.innerHTML = history.map(function(d) {
+    return '<div class="ai-bar-label">' + d.week + '</div>';
+  }).join('');
+}
+
 /* ── AI Text Card ── */
 async function generateAiSummary() {
   var bodyEl    = document.getElementById('aiSummaryText');
