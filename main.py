@@ -531,7 +531,7 @@ HTML_PAGE = """<!DOCTYPE html>
 <title>Vantix — Project Risk Intelligence</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSJ3aGl0ZSIvPjx0ZXh0IHg9IjE2IiB5PSIyNCIgZm9udC1mYW1pbHk9IkFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjY2MwMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5WPC90ZXh0Pjwvc3ZnPg==">
 <style>
-.card, .section-card, .dashboard-card, [class*="card"], [class*="section"], .grid-item, .panel {
+.card, .section-card, .dashboard-card, [class*="card"]:not(.ai-card-dark), [class*="section"]:not(.ai-analysis-section), .grid-item, .panel {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
