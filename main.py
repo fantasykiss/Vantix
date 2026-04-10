@@ -1664,20 +1664,61 @@ body {
   <div class="ai-chart-card">
     <div class="ai-chart-header">
       <div class="ai-chart-title">RISK SCORE TRENDS / 위험 지수 추이</div>
-      <div class="ai-legend">
-        <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#333;"></div> AVG</div>
-        <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#c0392b;"></div> CRITICAL</div>
+      <div class="ai-chart-header-right">
+        <div class="ai-legend">
+          <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#ccc;"></div> LOW</div>
+          <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#333;"></div> AVG</div>
+          <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#c0392b;"></div> CRITICAL</div>
+        </div>
+        <button class="ai-gear-btn" id="riskGearBtn" onclick="toggleRiskSettings()">⚙</button>
       </div>
     </div>
-    <div class="ai-chart-sub">Weekly volatility · last 8 weeks</div>
-    <div class="ai-bars" id="riskChartBars">
-      <div style="padding:20px;text-align:center;font-size:11px;color:#ccc;">로딩 중...</div>
+    <div class="ai-settings-panel" id="riskSettingsPanel">
+      <div class="ai-settings-label">Chart Settings</div>
+      <div class="ai-settings-row">
+        <label>주 시작 기준일</label>
+        <div class="ai-dow-btns" id="dowBtns">
+          <div class="ai-dow-btn" onclick="setDow(this,0)">월</div>
+          <div class="ai-dow-btn" onclick="setDow(this,1)">화</div>
+          <div class="ai-dow-btn" onclick="setDow(this,2)">수</div>
+          <div class="ai-dow-btn active" onclick="setDow(this,3)">목</div>
+          <div class="ai-dow-btn" onclick="setDow(this,4)">금</div>
+          <div class="ai-dow-btn" onclick="setDow(this,5)">토</div>
+          <div class="ai-dow-btn" onclick="setDow(this,6)">일</div>
+        </div>
+      </div>
+      <div class="ai-settings-row">
+        <label>표시 주수</label>
+        <div class="ai-dow-btns" id="weeksBtns">
+          <div class="ai-dow-btn" onclick="setWeeks(this,4)">4주</div>
+          <div class="ai-dow-btn active" onclick="setWeeks(this,8)">8주</div>
+          <div class="ai-dow-btn" onclick="setWeeks(this,12)">12주</div>
+        </div>
+      </div>
+      <button class="ai-settings-apply" onclick="applyRiskSettings()">Apply</button>
     </div>
+    <div class="ai-chart-sub" id="riskChartSub">Weekly volatility · last 8 weeks</div>
+    <div class="ai-chart-area">
+      <div class="ai-gridlines">
+        <div class="ai-gridline"></div>
+        <div class="ai-gridline"></div>
+        <div class="ai-gridline"></div>
+        <div class="ai-gridline"></div>
+        <div class="ai-gridline"></div>
+      </div>
+      <div class="ai-bars" id="riskChartBars">
+        <div style="padding:20px;text-align:center;font-size:11px;color:#ccc;width:100%;">로딩 중...</div>
+      </div>
+    </div>
+    <div class="ai-bar-labels" id="riskChartLabels"></div>
   </div>
+
   <div class="ai-card-dark">
-    <div class="ai-card-label-mono">AI Analysis</div>
-    <div class="ai-card-headline" id="aiHeadline">분석 중...</div>
-    <div class="ai-card-body" id="aiSummaryText">데이터를 불러오는 중입니다.</div>
+    <div>
+      <div class="ai-label-mono">AI Analysis</div>
+      <div class="ai-card-headline" id="aiHeadline">분석 중...</div>
+      <div class="ai-card-body-text" id="aiSummaryText">데이터를 불러오는 중입니다.</div>
+    </div>
     <button class="ai-refresh-btn" onclick="generateAiSummary()">↺ &nbsp; REFRESH ANALYSIS</button>
   </div>
 </div>
