@@ -3170,6 +3170,55 @@ async def clear_cache():
     return {"ok": True, "message": "캐시 초기화 완료"}
 
 
+@app.get("/api/risk-history")
+async def api_risk_history(project_id: str = "", dow: int = 3, weeks: int = 8):
+    """
+    과거 N주 risk_score 역산
+    dow: 주 시작 기준 요일 (0=월 ~ 6=일)
+    """
+    from datetime import date, timedelta
+    today = date.today()
+    # 이번 주 기준일 계산
+    days_since_dow = (today.weekday() - dow) % 7
+    this_week_start = today - timedelta(days=days_since_dow)
+
+    issues = get_issues(project_id, updated_after="2024-01-01")
+    today_str = today.strftime("%Y-%m-%d")
+    history = []
+
+    for w in range(weeks - 1, -1, -1):
+        week_start = this_week_start - timedelta(weeks=w)
+        week_end   = (week_start + timedelta(days=6)).strftime("%Y-%m-%d")
+        week_label = f"W{weeks - w}"
+
+        total = overdue = urgent = pending = 0
+        for i in issues:
+            if not i.get("due_date"):
+                continue
+            status = i.get("status", {}).get("name", "")
+            total += 1
+            if i["due_date"] < week_end and status not in CLOSED_SET and status not in HOLD_SET:
+                overdue += 1
+            due_dt = None
+            try:
+                due_dt = date.fromisoformat(i["due_date"])
+            except Exception:
+                pass
+            if due_dt:
+                diff = (due_dt - week_start).days
+                if 0 <= diff <= 3 and status not in CLOSED_SET:
+                    urgent += 1
+            if status in {"진행대기", "진행 대기"}:
+                pending += 1
+
+        t = total or 1
+        score = round((overdue/t*60) + (urgent/t*30) + (pending/t*10), 1)
+        level = "Critical" if score >= 30 else "High" if score >= 15 else "Medium" if score >= 5 else "Low"
+        history.append({"week": week_label, "score": score, "level": level})
+
+    return {"history": history}
+
+
 @app.get("/api/visitors")
 async def visitors(request: Request):
     ip = request.client.host
