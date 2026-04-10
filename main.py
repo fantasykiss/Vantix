@@ -999,7 +999,7 @@ body {
   color: #aaa;
 }
 .ai-card-dark {
-  background: #111;
+  background-color: #111111;
   border-radius: 10px;
   padding: 20px;
   display: flex;
