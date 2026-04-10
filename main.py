@@ -2072,6 +2072,9 @@ async function loadData() {
     setServerStatus('online');
     renderAll();
     generateAiSummary();
+    _riskDow   = parseInt(localStorage.getItem('riskDow')   || '3');
+    _riskWeeks = parseInt(localStorage.getItem('riskWeeks') || '8');
+    loadRiskHistory();
   } catch(e) {
     console.error('loadData error:', e);
     setServerStatus('offline');
