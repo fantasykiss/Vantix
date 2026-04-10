@@ -831,6 +831,7 @@ body {
   grid-template-columns: 1fr 260px;
   gap: 16px;
   margin: 0 16px 16px;
+  align-items: stretch;
 }
 .ai-chart-card {
   background: #fff;
