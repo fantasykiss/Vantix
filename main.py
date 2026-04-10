@@ -3400,8 +3400,8 @@ async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026
     )
     top_user_name = short_name(top_user[0]) if top_user[0] else "없음"
     prompt = (
-        f"첫 줄은 아래 본문 전체를 관통하는 가장 심각한 리스크를 15자 이내로 압축해 작성하세요. (예: \"Critical 2주 연속 상승\", \"담당자 과부하 위험\") 줄바꿈 후 본문 작성.\n"
-        f"본문은 개조식으로 작성하세요. 문장은 ~함. ~있음. ~필요. ~권고. 형태로 끝내고 존댓말 사용 금지.\n"
+        f"첫 줄은 숫자+상태 조합으로 가장 심각한 리스크를 15자 이내로 작성하세요. 프로젝트명 사용 금지. 예시: \"마감 초과 7건 Critical\", \"담당자 과부하 즉각 조치\", \"리스크 2주 연속 상승\"\n"
+        f"본문은 개조식 3문장으로 제한. 1문장: 가장 위험한 수치 + 담당자/프로젝트 명시. 2문장: 원인 한 줄. 3문장: 구체적 액션 권고. 문장은 ~함. ~있음. ~필요. ~권고. 형태로 끝내고 존댓말 사용 금지.\n"
         f"다음 주간 프로젝트 현황을 PM 보고용으로 3~5문장으로 요약해줘.\n"
         f"전체이슈: {dashboard.get('total_issues', 0)}, 오픈: {dashboard.get('open_issues', 0)}, "
         f"마감초과: {dashboard.get('overdue', 0)}건\n"
