@@ -2978,7 +2978,7 @@ async function generateAiSummary() {
         var keyColor = '#444';
         var valColor = isS1 ? '#e05a4e' : isS2 ? '#d4824a' : '#aaa';
         return '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:flex-start;">' +
-          '<span style="font-family:DM Mono,monospace;font-size:9px;color:' + keyColor + ';text-transform:uppercase;letter-spacing:0.08em;min-width:40px;padding-top:2px;flex-shrink:0;">' + key + '</span>' +
+          '<span style="font-family:DM Mono,monospace;font-size:9px;color:' + keyColor + ';text-transform:uppercase;letter-spacing:0.08em;min-width:24px;padding-top:2px;flex-shrink:0;">' + key + '</span>' +
           '<span style="font-size:11px;color:' + valColor + ';line-height:1.5;">' + escHtml(val) + '</span>' +
           '</div>';
       }).join('');
