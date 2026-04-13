@@ -572,8 +572,8 @@ body {
 .navbar-logo {
   font-family: 'DM Sans', sans-serif;
   font-size: 18px;
-  font-weight: 900;
-  letter-spacing: 0.18em;
+  font-weight: 700;
+  letter-spacing: 0.02em;
   text-transform: uppercase;
   color: #111;
   line-height: 1;
@@ -771,6 +771,46 @@ body {
   flex-direction: column;
   justify-content: space-between;
 }
+.risk-members-section { background: #fff; padding: 0; }
+.risk-members-header { display: flex; justify-content: space-between; align-items: flex-end; padding: 14px 18px 12px; border-bottom: 1px solid rgba(0,0,0,0.1); margin-bottom: 0; }
+.risk-members-label { font-size: 10px; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(0,0,0,0.4); margin-bottom: 2px; }
+.risk-members-title { font-size: 12px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; color: #000; }
+.risk-member-row { display: block; border-bottom: 1px solid rgba(0,0,0,0.06); cursor: pointer; transition: background 0.15s; }
+.risk-member-row:last-child { border-bottom: none; }
+.risk-member-row:hover { background: #f5f3f3; }
+.risk-member-row.selected { background: #f5f3f3; outline: 1px solid rgba(0,0,0,0.15); }
+.risk-member-top { display: flex; align-items: center; gap: 10px; padding: 11px 18px; }
+.risk-member-name-block { width: 110px; flex-shrink: 0; }
+.risk-member-bar-section { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+.risk-member-bar-row { display: flex; align-items: center; gap: 6px; }
+.risk-member-bar-lbl { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.35); width: 28px; flex-shrink: 0; }
+.risk-member-bar-track { height: 3px; background: #f0f0f0; flex: 1; min-width: 0; overflow: hidden; }
+.risk-member-bar-fill { height: 100%; transition: width 0.4s ease; }
+.risk-member-bar-val { font-size: 11px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
+.risk-member-avatar { width: 30px; height: 30px; border-radius: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-right: 12px; }
+.risk-member-info { flex: 1; min-width: 0; }
+.risk-member-name { font-size: 13px; font-weight: 700; letter-spacing: -0.01em; text-transform: uppercase; color: #000; }
+.risk-member-dept { font-size: 10px; color: rgba(0,0,0,0.4); margin-top: 1px; }
+.risk-member-stats { display: flex; align-items: center; gap: 14px; flex-shrink: 0; margin-right: 10px; }
+.risk-member-stat { text-align: right; }
+.risk-member-stat-val { font-size: 13px; font-weight: 700; line-height: 1; }
+.risk-member-stat-label { font-size: 9px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 2px; }
+.risk-member-divider { width: 1px; height: 22px; background: rgba(0,0,0,0.08); }
+.risk-member-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 0; letter-spacing: 0.08em; text-transform: uppercase; }
+.risk-member-arrow { font-size: 13px; color: rgba(0,0,0,0.25); margin-left: 10px; flex-shrink: 0; }
+.risk-member-row:hover .risk-member-arrow,
+.risk-member-row.selected .risk-member-arrow { color: #000; }
+.risk-metric-row { margin-bottom: 12px; }
+.risk-metric-row:last-child { margin-bottom: 0; }
+.risk-metric-header { display: flex; justify-content: space-between; font-size: 10px; font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 5px; }
+.risk-gauge-bg { width: 100%; height: 3px; background: rgba(0,0,0,0.06); }
+.risk-gauge-fill { height: 3px; }
+.risk-task-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.risk-task-row:last-child { margin-bottom: 0; }
+.risk-task-left { display: flex; gap: 8px; flex: 1; min-width: 0; }
+.risk-task-num { font-size: 9px; font-weight: 900; color: rgba(0,0,0,0.2); flex-shrink: 0; padding-top: 2px; }
+.risk-task-name { font-size: 11px; font-weight: 500; letter-spacing: 0.02em; text-transform: uppercase; color: #000; line-height: 1.4; }
+.risk-task-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; flex-shrink: 0; letter-spacing: 0.06em; }
 .sum-card.clickable { cursor: pointer; }
 .sum-card.clickable:hover { background: #f7f5f2; }
 .sum-label {
@@ -811,6 +851,14 @@ body {
   height: 100px;
 }
 .risk-level-text { font-size: 1.5rem; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; }
+#risk-score-display {
+  font-family: 'DM Sans', sans-serif;
+  font-weight: 800;
+  font-size: 90px;
+  line-height: 1;
+  letter-spacing: -2px;
+  transition: color 0.4s ease;
+}
 .risk-sub { font-size: 10px; color: #aaa; margin-top: 6px; letter-spacing: 0.5px; }
 
 /* ── AI Strip ── */
@@ -828,8 +876,8 @@ body {
 /* ── AI Analysis Section ── */
 .ai-analysis-section {
   display: grid;
-  grid-template-columns: 1fr 260px;
-  gap: 16px;
+  grid-template-columns: 1fr minmax(220px, 28%);
+  gap: 0;
   margin: 0 16px 16px;
   align-items: stretch;
 }
@@ -1005,7 +1053,7 @@ body {
   padding: 20px;
   display: flex;
   flex-direction: column;
-  justify-content: space-between;
+  justify-content: flex-start;
 }
 .ai-label-mono {
   font-family: 'DM Mono', monospace;
@@ -1013,18 +1061,18 @@ body {
   letter-spacing: 0.15em;
   color: #555;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  margin-bottom: 10px;
 }
 .ai-card-headline {
   font-family: 'DM Sans', sans-serif;
-  font-size: 18px;
+  font-size: 15px;
   font-weight: 700;
   color: #fff;
-  line-height: 1.25;
-  letter-spacing: -0.02em;
-  margin-bottom: 12px;
+  line-height: 1.3;
+  letter-spacing: -0.01em;
+  margin-bottom: 14px;
   display: -webkit-box;
-  -webkit-line-clamp: 3;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
 }
@@ -1049,6 +1097,7 @@ body {
   text-transform: uppercase;
   cursor: pointer;
   width: 100%;
+  margin-top: auto;
 }
 .ai-card-dark {
   background: rgb(17,17,17);
@@ -1093,17 +1142,17 @@ body {
   background: #faf9f7;
 }
 .masonry-grid {
-  columns: 2;
-  column-gap: 24px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 320px 320px;
+  gap: 0;
 }
 .masonry-grid .card {
-  break-inside: avoid;
-  margin-bottom: 24px;
   height: 320px;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid #e8e6e2 !important;
-  border-bottom: 1px solid #e8e6e2 !important;
+  border-right: 1px solid #e8e6e2;
+  border-bottom: 1px solid #e8e6e2;
 }
 
 /* ── Cards ── */
@@ -1158,6 +1207,20 @@ body {
   vertical-align: middle;
 }
 .data-table tbody tr:last-child { border-bottom: none; }
+
+/* ── Card Issue Row (01/02 카드용) ── */
+.ci-row { padding: 10px 16px; border-bottom: 0.5px solid rgba(0,0,0,0.06); cursor: pointer; }
+.ci-row:last-child { border-bottom: none; }
+.ci-row:hover { background: rgba(0,0,0,0.02); }
+.ci-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
+.ci-num { font-size: 10px; color: rgba(0,0,0,0.3); font-weight: 400; }
+.ci-sep { font-size: 10px; color: rgba(0,0,0,0.15); }
+.ci-assignee { font-size: 10px; color: rgba(0,0,0,0.45); }
+.ci-group { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.4); }
+.ci-status { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 5px; background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.45); }
+.ci-bottom { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ci-title { font-size: 11px; font-weight: 700; color: #111; flex: 1; line-height: 1.4; }
+.ci-elapsed { font-size: 11px; font-weight: 700; white-space: nowrap; }
 .issue-id {
   font-size: 10px;
   color: #bbb;
@@ -1180,19 +1243,10 @@ body {
   letter-spacing: 1px;
   text-transform: uppercase;
 }
-.al-member { padding: 12px 0; border-top: 0.5px solid #e8e6e2; }
-.al-member:first-child { border-top: none; }
-.al-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
-.al-name { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #111; }
-.al-score { font-size: 26px; font-weight: 700; color: #111; line-height: 1; }
-.al-score.al-critical { color: #c0392b; }
-.al-score.al-zero { color: #ccc; }
-.al-track { height: 2px; background: #e8e6e2; width: 100%; margin-bottom: 6px; border-radius: 0; }
-.al-fill { height: 2px; background: #111; border-radius: 0; }
-.al-fill.al-critical { background: #c0392b; }
-.al-bottom { display: flex; justify-content: space-between; }
-.al-meta { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: #999; font-family: 'DM Mono', monospace; }
-.al-meta.al-critical { color: #c0392b; font-weight: 600; }
+.assignee-name { font-weight: 500; font-size: 11px; }
+.count-cell { font-size: 11px; text-align: right; }
+.overdue-count { color: #8b1a1a; font-weight: 600; }
+.zero-count { color: #ccc; }
 
 /* ── Version card ── */
 .ver-row {
@@ -1631,10 +1685,35 @@ body {
 
   <!-- 프로젝트 위험도 (3) -->
   <div class="sum-card" id="card-risk" style="background:#ffffff;border-right:1px solid rgba(207,196,197,0.3);">
-    <div class="sum-label">프로젝트 위험도</div>
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
-      <span id="risk-dot" style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#ccc;flex-shrink:0;"></span>
-      <span class="sum-value" id="risk-level-text" style="font-size:36px;color:#ccc;">—</span>
+    <div class="sum-label">CURRENT RISK INDEX / 위험 지수</div>
+    <div style="display:flex;align-items:flex-end;gap:16px;margin-bottom:10px;">
+      <div id="risk-score-wrap" style="position:relative;display:inline-block;cursor:help;">
+        <span id="risk-score-display" style="font-size:120px;font-weight:800;line-height:1;color:#ccc;letter-spacing:-2px;">—</span>
+        <div id="risk-tooltip" style="display:none;position:absolute;top:calc(100% + 8px);left:0;background:#111;color:#fff;font-size:11px;line-height:1.8;padding:14px 16px;white-space:nowrap;z-index:999;pointer-events:none;border-top:2px solid #e74c3c;">
+          <div style="font-weight:700;font-size:10px;letter-spacing:0.12em;color:#e74c3c;margin-bottom:8px;">RISK SCORE 산정 기준 · /100 환산</div>
+          <div style="display:flex;justify-content:space-between;gap:24px;margin-bottom:4px;">
+            <span style="color:#e74c3c;">마감 초과 비율 × 60</span>
+            <span style="color:#666;font-size:10px;">overdue / total × 60</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:24px;margin-bottom:4px;">
+            <span style="color:#fb923c;">마감 임박 비율 × 30</span>
+            <span style="color:#666;font-size:10px;">urgent / total × 30</span>
+          </div>
+          <div style="display:flex;justify-content:space-between;gap:24px;margin-bottom:10px;">
+            <span style="color:#aaa;">진행 대기 비율 × 10</span>
+            <span style="color:#666;font-size:10px;">pending / total × 10</span>
+          </div>
+          <div style="height:1px;background:#333;margin-bottom:8px;"></div>
+          <div style="color:#888;font-size:10px;">최대 원점수 60 → 100점 환산 표시</div>
+          <div style="color:#555;font-size:10px;">예) 원점수 30 → 표시 점수 50</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span id="risk-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;"></span>
+          <span class="sum-value" id="risk-level-text" style="font-size:13px;color:#ccc;font-weight:700;letter-spacing:0.08em;">—</span>
+        </div>
+      </div>
     </div>
     <div style="height:3px;background:#e5e5e5;margin-bottom:6px;">
       <div id="risk-gauge-fill" style="height:100%;width:0%;background:#ccc;transition:width 0.6s ease;"></div>
@@ -1645,14 +1724,7 @@ body {
       <span style="font-size:8px;color:#c0392b;letter-spacing:0.1em;">CRITICAL</span>
     </div>
     <div class="risk-sub" id="risk-sub">—</div>
-    <div id="risk-gauge-wrap" style="position:relative;">
-      <div id="risk-tooltip" style="display:none;position:absolute;bottom:calc(100% + 8px);left:0;background:#111;color:#fff;font-size:11px;line-height:1.7;padding:10px 14px;white-space:nowrap;z-index:999;pointer-events:none;">
-        <div style="font-weight:600;margin-bottom:4px;">점수 산정 기준</div>
-        <div>마감 초과 비율 × 60점</div>
-        <div>마감 임박 비율 × 30점</div>
-        <div>진행 대기 비율 × 10점</div>
-      </div>
-    </div>
+    <div id="risk-gauge-wrap" style="position:relative;"></div>
     <div style="height:0.5px;background:#e8e8e8;margin:8px 0;"></div>
     <div id="risk-ai-comment" style="font-size:11px;color:#111;font-weight:600;line-height:1.6;display:flex;gap:5px;align-items:flex-start;">
       <span style="color:#e74c3c;flex-shrink:0;">✦</span>
@@ -1661,12 +1733,59 @@ body {
     <div class="sum-hint" style="margin-top:6px;">위험경보 ↓</div>
   </div>
 
-  <!-- Risk Score Trend (7) -->
-  <div class="sum-card gray wide" style="background:#f5f3f3;">
-    <div class="sum-label">Risk Score Trend / 위험 지수 추이</div>
-    <svg id="spark-risk" viewBox="0 0 600 100" preserveAspectRatio="none">
-    </svg>
-    <div class="sum-delta"><span id="delta-risk" style="color:#e74c3c;"></span></div>
+  <!-- Risk Score Trends 막대 차트 -->
+  <div class="sum-card gray wide" style="background:#f5f3f3;padding:0;">
+    <div class="ai-chart-card" style="background:transparent;border:none;">
+      <div class="ai-chart-header">
+        <div class="ai-chart-title">RISK SCORE TRENDS / 위험 지수 추이</div>
+        <div class="ai-chart-header-right">
+          <div class="ai-legend">
+            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#ccc;"></div> LOW</div>
+            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#333;"></div> AVG</div>
+            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#c0392b;"></div> CRITICAL</div>
+          </div>
+          <button class="ai-gear-btn" id="riskGearBtn" onclick="toggleRiskSettings()">&#9881;</button>
+        </div>
+      </div>
+      <div class="ai-settings-panel" id="riskSettingsPanel">
+        <div class="ai-settings-label">Chart Settings</div>
+        <div class="ai-settings-row">
+          <label>주 시작 기준일</label>
+          <div class="ai-dow-btns" id="dowBtns">
+            <div class="ai-dow-btn" onclick="setDow(this,0)">월</div>
+            <div class="ai-dow-btn" onclick="setDow(this,1)">화</div>
+            <div class="ai-dow-btn" onclick="setDow(this,2)">수</div>
+            <div class="ai-dow-btn active" onclick="setDow(this,3)">목</div>
+            <div class="ai-dow-btn" onclick="setDow(this,4)">금</div>
+            <div class="ai-dow-btn" onclick="setDow(this,5)">토</div>
+            <div class="ai-dow-btn" onclick="setDow(this,6)">일</div>
+          </div>
+        </div>
+        <div class="ai-settings-row">
+          <label>표시 주수</label>
+          <div class="ai-dow-btns" id="weeksBtns">
+            <div class="ai-dow-btn" onclick="setWeeks(this,4)">4주</div>
+            <div class="ai-dow-btn active" onclick="setWeeks(this,8)">8주</div>
+            <div class="ai-dow-btn" onclick="setWeeks(this,12)">12주</div>
+          </div>
+        </div>
+        <button class="ai-settings-apply" onclick="applyRiskSettings()">Apply</button>
+      </div>
+      <div class="ai-chart-sub" id="riskChartSub">Weekly volatility · last 8 weeks</div>
+      <div class="ai-chart-area">
+        <div class="ai-gridlines">
+          <div class="ai-gridline"></div>
+          <div class="ai-gridline"></div>
+          <div class="ai-gridline"></div>
+          <div class="ai-gridline"></div>
+          <div class="ai-gridline"></div>
+        </div>
+        <div class="ai-bars" id="riskChartBars">
+          <div style="padding:20px;text-align:center;font-size:11px;color:#ccc;width:100%;">로딩 중...</div>
+        </div>
+      </div>
+      <div class="ai-bar-labels" id="riskChartLabels"></div>
+    </div>
   </div>
 
 </div>
@@ -1709,56 +1828,16 @@ body {
 </div>
 
 <div class="ai-analysis-section" id="sec-ai-summary">
-  <div class="ai-chart-card">
-    <div class="ai-chart-header">
-      <div class="ai-chart-title">RISK SCORE TRENDS / 위험 지수 추이</div>
-      <div class="ai-chart-header-right">
-        <div class="ai-legend">
-          <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#ccc;"></div> LOW</div>
-          <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#333;"></div> AVG</div>
-          <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#c0392b;"></div> CRITICAL</div>
-        </div>
-        <button class="ai-gear-btn" id="riskGearBtn" onclick="toggleRiskSettings()">&#9881;</button>
+  <!-- Risk-Heavy Members (왼쪽 컬럼) -->
+  <div class="risk-members-section" style="background:#fff;">
+    <div class="risk-members-header" style="padding:14px 18px 12px;">
+      <div>
+        <div class="risk-members-label">Risk Intelligence</div>
+        <div class="risk-members-title">Risk-Heavy Members / 위험 노출 담당자</div>
       </div>
+      <div onclick="goToTab('assignee')" style="font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(0,0,0,0.4);cursor:pointer;">View All ↓</div>
     </div>
-    <div class="ai-settings-panel" id="riskSettingsPanel">
-      <div class="ai-settings-label">Chart Settings</div>
-      <div class="ai-settings-row">
-        <label>주 시작 기준일</label>
-        <div class="ai-dow-btns" id="dowBtns">
-          <div class="ai-dow-btn" onclick="setDow(this,0)">월</div>
-          <div class="ai-dow-btn" onclick="setDow(this,1)">화</div>
-          <div class="ai-dow-btn" onclick="setDow(this,2)">수</div>
-          <div class="ai-dow-btn active" onclick="setDow(this,3)">목</div>
-          <div class="ai-dow-btn" onclick="setDow(this,4)">금</div>
-          <div class="ai-dow-btn" onclick="setDow(this,5)">토</div>
-          <div class="ai-dow-btn" onclick="setDow(this,6)">일</div>
-        </div>
-      </div>
-      <div class="ai-settings-row">
-        <label>표시 주수</label>
-        <div class="ai-dow-btns" id="weeksBtns">
-          <div class="ai-dow-btn" onclick="setWeeks(this,4)">4주</div>
-          <div class="ai-dow-btn active" onclick="setWeeks(this,8)">8주</div>
-          <div class="ai-dow-btn" onclick="setWeeks(this,12)">12주</div>
-        </div>
-      </div>
-      <button class="ai-settings-apply" onclick="applyRiskSettings()">Apply</button>
-    </div>
-    <div class="ai-chart-sub" id="riskChartSub">Weekly volatility · last 8 weeks</div>
-    <div class="ai-chart-area">
-      <div class="ai-gridlines">
-        <div class="ai-gridline"></div>
-        <div class="ai-gridline"></div>
-        <div class="ai-gridline"></div>
-        <div class="ai-gridline"></div>
-        <div class="ai-gridline"></div>
-      </div>
-      <div class="ai-bars" id="riskChartBars">
-        <div style="padding:20px;text-align:center;font-size:11px;color:#ccc;width:100%;">로딩 중...</div>
-      </div>
-    </div>
-    <div class="ai-bar-labels" id="riskChartLabels"></div>
+    <div id="risk-members-body"></div>
   </div>
   <div class="ai-card-dark">
     <div>
@@ -1774,65 +1853,56 @@ body {
 <div class="main-content">
   <div class="masonry-grid">
 
-    <!-- Card A: 마감 임박 -->
-    <div class="card" id="sec-imminent">
-      <div class="card-header">
-        <span>마감 임박</span>
-        <span class="card-header-sub" id="imminent-header-sub">D-3 이내 · 0건</span>
-      </div>
-      <div class="card-body">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>제목</th>
-              <th>D-Day</th>
-            </tr>
-          </thead>
-          <tbody id="imminent-tbody">
-            <tr class="loading-row"><td colspan="3"><span class="loading-spinner"></span></td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <!-- Card B: 담당자별 현황 -->
-    <div class="card" id="sec-assignee">
-      <div class="card-header">
-        <span>TEAM LOAD STATUS</span>
-        <span class="card-header-sub">초과 이슈 기준 · 초과순 정렬</span>
-      </div>
-      <div class="card-body" id="assignee-list">
-        <div class="loading-row"><span class="loading-spinner"></span></div>
-      </div>
-    </div>
-
-    <!-- Card C: 마감 초과 이슈 -->
+    <!-- Card 01: 마감 초과 이슈 -->
     <div class="card" id="sec-overdue">
       <div class="card-header">
-        <span>마감 초과 이슈</span>
+        <span>01 / Overdue Issues · 마감 초과 이슈</span>
         <span class="card-header-sub" id="overdue-header-sub">0건</span>
       </div>
       <div class="card-body">
+        <div id="overdue-tbody"></div>
+      </div>
+    </div>
+
+    <!-- Card 02: 마감 임박 -->
+    <div class="card" id="sec-imminent" style="background:#f5f3f3 !important;">
+      <div class="card-header">
+        <span>02 / Imminent Deadlines · 마감 임박</span>
+        <span class="card-header-sub" id="imminent-header-sub">D-3 이내 · 0건</span>
+      </div>
+      <div class="card-body">
+        <div id="imminent-tbody"></div>
+      </div>
+    </div>
+
+    <!-- Card 03: 담당자별 현황 -->
+    <div class="card" id="sec-assignee" style="background:#f5f3f3 !important;">
+      <div class="card-header">
+        <span>03 / Team Status · 담당자별 현황</span>
+        <span class="card-header-sub">초과 많은 순</span>
+      </div>
+      <div class="card-body">
         <table class="data-table">
           <thead>
             <tr>
-              <th>#</th>
-              <th>제목</th>
-              <th>경과</th>
+              <th>그룹</th>
+              <th>담당자</th>
+              <th style="text-align:right;">전체</th>
+              <th style="text-align:right;">오픈</th>
+              <th style="text-align:right;">초과</th>
             </tr>
           </thead>
-          <tbody id="overdue-tbody">
-            <tr class="loading-row"><td colspan="3"><span class="loading-spinner"></span></td></tr>
+          <tbody id="assignee-tbody">
+            <tr class="loading-row"><td colspan="5"><span class="loading-spinner"></span></td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- Card D: 버전/마일스톤 -->
-    <div class="card" id="sec-version" style="display:none;">
+    <!-- Card 04: 버전/마일스톤 -->
+    <div class="card" id="sec-version">
       <div class="card-header">
-        <span>버전 / 마일스톤</span>
+        <span>04 / Milestones · 버전 / 마일스톤</span>
         <span class="card-header-sub" id="version-project-name">—</span>
       </div>
       <div class="card-body" id="version-body">
@@ -2146,27 +2216,8 @@ function renderSummaryCards() {
   var d = allData;
   var trend = d.trend_7days || {};
 
-  // Risk Score Trend — spark-risk (전체 위험 추이)
-  var riskTrendData = trend.open || [];
-  if (riskTrendData.length < 2) riskTrendData = [0, 5, 10, 8, 15, 20, 18]; // 더미 라인
-  var sparkRiskSvg = document.getElementById('spark-risk');
-  if (sparkRiskSvg) {
-    var W = 600, H = 100;
-    var mn = Math.min.apply(null, riskTrendData);
-    var mx = Math.max.apply(null, riskTrendData);
-    var range = mx - mn || 1;
-    var pts = riskTrendData.map(function(v, i) {
-      var x = (i / (riskTrendData.length - 1)) * W;
-      var y = H - ((v - mn) / range) * (H - 10) - 5;
-      return x.toFixed(1) + ',' + y.toFixed(1);
-    }).join(' ');
-    sparkRiskSvg.innerHTML = '<polyline points="' + pts + '" fill="none" stroke="#e74c3c" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"/>';
-  }
-  var deltaRiskEl = document.getElementById('delta-risk');
-  if (deltaRiskEl) {
-    var dRisk = trend.delta_open || 0;
-    deltaRiskEl.textContent = dRisk === 0 ? '— 변동 없음' : (dRisk > 0 ? '+' + dRisk + ' 상승' : dRisk + ' 하락');
-  }
+  // Risk-Heavy Members Top3
+  renderRiskMembers(allData);
 
   // Card 1 — 전체 이슈
   var valTotalEl = document.getElementById('val-total');
@@ -2223,6 +2274,12 @@ function renderSummaryCards() {
     var rc = RISK_COLORS[topRisk.risk_level] || { dot: '#ccc', text: '#999' };
     if (dotEl) dotEl.style.background = rc.dot;
     if (levelEl) { levelEl.textContent = topRisk.risk_level; levelEl.style.color = rc.text; }
+    var scoreDisplayEl = document.getElementById('risk-score-display');
+    if (scoreDisplayEl) {
+      var normalizedScore = Math.min(Math.round(topRisk.risk_score * 100 / 60), 100);
+      scoreDisplayEl.textContent = normalizedScore;
+      scoreDisplayEl.style.color = rc.text;
+    }
     if (subEl) subEl.textContent = '';
     // 게이지 바
     var gaugeFill = document.getElementById('risk-gauge-fill');
@@ -2264,6 +2321,8 @@ function renderSummaryCards() {
   } else {
     if (dotEl) dotEl.style.background = '#34d399';
     if (levelEl) { levelEl.textContent = 'Low'; levelEl.style.color = '#16a34a'; }
+    var scoreDisplayEl = document.getElementById('risk-score-display');
+    if (scoreDisplayEl) { scoreDisplayEl.textContent = '0'; scoreDisplayEl.style.color = '#16a34a'; }
     if (subEl) subEl.textContent = '위험 프로젝트 없음';
     var gaugeFill = document.getElementById('risk-gauge-fill');
     if (gaugeFill) gaugeFill.style.width = '0%';
@@ -2274,11 +2333,11 @@ function renderSummaryCards() {
     var valRiskDetailEl = document.getElementById('val-risk-detail');
     if (valRiskDetailEl) valRiskDetailEl.textContent = '위험 프로젝트 없음';
   }
-  var gaugeWrap = document.getElementById('risk-gauge-wrap');
+  var scoreWrap = document.getElementById('risk-score-wrap');
   var tooltip = document.getElementById('risk-tooltip');
-  if (gaugeWrap && tooltip) {
-    gaugeWrap.addEventListener('mouseenter', function() { tooltip.style.display = 'block'; });
-    gaugeWrap.addEventListener('mouseleave', function() { tooltip.style.display = 'none'; });
+  if (scoreWrap && tooltip) {
+    scoreWrap.addEventListener('mouseenter', function() { tooltip.style.display = 'block'; });
+    scoreWrap.addEventListener('mouseleave', function() { tooltip.style.display = 'none'; });
   }
 
   // Update badges
@@ -2296,27 +2355,114 @@ function renderImminentCard() {
   var tbody = document.getElementById('imminent-tbody');
   document.getElementById('imminent-header-sub').textContent = 'D-3 이내 · ' + issues.length + '건';
 
+  var container = document.getElementById('imminent-tbody');
   if (issues.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="3">마감 임박 이슈 없음</td></tr>';
+    container.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#ccc;text-align:center;">마감 임박 이슈 없음</div>';
     return;
   }
 
-  tbody.innerHTML = issues.map(function(i) {
+  container.innerHTML = issues.map(function(i) {
     var color = ddayColor(i.due_date);
     var label = ddayLabel(i.due_date);
-    var meta = escHtml((i.assignee_short || i.assignee) + ' · ' + (i.dept || '') + ' · ' + i.status);
-    return '<tr onclick="openIssue(' + i.id + ')">' +
-      '<td class="issue-id"><a href="' + REDMINE_BASE + '/issues/' + i.id + '" target="_blank" class="issue-link" onclick="event.stopPropagation()">#' + i.id + '</a></td>' +
-      '<td>' +
-        '<div class="issue-subject">' + escHtml(i.subject) + '</div>' +
-        '<div class="issue-meta">' + meta + '</div>' +
-      '</td>' +
-      '<td><span class="dday-text" style="color:' + color + ';">' + label + '</span></td>' +
-      '</tr>';
+    var assigneeShort = i.assignee_short || i.assignee || '';
+    var dept = i.dept || '';
+    return '<div class="ci-row" onclick="openIssue(' + i.id + ')">' +
+      '<div class="ci-meta">' +
+        '<span class="ci-num">#' + i.id + '</span>' +
+        '<span class="ci-sep">·</span>' +
+        '<span class="ci-assignee">' + escHtml(assigneeShort) + '</span>' +
+        '<span class="ci-sep">·</span>' +
+        '<span class="ci-group">' + escHtml(dept) + '</span>' +
+        '<span class="ci-sep">·</span>' +
+        '<span class="ci-status">' + escHtml(i.status) + '</span>' +
+      '</div>' +
+      '<div class="ci-bottom">' +
+        '<span class="ci-title">' + escHtml(i.subject) + '</span>' +
+        '<span class="ci-elapsed" style="color:' + color + ';">' + label + '</span>' +
+      '</div>' +
+    '</div>';
   }).join('');
 }
 
 // ============================================================
+function getInitials(name) {
+  if (/[\uAC00-\uD7A3\u4E00-\u9FFF\u3040-\u30FF]/.test(name)) return name[0];
+  var words = name.trim().split(/\s+/).filter(function(w) { return /[a-zA-Z]/.test(w); });
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  var letters = name.replace(/[^a-zA-Z]/g, '');
+  return letters ? letters[0].toUpperCase() : name[0];
+}
+
+function renderRiskMembers(allData) {
+  var container = document.getElementById('risk-members-body');
+  if (!container) return;
+  var usersData = allData.users_data || {};
+  var todayStr = new Date().toISOString().slice(0,10);
+  var rows = [];
+  for (var uname in usersData) {
+    var ud = usersData[uname];
+    var issues = ud.issues || [];
+    var open = issues.filter(function(i) { return !CLOSED_SET_JS.has(i.status); });
+    var overdueIssues = open.filter(function(i) {
+      return i.due_date && i.due_date < todayStr && !HOLD_SET_JS.has(i.status);
+    });
+    if (overdueIssues.length === 0) continue;
+    var overdueRatio = open.length > 0 ? Math.round(overdueIssues.length / open.length * 100) : 0;
+    var level = overdueRatio >= 60 ? 'critical' : overdueRatio >= 30 ? 'high' : 'medium';
+    rows.push({
+      uname: uname, shortN: getShortName(uname), dept: getDept(uname),
+      open: open.length, overdue: overdueIssues.length,
+      overdueRatio: overdueRatio, level: level
+    });
+  }
+  rows.sort(function(a, b) { return b.overdueRatio - a.overdueRatio || b.open - a.open; });
+  var top3 = rows.slice(0, 3);
+  if (top3.length === 0) {
+    container.innerHTML = '<div style="padding:16px 18px;font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:0.1em;">초과 이슈 없음</div>';
+    return;
+  }
+  var LEVEL_COLOR       = { critical: '#c0392b', high: '#b45309', medium: '#555' };
+  var LEVEL_LABEL       = { critical: 'CRITICAL', high: 'HIGH', medium: 'MEDIUM' };
+  var LEVEL_BADGE_BG    = { critical: '#c0392b', high: '#000', medium: '#000' };
+  var LEVEL_BADGE_COLOR = { critical: '#fff',     high: '#fff', medium: '#fff' };
+  var maxOpen = Math.max.apply(null, top3.map(function(r) { return r.open; })) || 1;
+  container.innerHTML = top3.map(function(r) {
+    var color      = LEVEL_COLOR[r.level]       || '#555';
+    var label      = LEVEL_LABEL[r.level]       || 'MEDIUM';
+    var badgeBg    = LEVEL_BADGE_BG[r.level]   || '#000';
+    var badgeFg    = LEVEL_BADGE_COLOR[r.level] || '#fff';
+    var initials   = getInitials(r.shortN);
+    var odValColor = r.overdueRatio >= 60 ? '#c0392b' : r.overdueRatio >= 30 ? '#b45309' : '#2e7d32';
+    var openValColor = r.open > 5 ? '#b45309' : '#2e7d32';
+    var openPct    = Math.round(r.open / maxOpen * 100);
+    var barColor   = r.level === 'critical' ? '#c0392b' : r.level === 'high' ? '#b45309' : '#000';
+    return (
+      '<div class="risk-member-row" data-name="' + escHtml(r.shortN) + '" onclick="selectMemberFromCard(this)">' +
+        '<div class="risk-member-top">' +
+          '<div class="risk-member-avatar" style="background:' + badgeBg + ';color:' + badgeFg + ';">' + escHtml(initials) + '</div>' +
+          '<div class="risk-member-name-block">' +
+            '<div class="risk-member-name">' + escHtml(r.shortN) + '</div>' +
+            '<div class="risk-member-dept">' + escHtml(r.dept) + '</div>' +
+          '</div>' +
+          '<div class="risk-member-bar-section">' +
+            '<div class="risk-member-bar-row">' +
+              '<span class="risk-member-bar-lbl">OVR</span>' +
+              '<div class="risk-member-bar-track"><div class="risk-member-bar-fill" style="width:' + r.overdueRatio + '%;background:' + barColor + ';"></div></div>' +
+              '<span class="risk-member-bar-val" style="color:' + odValColor + ';">' + r.overdueRatio + '%</span>' +
+            '</div>' +
+            '<div class="risk-member-bar-row">' +
+              '<span class="risk-member-bar-lbl">OPN</span>' +
+              '<div class="risk-member-bar-track"><div class="risk-member-bar-fill" style="width:' + openPct + '%;background:#555;"></div></div>' +
+              '<span class="risk-member-bar-val" style="color:var(--color-text-primary);">' + r.open + '</span>' +
+            '</div>' +
+          '</div>' +
+          '<span class="risk-member-badge" style="background:' + badgeBg + ';color:' + badgeFg + ';width:64px;text-align:center;flex-shrink:0;">' + label + '</span>' +
+        '</div>' +
+      '</div>'
+    );
+  }).join('');
+}
+
 // Assignee Card
 // ============================================================
 function renderAssigneeCard() {
@@ -2327,44 +2473,30 @@ function renderAssigneeCard() {
   for (var uname in usersData) {
     var ud = usersData[uname];
     var issues = ud.issues || [];
+    var total = issues.length;
     var open = issues.filter(function(i) { return !CLOSED_SET_JS.has(i.status); }).length;
     var overdue = issues.filter(function(i) {
       return i.due_date && i.due_date < todayStr && !CLOSED_SET_JS.has(i.status) && !HOLD_SET_JS.has(i.status);
     }).length;
-    rows.push({ uname: uname, shortN: getShortName(uname), open: open, overdue: overdue });
+    var dept = getDept(uname);
+    var shortN = getShortName(uname);
+    rows.push({ uname: uname, shortN: shortN, dept: dept, total: total, open: open, overdue: overdue });
   }
-
-  // overdue 내림차순 정렬
   rows.sort(function(a, b) { return b.overdue - a.overdue || b.open - a.open; });
 
-  // Critical 임계값: 팀 평균 overdue 초과 시
-  var avg = rows.length > 0 ? rows.reduce(function(s, r) { return s + r.overdue; }, 0) / rows.length : 0;
-  var maxOverdue = rows.length > 0 ? rows[0].overdue : 1;
-
-  var container = document.getElementById('assignee-list');
+  var tbody = document.getElementById('assignee-tbody');
   if (rows.length === 0) {
-    container.innerHTML = '<div style="padding:16px;color:#999;font-size:11px;">데이터 없음</div>';
+    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">데이터 없음</td></tr>';
     return;
   }
-
-  container.innerHTML = rows.map(function(r) {
-    var isCritical = r.overdue > avg;
-    var barWidth = maxOverdue > 0 ? ((r.overdue / maxOverdue) * 100).toFixed(1) : 0;
-    var scoreClass = isCritical ? 'al-score al-critical' : (r.overdue === 0 ? 'al-score al-zero' : 'al-score');
-    var fillClass = isCritical ? 'al-fill al-critical' : 'al-fill';
-    var metaClass = isCritical ? 'al-meta al-critical' : 'al-meta';
-    var statusLabel = isCritical ? '⚠ CRITICAL OVERLOAD' : 'OPEN: ' + r.open;
-    return '<div class="al-member">' +
-      '<div class="al-top">' +
-        '<span class="al-name">' + escHtml(r.shortN) + '</span>' +
-        '<span class="' + scoreClass + '">' + r.overdue + '</span>' +
-      '</div>' +
-      '<div class="al-track"><div class="' + fillClass + '" style="width:' + barWidth + '%"></div></div>' +
-      '<div class="al-bottom">' +
-        '<span class="' + metaClass + '">' + statusLabel + '</span>' +
-        '<span class="' + metaClass + '">OVERDUE: ' + r.overdue + '</span>' +
-      '</div>' +
-    '</div>';
+  tbody.innerHTML = rows.map(function(r) {
+    return '<tr class="assignee-stat-row" onclick="selectAssigneeFromCard(this)" data-name="' + escHtml(r.shortN) + '" style="cursor:pointer;">' +
+      '<td>' + deptTag(r.dept) + '</td>' +
+      '<td class="assignee-name">' + escHtml(r.shortN) + '</td>' +
+      '<td class="count-cell">' + r.total + '</td>' +
+      '<td class="count-cell">' + r.open + '</td>' +
+      '<td class="count-cell ' + (r.overdue > 0 ? 'overdue-count' : 'zero-count') + '">' + r.overdue + '</td>' +
+      '</tr>';
   }).join('');
 }
 
@@ -2390,24 +2522,30 @@ function renderOverdueCard() {
 
   document.getElementById('overdue-header-sub').textContent = overdues.length + '건';
 
-  var tbody = document.getElementById('overdue-tbody');
+  var container = document.getElementById('overdue-tbody');
   if (overdues.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="3">마감 초과 이슈 없음</td></tr>';
+    container.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#ccc;text-align:center;">마감 초과 이슈 없음</div>';
     return;
   }
-  tbody.innerHTML = overdues.map(function(i) {
+  container.innerHTML = overdues.map(function(i) {
     var elapsedAbs = Math.abs(i.elapsed);
     var color = elapsedAbs > 7 ? '#c0392b' : '#b7770d';
     var label = 'D+' + elapsedAbs;
-    var meta = escHtml(i.assigneeShort + ' · ' + i.dept + ' · ' + i.status);
-    return '<tr onclick="openIssue(' + i.id + ')">' +
-      '<td class="issue-id"><a href="' + REDMINE_BASE + '/issues/' + i.id + '" target="_blank" class="issue-link" onclick="event.stopPropagation()">#' + i.id + '</a></td>' +
-      '<td>' +
-        '<div class="issue-subject">' + escHtml(i.subject) + '</div>' +
-        '<div class="issue-meta">' + meta + '</div>' +
-      '</td>' +
-      '<td><span class="elapsed-text" style="color:' + color + ';">' + label + '</span></td>' +
-      '</tr>';
+    return '<div class="ci-row" onclick="openIssue(' + i.id + ')">' +
+      '<div class="ci-meta">' +
+        '<span class="ci-num">#' + i.id + '</span>' +
+        '<span class="ci-sep">·</span>' +
+        '<span class="ci-assignee">' + escHtml(i.assigneeShort) + '</span>' +
+        '<span class="ci-sep">·</span>' +
+        '<span class="ci-group">' + escHtml(i.dept) + '</span>' +
+        '<span class="ci-sep">·</span>' +
+        '<span class="ci-status">' + escHtml(i.status) + '</span>' +
+      '</div>' +
+      '<div class="ci-bottom">' +
+        '<span class="ci-title">' + escHtml(i.subject) + '</span>' +
+        '<span class="ci-elapsed" style="color:' + color + ';">' + label + '</span>' +
+      '</div>' +
+    '</div>';
   }).join('');
 }
 
@@ -2498,12 +2636,11 @@ async function renderVersionCard() {
 
 // Tab Section
 // ============================================================
-function selectAssigneeFromCard(el) {
+function selectMemberFromCard(el) {
   var shortName = el.getAttribute('data-name');
-  document.querySelectorAll('.assignee-stat-row').forEach(function(row) {
-    row.style.backgroundColor = '';
+  document.querySelectorAll('.risk-member-row').forEach(function(row) {
+    row.classList.toggle('selected', row.getAttribute('data-name') === shortName);
   });
-  el.style.backgroundColor = '#f7f5f2';
   var searchEl = document.getElementById('tabAssigneeSearch');
   if (searchEl) searchEl.value = shortName;
   switchTab('assignee');
@@ -2981,14 +3118,16 @@ async function generateAiSummary() {
       if (headlineEl) headlineEl.textContent = lines[0] || '';
       var bodyLines = lines.slice(1);
       el.innerHTML = bodyLines.map(function(line) {
-        var isS1 = /^상황1?:/.test(line);
-        var isS2 = /^상황2:/.test(line);
-        var key = line.split(':')[0] + ':';
-        var val = line.slice(key.length).trim();
+        var isS1 = /^ST1?:/.test(line);
+        var isS2 = /^ST2:/.test(line);
+        var rawKey = line.split(':')[0];
+        var keyMap = {'상황1': 'ST1', '상황2': 'ST2', '상황': 'ST', '원인': 'CA', '대처': 'AC'};
+        var key = (keyMap[rawKey] || rawKey) + ':';
+        var val = line.slice(line.indexOf(':') + 1).trim();
         var keyColor = '#444';
         var valColor = isS1 ? '#e05a4e' : isS2 ? '#d4824a' : '#aaa';
         return '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:baseline;">' +
-          '<span style="font-family:DM Mono,monospace;font-size:9px;color:' + keyColor + ';text-transform:uppercase;letter-spacing:0.08em;min-width:24px;flex-shrink:0;">' + key + '</span>' +
+          '<span style="font-family:DM Mono,monospace;font-size:9px;color:' + keyColor + ';text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">' + key + '</span>' +
           '<span style="font-size:11px;color:' + valColor + ';line-height:1.5;">' + escHtml(val) + '</span>' +
           '</div>';
       }).join('');
@@ -3406,7 +3545,7 @@ async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026
     if not dashboard:
         dashboard = build_dashboard_data(project_id, updated_after)
     top_risk  = dashboard.get("project_risk", [])[:3]
-    top_names = ", ".join(f"{p['name']}({p['risk_level']}, score {p['risk_score']})" for p in top_risk) or "없음"
+    top_names = ", ".join(f"{p['name']}({p['risk_level']}, score {min(round(p['risk_score'] * 100 / 60), 100)})" for p in top_risk) or "없음"
     users_data = dashboard.get("users_data", {})
     top_user = max(
         users_data.items(),
@@ -3416,31 +3555,69 @@ async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026
         default=(None, None)
     )
     top_user_name = short_name(top_user[0]) if top_user[0] else "없음"
-    prompt = (
-        f"마크다운 문법 사용 금지. **굵게**, *기울임*, # 헤더 등 일절 사용하지 말것.\n"
-        f"첫 줄: 숫자+상태 조합 15자 이내 헤드라인. 프로젝트명 금지. 예: \"마감 초과 7건 Critical\", \"복합 위험 즉각 조치 필요\"\n"
-        f"본문에서도 프로젝트명 절대 언급 금지. 담당자명, 수치, 액션만 사용할 것.\n"
-        f"줄바꿈 후 본문 시작. 서두 문장 금지.\n"
-        f"\n"
-        f"위험 항목이 1개일 때 → 아래 3줄 형식 엄수:\n"
-        f"상황: [수치 포함 현재 상태]\n"
-        f"원인: [담당자 또는 원인]\n"
-        f"대처: [구체적 액션]\n"
-        f"\n"
-        f"위험 항목이 2개 이상일 때 → 아래 3줄 형식 엄수:\n"
-        f"상황1: [가장 심각한 위험 수치 포함]\n"
-        f"상황2: [두 번째 위험 수치 포함]\n"
-        f"대처: [통합 액션 권고]\n"
-        f"\n"
-        f"각 줄은 ~함. ~있음. ~필요. ~권고. 로 끝낼 것. 존댓말 금지. 4줄 이상 절대 금지.\n"
-        f"\n"
-        f"데이터:\n"
-        f"전체이슈: {dashboard.get('total_issues', 0)}, 오픈: {dashboard.get('open_issues', 0)}, "
-        f"마감초과: {dashboard.get('overdue', 0)}건\n"
-        f"프로젝트별 위험도: {top_names}\n"
-        f"가장 초과 많은 담당자: {top_user_name if top_user_name else '없음'}\n"
-        f"규칙: 마감초과가 0건이면 절대 위험하다고 쓰지 말 것. 오픈이슈가 0이면 모든 이슈가 완료된 상태임."
-    )
+    all_risk_list = dashboard.get("project_risk", [])
+    highest_risk = all_risk_list[0] if all_risk_list else None
+    lowest_risk  = all_risk_list[-1] if len(all_risk_list) > 1 else None
+    def norm(s): return min(round(s * 100 / 60), 100)
+    highest_str  = f"{highest_risk['name']}(score {norm(highest_risk['risk_score'])}, {highest_risk['risk_level']})" if highest_risk else "없음"
+    lowest_str   = f"{lowest_risk['name']}(score {norm(lowest_risk['risk_score'])}, {lowest_risk['risk_level']})" if lowest_risk else "없음"
+
+    if not project_id:
+        prompt = (
+            f"마크다운 문법 사용 금지. **굵게**, *기울임*, # 헤더 등 일절 사용하지 말것.\n"
+            f"첫 줄: 15자 이내 헤드라인. 숫자+상태 조합. 예: \"복합 위험 즉각 대응 필요\", \"Critical 1건 High 1건 점검\"\n"
+            f"줄바꿈 후 본문 시작. 서두 문장 금지.\n"
+            f"\n"
+            f"아래 4줄 형식 엄수:\n"
+            f"ST1: [위험도 최고 프로젝트명 + 수치 + 상태]\n"
+            f"ST2: [위험도 최저 프로젝트명 + 수치 또는 전체 특이사항]\n"
+            f"AC: [PM이 지금 당장 해야 할 조치]\n"
+            f"\n"
+            f"각 줄은 ~함. ~있음. ~필요. ~권고. 로 끝낼 것. 존댓말 금지. 4줄 이상 절대 금지.\n"
+            f"\n"
+            f"데이터:\n"
+            f"전체 프로젝트 수: {len(all_risk_list)}개 (이 중 위험군(Critical/High): {sum(1 for p in all_risk_list if p['risk_level'] in ['Critical','High'])}개, 정상(Medium/Low): {sum(1 for p in all_risk_list if p['risk_level'] in ['Medium','Low'])}개)\n"
+            f"전체이슈: {dashboard.get('total_issues', 0)}, 오픈: {dashboard.get('open_issues', 0)}, 마감초과: {dashboard.get('overdue', 0)}건\n"
+            f"위험도 최고: {highest_str}\n"
+            f"위험도 최저: {lowest_str}\n"
+            f"프로젝트별 위험도 전체: {top_names}\n"
+            f"규칙: 정상(Low/Medium) 프로젝트는 위험하다고 쓰지 말 것. ST/AC 포함 본문 최대 3줄 절대 엄수.\n"
+            f"가장 초과 많은 담당자: {top_user_name if top_user_name else '없음'}\n"
+            f"규칙: 마감초과가 0건이면 절대 위험하다고 쓰지 말 것.\n"
+            f"점수는 모두 100점 만점 기준임. PM, 매니저, 관리자 등 직군명 언급 금지. 담당자로만 표현할 것.\n"
+        )
+    else:
+        prompt = (
+            f"마크다운 문법 사용 금지. **굵게**, *기울임*, # 헤더 등 일절 사용하지 말것.\n"
+            f"첫 줄: 숫자+상태 조합 15자 이내 헤드라인. 프로젝트명 금지. 예: \"마감 초과 7건 Critical\", \"복합 위험 즉각 조치 필요\"\n"
+            f"줄바꿈 후 본문 시작. 서두 문장 금지.\n"
+            f"\n"
+            f"위험 항목이 1개일 때 → 아래 3줄 형식 엄수:\n"
+            f"ST: [수치 포함 현재 상태]\n"
+            f"CA: [담당자 또는 원인]\n"
+            f"AC: [구체적 액션]\n"
+            f"\n"
+            f"위험 항목이 2개 이상일 때 → 아래 3줄 형식 엄수:\n"
+            f"ST1: [가장 심각한 위험 수치 포함]\n"
+            f"ST2: [두 번째 위험 수치 포함]\n"
+            f"AC: [통합 액션 권고]\n"
+            f"\n"
+            f"각 줄은 ~함. ~있음. ~필요. ~권고. 로 끝낼 것. 존댓말 금지. 4줄 이상 절대 금지.\n"
+            f"\n"
+            f"데이터:\n"
+            f"전체이슈: {dashboard.get('total_issues', 0)}, 오픈: {dashboard.get('open_issues', 0)}, "
+            f"마감초과: {dashboard.get('overdue', 0)}건\n"
+            f"프로젝트별 위험도: {top_names}\n"
+            f"가장 초과 많은 담당자: {top_user_name if top_user_name else '없음'}\n"
+            f"규칙: 마감초과가 0건이면 절대 위험하다고 쓰지 말 것. 오픈이슈가 0이면 모든 이슈가 완료된 상태임.\n"
+            f"점수는 모두 100점 만점 기준임. PM, 매니저, 관리자 등 직군명 언급 금지. 담당자로만 표현할 것.\n"
+            f"\n"
+            f"마감초과 0건(정상 상태)일 때 → 아래 3줄 형식 엄수:\n"
+            f"ST: [오픈 이슈 수 및 현재 상태 요약]\n"
+            f"CA: [없음 또는 주요 담당자 현황]\n"
+            f"AC: [현행 유지 또는 모니터링 권고]\n"
+            f"본문에서도 프로젝트명 절대 언급 금지. 담당자명, 수치, 액션만 사용할 것.\n"
+        )
     try:
         summary = _call_claude(prompt, max_tokens=300)
         _set_ai_cache(cache_k, summary)
