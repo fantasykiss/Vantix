@@ -1180,10 +1180,19 @@ body {
   letter-spacing: 1px;
   text-transform: uppercase;
 }
-.assignee-name { font-weight: 500; font-size: 11px; }
-.count-cell { font-size: 11px; text-align: right; }
-.overdue-count { color: #8b1a1a; font-weight: 600; }
-.zero-count { color: #ccc; }
+.al-member { padding: 12px 0; border-top: 0.5px solid #e8e6e2; }
+.al-member:first-child { border-top: none; }
+.al-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 6px; }
+.al-name { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: #111; }
+.al-score { font-size: 26px; font-weight: 700; color: #111; line-height: 1; }
+.al-score.al-critical { color: #c0392b; }
+.al-score.al-zero { color: #ccc; }
+.al-track { height: 2px; background: #e8e6e2; width: 100%; margin-bottom: 6px; border-radius: 0; }
+.al-fill { height: 2px; background: #111; border-radius: 0; }
+.al-fill.al-critical { background: #c0392b; }
+.al-bottom { display: flex; justify-content: space-between; }
+.al-meta { font-size: 9px; letter-spacing: 0.06em; text-transform: uppercase; color: #999; font-family: 'DM Mono', monospace; }
+.al-meta.al-critical { color: #c0392b; font-weight: 600; }
 
 /* ── Version card ── */
 .ver-row {
@@ -1790,24 +1799,11 @@ body {
     <!-- Card B: 담당자별 현황 -->
     <div class="card" id="sec-assignee">
       <div class="card-header">
-        <span>담당자별 현황</span>
-        <span class="card-header-sub">초과 많은 순</span>
+        <span>TEAM LOAD STATUS</span>
+        <span class="card-header-sub">초과 이슈 기준 · 초과순 정렬</span>
       </div>
-      <div class="card-body">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>그룹</th>
-              <th>담당자</th>
-              <th style="text-align:right;">전체</th>
-              <th style="text-align:right;">오픈</th>
-              <th style="text-align:right;">초과</th>
-            </tr>
-          </thead>
-          <tbody id="assignee-tbody">
-            <tr class="loading-row"><td colspan="5"><span class="loading-spinner"></span></td></tr>
-          </tbody>
-        </table>
+      <div class="card-body" id="assignee-list">
+        <div class="loading-row"><span class="loading-spinner"></span></div>
       </div>
     </div>
 
@@ -2331,30 +2327,44 @@ function renderAssigneeCard() {
   for (var uname in usersData) {
     var ud = usersData[uname];
     var issues = ud.issues || [];
-    var total = issues.length;
     var open = issues.filter(function(i) { return !CLOSED_SET_JS.has(i.status); }).length;
     var overdue = issues.filter(function(i) {
       return i.due_date && i.due_date < todayStr && !CLOSED_SET_JS.has(i.status) && !HOLD_SET_JS.has(i.status);
     }).length;
-    var dept = getDept(uname);
-    var shortN = getShortName(uname);
-    rows.push({ uname: uname, shortN: shortN, dept: dept, total: total, open: open, overdue: overdue });
+    rows.push({ uname: uname, shortN: getShortName(uname), open: open, overdue: overdue });
   }
+
+  // overdue 내림차순 정렬
   rows.sort(function(a, b) { return b.overdue - a.overdue || b.open - a.open; });
 
-  var tbody = document.getElementById('assignee-tbody');
+  // Critical 임계값: 팀 평균 overdue 초과 시
+  var avg = rows.length > 0 ? rows.reduce(function(s, r) { return s + r.overdue; }, 0) / rows.length : 0;
+  var maxOverdue = rows.length > 0 ? rows[0].overdue : 1;
+
+  var container = document.getElementById('assignee-list');
   if (rows.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">데이터 없음</td></tr>';
+    container.innerHTML = '<div style="padding:16px;color:#999;font-size:11px;">데이터 없음</div>';
     return;
   }
-  tbody.innerHTML = rows.map(function(r) {
-    return '<tr class="assignee-stat-row" onclick="selectAssigneeFromCard(this)" data-name="' + escHtml(r.shortN) + '" style="cursor:pointer;">' +
-      '<td>' + deptTag(r.dept) + '</td>' +
-      '<td class="assignee-name">' + escHtml(r.shortN) + '</td>' +
-      '<td class="count-cell">' + r.total + '</td>' +
-      '<td class="count-cell">' + r.open + '</td>' +
-      '<td class="count-cell ' + (r.overdue > 0 ? 'overdue-count' : 'zero-count') + '">' + r.overdue + '</td>' +
-      '</tr>';
+
+  container.innerHTML = rows.map(function(r) {
+    var isCritical = r.overdue > avg;
+    var barWidth = maxOverdue > 0 ? ((r.overdue / maxOverdue) * 100).toFixed(1) : 0;
+    var scoreClass = isCritical ? 'al-score al-critical' : (r.overdue === 0 ? 'al-score al-zero' : 'al-score');
+    var fillClass = isCritical ? 'al-fill al-critical' : 'al-fill';
+    var metaClass = isCritical ? 'al-meta al-critical' : 'al-meta';
+    var statusLabel = isCritical ? '⚠ CRITICAL OVERLOAD' : 'OPEN: ' + r.open;
+    return '<div class="al-member">' +
+      '<div class="al-top">' +
+        '<span class="al-name">' + escHtml(r.shortN) + '</span>' +
+        '<span class="' + scoreClass + '">' + r.overdue + '</span>' +
+      '</div>' +
+      '<div class="al-track"><div class="' + fillClass + '" style="width:' + barWidth + '%"></div></div>' +
+      '<div class="al-bottom">' +
+        '<span class="' + metaClass + '">' + statusLabel + '</span>' +
+        '<span class="' + metaClass + '">OVERDUE: ' + r.overdue + '</span>' +
+      '</div>' +
+    '</div>';
   }).join('');
 }
 
