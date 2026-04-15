@@ -3,3 +3,4 @@ __pycache__/
 .env
 main_backup_*.py
 .DS_Store
+.claude/

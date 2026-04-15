@@ -1166,9 +1166,9 @@ body {
   flex-shrink: 0;
 }
 .card-header span:first-child {
-  font-size: 9px;
+  font-size: 10px;
   text-transform: uppercase;
-  letter-spacing: 0.2em;
+  letter-spacing: 0.12em;
   font-weight: 700;
   color: #111;
 }
@@ -1178,7 +1178,7 @@ body {
   font-weight: 400;
   letter-spacing: 0.5px;
 }
-.card-body { overflow-y: auto; flex: 1; scrollbar-width: thin; scrollbar-color: #ddd transparent; }
+.card-body { overflow-y: auto; flex: 1; min-height: 0; scrollbar-width: thin; scrollbar-color: #ddd transparent; }
 
 /* ── Tables ── */
 .data-table {
@@ -1244,26 +1244,35 @@ body {
   text-transform: uppercase;
 }
 .assignee-name { font-weight: 500; font-size: 11px; }
+.assignee-row { padding: 8px 16px 7px; border-bottom: 1px solid #f0eeea; }
+.assignee-row:last-child { border-bottom: none; }
+.assignee-row-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.assignee-row-name { font-size: 11px; font-weight: 700; color: #111; }
+.assignee-row-name span { font-weight: 300; color: #bbb; }
+.assignee-row-counts { font-size: 11px; color: #111; font-weight: 700; }
+.assignee-bar-track { height: 2px; background: #f0eeea; width: 100%; position: relative; margin-bottom: 4px; }
+.assignee-bar-fill { height: 2px; position: absolute; top: 0; left: 0; }
+.assignee-bar-normal { background: #111; }
+.assignee-bar-critical { background: #c0392b; }
+.assignee-row-meta { display: flex; justify-content: space-between; }
+.assignee-meta-l { font-size: 10px; color: #bbb; font-weight: 300; letter-spacing: 0.3px; }
+.assignee-meta-l.critical { color: #c0392b; font-weight: 400; }
+.assignee-meta-r { font-size: 10px; color: #bbb; font-weight: 300; letter-spacing: 0.3px; }
+.assignee-meta-r.urgent { color: #c0392b; font-weight: 400; }
 .count-cell { font-size: 11px; text-align: right; }
 .overdue-count { color: #8b1a1a; font-weight: 600; }
 .zero-count { color: #ccc; }
 
 /* ── Version card ── */
-.ver-row {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 8px 12px;
-  border-bottom: 1px solid #e8e6e2;
-  font-size: 11px;
-}
+.ver-row { display: flex; align-items: center; gap: 14px; padding: 11px 16px; border-bottom: 0.5px solid #e8e6e2; }
 .ver-row:last-child { border-bottom: none; }
-.ver-name { flex: 1; font-weight: 300; color: #111; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ver-due { font-size: 10px; white-space: nowrap; letter-spacing: 0.3px; }
-.ver-progress-wrap { display: flex; align-items: center; gap: 6px; }
-.ver-progress-bar { width: 100px; height: 4px; background: #d8d8d8; overflow: hidden; border-radius: 4px; }
-.ver-progress-fill { height: 100%; background: #1a6e3c; border-radius: 4px; transition: width 0.3s; }
-.ver-pct { font-size: 10px; color: #999; min-width: 36px; text-align: right; }
+.ver-pct-box { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; border: 0.5px solid #e8e6e2; flex-shrink: 0; line-height: 1; color: #111; }
+.ver-pct-box.danger { border-color: #c0392b; color: #c0392b; }
+.ver-pct-box.muted { color: #ccc; border-color: #e8e6e2; }
+.ver-info { flex: 1; min-width: 0; }
+.ver-name { font-size: 11px; font-weight: 700; color: #111; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ver-sub { font-size: 10px; font-weight: 300; color: #bbb; letter-spacing: 0.3px; }
+.ver-sub.danger { color: #c0392b; font-weight: 400; }
 
 /* ── AI Summary ── */
 .ai-card-label {
@@ -1832,7 +1841,6 @@ body {
   <div class="risk-members-section" style="background:#fff;">
     <div class="risk-members-header" style="padding:14px 18px 12px;">
       <div>
-        <div class="risk-members-label">Risk Intelligence</div>
         <div class="risk-members-title">Risk-Heavy Members / 위험 노출 담당자</div>
       </div>
       <div onclick="goToTab('assignee')" style="font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(0,0,0,0.4);cursor:pointer;">View All ↓</div>
@@ -1881,21 +1889,8 @@ body {
         <span>03 / Team Status · 담당자별 현황</span>
         <span class="card-header-sub">초과 많은 순</span>
       </div>
-      <div class="card-body">
-        <table class="data-table">
-          <thead>
-            <tr>
-              <th>그룹</th>
-              <th>담당자</th>
-              <th style="text-align:right;">전체</th>
-              <th style="text-align:right;">오픈</th>
-              <th style="text-align:right;">초과</th>
-            </tr>
-          </thead>
-          <tbody id="assignee-tbody">
-            <tr class="loading-row"><td colspan="5"><span class="loading-spinner"></span></td></tr>
-          </tbody>
-        </table>
+      <div class="card-body" style="padding:0;">
+        <div id="assignee-tbody"></div>
       </div>
     </div>
 
@@ -1905,7 +1900,7 @@ body {
         <span>04 / Milestones · 버전 / 마일스톤</span>
         <span class="card-header-sub" id="version-project-name">—</span>
       </div>
-      <div class="card-body" id="version-body">
+      <div class="card-body" id="version-body" style="overflow-y:auto; max-height:270px;">
         <div style="padding:16px;text-align:center;font-size:11px;color:#ccc;">로딩 중...</div>
       </div>
     </div>
@@ -2480,23 +2475,52 @@ function renderAssigneeCard() {
     }).length;
     var dept = getDept(uname);
     var shortN = getShortName(uname);
-    rows.push({ uname: uname, shortN: shortN, dept: dept, total: total, open: open, overdue: overdue });
+    rows.push({ name: shortN, group: dept, total: total, open: open, overdue: overdue });
   }
-  rows.sort(function(a, b) { return b.overdue - a.overdue || b.open - a.open; });
 
-  var tbody = document.getElementById('assignee-tbody');
-  if (rows.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="5">데이터 없음</td></tr>';
+  renderAssigneeRows(rows);
+}
+
+function renderAssigneeRows(data) {
+  const container = document.getElementById('assignee-tbody');
+  if (!data || data.length === 0) {
+    container.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#ccc;text-align:center;">담당자 데이터 없음</div>';
     return;
   }
-  tbody.innerHTML = rows.map(function(r) {
-    return '<tr class="assignee-stat-row" onclick="selectAssigneeFromCard(this)" data-name="' + escHtml(r.shortN) + '" style="cursor:pointer;">' +
-      '<td>' + deptTag(r.dept) + '</td>' +
-      '<td class="assignee-name">' + escHtml(r.shortN) + '</td>' +
-      '<td class="count-cell">' + r.total + '</td>' +
-      '<td class="count-cell">' + r.open + '</td>' +
-      '<td class="count-cell ' + (r.overdue > 0 ? 'overdue-count' : 'zero-count') + '">' + r.overdue + '</td>' +
-      '</tr>';
+
+  const sorted = [...data].sort((a, b) => (b.overdue || 0) - (a.overdue || 0));
+  const maxOverdue = sorted[0]?.overdue || 1;
+
+  container.innerHTML = sorted.map(row => {
+    const overdue = row.overdue || 0;
+    const total   = row.total   || 0;
+    const open    = row.open    || 0;
+    const group   = row.group ? `<span>(${row.group})</span>` : '';
+    const isCritical = overdue >= 3;
+    const barPct  = Math.min(Math.round((overdue / maxOverdue) * 100), 100);
+    const barClass = isCritical ? 'assignee-bar-critical' : 'assignee-bar-normal';
+
+    const metaL = isCritical
+      ? '<span class="assignee-meta-l critical">마감 초과 위험</span>'
+      : `<span class="assignee-meta-l">진행 ${String(open).padStart(2,'0')}건</span>`;
+    const metaR = isCritical
+      ? '<span class="assignee-meta-r urgent">즉시 조치 필요</span>'
+      : `<span class="assignee-meta-r">${overdue >= 1 ? '초과 있음' : '정상'}</span>`;
+    const overdueHtml = overdue > 0
+      ? `<span style="color:#c0392b;font-weight:500;">초과 ${overdue}</span>`
+      : `<span style="color:#999;">초과 0</span>`;
+
+    return `
+      <div class="assignee-row">
+        <div class="assignee-row-top">
+          <span class="assignee-row-name">${escHtml(row.name)} ${group}</span>
+          <span class="assignee-row-counts">전체 ${total} · 오픈 ${open} · ${overdueHtml}</span>
+        </div>
+        <div class="assignee-bar-track">
+          <div class="assignee-bar-fill ${barClass}" style="width:${barPct}%;"></div>
+        </div>
+        <div class="assignee-row-meta">${metaL}${metaR}</div>
+      </div>`;
   }).join('');
 }
 
@@ -2571,16 +2595,26 @@ async function renderVersionCard() {
       return;
     }
     body.innerHTML = versions.map(function(v) {
-      var ddColor = v.due_date ? ddayColor(v.due_date) : '#bbb';
-      var ddLbl = v.due_date ? ddayLabel(v.due_date) : '—';
+      var pct = v.done_pct || 0;
+      var hasDate = !!v.due_date;
+      var dday = hasDate ? ddayLabel(v.due_date) : '미정';
+      var isOverdue = hasDate && dday.startsWith('+');
+      var isDanger = isOverdue || (hasDate && parseInt(dday.replace('D-','')) <= 7);
+      var boxCls = pct === 0 ? 'ver-pct-box muted' : isDanger ? 'ver-pct-box danger' : 'ver-pct-box';
+      var subCls = isDanger ? 'ver-sub danger' : 'ver-sub';
+      var subTxt = isOverdue
+        ? 'D' + dday + ' · 마감 초과'
+        : hasDate
+          ? 'D-' + dday + ' · 진행 중'
+          : (pct === 0 ? '미정 · 미시작' : '미정 · 진행 중');
+
       return '<div class="ver-row">' +
-        '<div class="ver-name" title="' + escHtml(v.name) + '">' + escHtml(v.name) + '</div>' +
-        (v.due_date ? '<div class="ver-due" style="color:' + ddColor + ';">' + v.due_date + ' <span style="font-size:9px;">' + ddLbl + '</span></div>' : '') +
-        '<div class="ver-progress-wrap">' +
-          '<div class="ver-progress-bar"><div class="ver-progress-fill" style="width:' + v.done_pct + '%;"></div></div>' +
-          '<span class="ver-pct">' + v.done_pct + '%</span>' +
+        '<div class="' + boxCls + '">' + pct + '%</div>' +
+        '<div class="ver-info">' +
+          '<div class="ver-name">' + escHtml(v.name) + '</div>' +
+          '<div class="' + subCls + '">' + subTxt + '</div>' +
         '</div>' +
-        '</div>';
+      '</div>';
     }).join('');
   } catch(e) {
     body.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#c0392b;">로딩 실패</div>';
