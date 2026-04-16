@@ -1188,10 +1188,10 @@ body {
 .data-table thead th {
   font-size: 9px;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: 0.18em;
   color: #bbb;
-  font-weight: 400;
-  padding: 8px 12px;
+  font-weight: 500;
+  padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid #e8e6e2;
   white-space: nowrap;
@@ -1201,12 +1201,23 @@ body {
 }
 .data-table tbody tr:hover { background: #f7f5f2; }
 .tab-table tbody tr { border-left: 3px solid transparent; }
-.data-table tbody td {
-  font-size: 11px;
-  padding: 8px 12px;
-  vertical-align: middle;
-}
+.data-table tbody td { font-size: 11px; padding: 13px 12px; vertical-align: middle; }
 .data-table tbody tr:last-child { border-bottom: none; }
+.td-subject { font-size: 11px; font-weight: 700; color: #111; margin-bottom: 2px; }
+.td-project { font-size: 10px; color: #bbb; font-weight: 300; }
+.td-group-badge { display: inline-block; font-size: 9px; font-weight: 500; letter-spacing: 0.08em; padding: 2px 6px; border: 0.5px solid #ccc; color: #555; text-transform: uppercase; }
+.status-badge { display: inline-block; font-size: 9px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border: 1px solid #111; color: #111; }
+.status-badge.wait { border-color: #b7770d; color: #b7770d; }
+.status-badge.done { border-color: #bbb; color: #bbb; }
+.td-priority { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.08em; }
+.td-priority.high { color: #c0392b; font-weight: 500; }
+.dday-wrap { position: relative; display: inline-block; }
+.td-dday { font-size: 16px; font-weight: 700; cursor: default; }
+.td-dday.red { color: #c0392b; }
+.td-dday.orange { color: #b7770d; }
+.td-dday.gray { color: #bbb; }
+.dday-tooltip { display: none; position: absolute; right: 0; top: -28px; background: #111; color: #fff; font-size: 10px; padding: 4px 8px; white-space: nowrap; pointer-events: none; z-index: 10; }
+.dday-wrap:hover .dday-tooltip { display: block; }
 
 /* ── Card Issue Row (01/02 카드용) ── */
 .ci-row { padding: 10px 16px; border-bottom: 0.5px solid rgba(0,0,0,0.06); cursor: pointer; }
@@ -1264,15 +1275,16 @@ body {
 .zero-count { color: #ccc; }
 
 /* ── Version card ── */
-.ver-row { display: flex; align-items: center; gap: 14px; padding: 11px 16px; border-bottom: 0.5px solid #e8e6e2; }
+.ver-row { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 0.5px solid #e8e6e2; }
 .ver-row:last-child { border-bottom: none; }
-.ver-pct-box { width: 52px; height: 52px; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; border: 0.5px solid #e8e6e2; flex-shrink: 0; line-height: 1; color: #111; }
+.ver-pct-box { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; border: 3px solid #999; flex-shrink: 0; }
 .ver-pct-box.danger { border-color: #c0392b; color: #c0392b; }
-.ver-pct-box.muted { color: #ccc; border-color: #e8e6e2; }
-.ver-info { flex: 1; min-width: 0; }
-.ver-name { font-size: 11px; font-weight: 700; color: #111; margin-bottom: 3px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ver-sub { font-size: 10px; font-weight: 300; color: #bbb; letter-spacing: 0.3px; }
-.ver-sub.danger { color: #c0392b; font-weight: 400; }
+.ver-pct-box.muted { border-color: #ddd; color: #ccc; }
+.ver-name { font-size: 11px; font-weight: 700; color: #111; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ver-dday { font-size: 11px; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
+.ver-dday.red { color: #c0392b; }
+.ver-dday.blue { color: #2471a3; }
+.ver-dday.muted { color: #ccc; font-weight: 300; }
 
 /* ── AI Summary ── */
 .ai-card-label {
@@ -1295,56 +1307,26 @@ body {
   padding: 12px 16px 0;
   overflow-x: auto;
 }
-.tab-pill-wrapper {
-  position: relative;
-  display: inline-flex;
-  border: 1px solid #ddd;
-  border-radius: 12px;
-  padding: 3px;
-  gap: 0;
-}
-.tab-hover-pill, .tab-active-pill {
-  position: absolute;
-  top: 3px;
-  height: calc(100% - 6px);
-  border-radius: 9px;
-  pointer-events: none;
-  transition: left 0.22s cubic-bezier(0.4,0,0.2,1),
-              width 0.22s cubic-bezier(0.4,0,0.2,1),
-              opacity 0.15s ease;
-}
-.tab-hover-pill {
-  background: rgba(0,0,0,0.06);
-  opacity: 0;
-  z-index: 1;
-}
-.tab-active-pill {
-  background: #fff;
-  border: 1.5px solid #bbb;
-  z-index: 2;
-}
 .tab-item {
-  position: relative;
-  z-index: 3;
-  padding: 7px 16px;
+  padding: 12px 16px;
   font-size: 9px;
+  font-weight: 400;
+  letter-spacing: 0.18em;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  color: #bbb;
   cursor: pointer;
-  color: #888;
+  border-bottom: 2px solid transparent;
   white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 6px;
-  font-weight: 300;
+  margin-bottom: -1px;
   user-select: none;
-  border-radius: 9px;
-  border: none;
   background: transparent;
-  transition: color 0.15s ease;
+  transition: color 0.15s;
 }
-.tab-item:hover { color: #333; }
-.tab-item.active { color: #111; font-weight: 600; }
+.tab-item:hover { color: #555; }
+.tab-item.active { color: #111; font-weight: 600; border-bottom: 2px solid #111; }
 .tab-badge {
   font-size: 9px;
   padding: 1px 5px;
@@ -1353,41 +1335,43 @@ body {
 .tab-badge.red { color: #8b1a1a; }
 .tab-badge.blue { color: #2563eb; }
 .tab-filters {
-  padding: 10px 16px;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   border-bottom: 1px solid #e8e6e2;
+  border-top: none;
+}
+.tab-filter-cell {
+  padding: 10px 14px;
+  border-right: 1px solid #e8e6e2;
   display: flex;
-  gap: 8px;
-  align-items: center;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 4px;
 }
-.tab-filters select {
-  font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+.tab-filter-cell:last-child { border-right: none; }
+.tab-filter-label {
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: #bbb;
+}
+.tab-filter-cell input,
+.tab-filter-cell select {
   font-size: 11px;
-  padding: 4px 28px 4px 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 0;
-  background: #fff url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 9px center;
-  color: #111;
+  border: none;
   outline: none;
-  cursor: pointer;
+  background: transparent;
+  color: #111;
+  padding: 0;
   -webkit-appearance: none;
-  -moz-appearance: none;
   appearance: none;
+  cursor: pointer;
+  width: 100%;
 }
-.tab-filters input {
-  font-family: 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  font-size: 11px;
-  padding: 4px 8px;
-  border: 1px solid #e0e0e0;
-  border-radius: 0;
-  background: #fff;
-  color: #111;
-  outline: none;
-}
-.tab-filters input::placeholder { color: #ccc; }
-.tab-filters select:focus,
-.tab-filters input:focus { border-color: #111; }
-.tab-count { font-size: 10px; color: #bbb; margin-left: auto; letter-spacing: 0.5px; }
+.tab-filter-cell input::placeholder { color: #bbb; font-size: 11px; }
+.tab-filter-cell input:focus,
+.tab-filter-cell select:focus { color: #111; }
+.tab-count { font-size: 10px; color: #bbb; padding: 10px 16px; border-bottom: 1px solid #e8e6e2; text-align: right; letter-spacing: 0.5px; }
 .tab-content { overflow-x: auto; }
 .tab-table tbody tr { cursor: pointer; }
 
@@ -1911,32 +1895,45 @@ body {
 <!-- Bottom Tab Section -->
 <div class="bottom-section">
   <div class="tab-bar">
-    <div class="tab-pill-wrapper" id="tabPillWrapper">
-      <div class="tab-hover-pill" id="tabHoverPill"></div>
-      <div class="tab-active-pill" id="tabActivePill"></div>
-      <div class="tab-item active" data-tab="imminent" onclick="switchTab('imminent')">
-        마감 임박 <span class="tab-badge blue" id="badge-imminent">0</span>
-      </div>
-      <div class="tab-item" data-tab="overdue" onclick="switchTab('overdue')">
-        마감 초과 <span class="tab-badge red" id="badge-overdue">0</span>
-      </div>
-      <div class="tab-item" data-tab="assignee" onclick="switchTab('assignee')">담당자별</div>
-      <div class="tab-item" data-tab="all" onclick="switchTab('all')">전체 이슈</div>
+    <div class="tab-item active" data-tab="imminent" onclick="switchTab('imminent')">
+      마감 임박 <span class="tab-badge blue" id="badge-imminent">0</span>
     </div>
+    <div class="tab-item" data-tab="overdue" onclick="switchTab('overdue')">
+      마감 초과 <span class="tab-badge red" id="badge-overdue">0</span>
+    </div>
+    <div class="tab-item" data-tab="assignee" onclick="switchTab('assignee')">담당자별</div>
+    <div class="tab-item" data-tab="all" onclick="switchTab('all')">전체 이슈</div>
   </div>
   <div class="tab-filters">
-    <select id="tabGroupFilter" onchange="renderTab()">
-      <option value="">전체 그룹</option>
-    </select>
-    <input type="text" id="tabAssigneeSearch" placeholder="담당자 검색..." oninput="renderTab()">
-    <select id="tabStatusFilter" onchange="renderTab()">
-      <option value="">전체 상태</option>
-    </select>
-    <select id="tabSortFilter" onchange="renderTab()">
-      <option value="due">마감일순</option>
-      <option value="elapsed">D+N순</option>
-      <option value="assignee">담당자순</option>
-    </select>
+    <div class="tab-filter-cell">
+      <span class="tab-filter-label">Keyword 검색</span>
+      <input type="text" id="tabKeywordSearch" placeholder="ISSUE NAME OR ID" oninput="renderTab()">
+    </div>
+    <div class="tab-filter-cell">
+      <span class="tab-filter-label">Priority 우선순위</span>
+      <select id="tabPriorityFilter" onchange="renderTab()">
+        <option value="">ALL PRIORITIES</option>
+        <option value="High">HIGH</option>
+        <option value="Normal">NORMAL</option>
+        <option value="Low">LOW</option>
+      </select>
+    </div>
+    <div class="tab-filter-cell">
+      <span class="tab-filter-label">Assignee 담당자</span>
+      <select id="tabAssigneeFilter" onchange="renderTab()">
+        <option value="">EVERYONE</option>
+      </select>
+    </div>
+    <div class="tab-filter-cell">
+      <span class="tab-filter-label">Status 상태</span>
+      <select id="tabStatusFilter" onchange="renderTab()">
+        <option value="">OPEN ISSUES</option>
+        <option value="all">ALL</option>
+        <option value="closed">CLOSED</option>
+      </select>
+    </div>
+  </div>
+  <div style="text-align:right;padding:6px 16px;border-bottom:1px solid #e8e6e2;">
     <span class="tab-count" id="tabCount">0건</span>
   </div>
   <div class="tab-content">
@@ -1944,13 +1941,13 @@ body {
     <table class="data-table tab-table">
       <thead>
         <tr>
-          <th>#</th>
-          <th>제목</th>
+          <th>ID</th>
+          <th>SUBJECT 이슈 제목</th>
           <th>그룹</th>
           <th>담당자</th>
           <th>상태</th>
-          <th>마감일</th>
-          <th>경과</th>
+          <th>PRIORITY</th>
+          <th style="text-align:right;">D-DAY</th>
         </tr>
       </thead>
       <tbody id="tab-tbody">
@@ -2597,23 +2594,26 @@ async function renderVersionCard() {
     body.innerHTML = versions.map(function(v) {
       var pct = v.done_pct || 0;
       var hasDate = !!v.due_date;
-      var dday = hasDate ? ddayLabel(v.due_date) : '미정';
-      var isOverdue = hasDate && dday.startsWith('+');
-      var isDanger = isOverdue || (hasDate && parseInt(dday.replace('D-','')) <= 7);
-      var boxCls = pct === 0 ? 'ver-pct-box muted' : isDanger ? 'ver-pct-box danger' : 'ver-pct-box';
-      var subCls = isDanger ? 'ver-sub danger' : 'ver-sub';
-      var subTxt = isOverdue
-        ? 'D' + dday + ' · 마감 초과'
-        : hasDate
-          ? 'D-' + dday + ' · 진행 중'
-          : (pct === 0 ? '미정 · 미시작' : '미정 · 진행 중');
+      var raw = hasDate ? ddayLabel(v.due_date) : null;
+      var isOverdue = raw && raw.toString().startsWith('D+');
+      var dNum = raw ? parseInt(raw.toString().replace(/[^0-9]/g, '')) : null;
+      var isImminent = !isOverdue && dNum !== null && dNum <= 10;
+
+      var boxCls = isOverdue ? 'ver-pct-box danger' : pct === 0 ? 'ver-pct-box muted' : 'ver-pct-box';
+      var ddayCls = (isOverdue || isImminent) ? 'ver-dday red' : hasDate ? 'ver-dday blue' : 'ver-dday muted';
+
+      var ddayTxt = isOverdue
+        ? 'D+' + dNum + ' 마감 초과'
+        : isImminent
+          ? 'D-' + dNum + ' 마감 임박'
+          : hasDate
+            ? 'D-' + dNum + ' 진행 중'
+            : '미정 · 미시작';
 
       return '<div class="ver-row">' +
         '<div class="' + boxCls + '">' + pct + '%</div>' +
-        '<div class="ver-info">' +
-          '<div class="ver-name">' + escHtml(v.name) + '</div>' +
-          '<div class="' + subCls + '">' + subTxt + '</div>' +
-        '</div>' +
+        '<span class="ver-name">' + escHtml(v.name) + '</span>' +
+        '<span class="' + ddayCls + '">' + ddayTxt + '</span>' +
       '</div>';
     }).join('');
   } catch(e) {
@@ -2623,50 +2623,6 @@ async function renderVersionCard() {
 
 // ============================================================
 // ── Sliding Pill Tab ──
-(function() {
-  function initPill() {
-    var wrapper = document.getElementById('tabPillWrapper');
-    var hoverPill = document.getElementById('tabHoverPill');
-    var activePill = document.getElementById('tabActivePill');
-    if (!wrapper) return;
-
-    function coords(el) {
-      var wr = wrapper.getBoundingClientRect();
-      var er = el.getBoundingClientRect();
-      return { left: er.left - wr.left - 3, width: er.width };
-    }
-
-    function setActivePill(el) {
-      var c = coords(el);
-      activePill.style.left = c.left + 'px';
-      activePill.style.width = c.width + 'px';
-    }
-
-    var tabs = wrapper.querySelectorAll('.tab-item');
-    var activeEl = wrapper.querySelector('.tab-item.active') || tabs[0];
-    setActivePill(activeEl);
-
-    tabs.forEach(function(tab) {
-      tab.addEventListener('mouseenter', function() {
-        if (tab === activeEl) { hoverPill.style.opacity = '0'; return; }
-        var c = coords(tab);
-        hoverPill.style.left = c.left + 'px';
-        hoverPill.style.width = c.width + 'px';
-        hoverPill.style.opacity = '1';
-      });
-    });
-
-    wrapper.addEventListener('mouseleave', function() {
-      hoverPill.style.opacity = '0';
-    });
-
-    window._pillSyncTab = function(tabName) {
-      var el = wrapper.querySelector('[data-tab="' + tabName + '"]');
-      if (el) { activeEl = el; setActivePill(el); hoverPill.style.opacity = '0'; }
-    };
-  }
-  document.addEventListener('DOMContentLoaded', initPill);
-})();
 
 // Tab Section
 // ============================================================
@@ -2687,11 +2643,8 @@ function switchTab(tab) {
   document.querySelectorAll('.tab-item').forEach(function(el) {
     el.classList.toggle('active', el.dataset.tab === tab);
   });
-  if (window._pillSyncTab) window._pillSyncTab(tab);
-  // 담당자별 탭이 아닌 탭으로 전환 시 담당자 필터 초기화
+// 담당자별 탭이 아닌 탭으로 전환 시 담당자 필터 초기화
   if (tab !== 'assignee') {
-    var searchEl = document.getElementById('tabAssigneeSearch');
-    if (searchEl) searchEl.value = '';
     document.querySelectorAll('.assignee-stat-row').forEach(function(row) {
       row.style.backgroundColor = '';
     });
@@ -2703,32 +2656,19 @@ function populateTabFilters() {
   if (!allData) return;
   var usersData = allData.users_data || {};
 
-  var depts = new Set();
-  var statuses = new Set();
-  for (var uname in usersData) {
-    depts.add(getDept(uname));
-    (usersData[uname].issues || []).forEach(function(i) { statuses.add(i.status); });
+  var assigneeSel = document.getElementById('tabAssigneeFilter');
+  if (assigneeSel) {
+    var curAssignee = assigneeSel.value;
+    assigneeSel.innerHTML = '<option value="">EVERYONE</option>';
+    var names = Object.keys(usersData).sort();
+    names.forEach(function(uname) {
+      var opt = document.createElement('option');
+      opt.value = uname;
+      opt.textContent = getShortName(uname);
+      assigneeSel.appendChild(opt);
+    });
+    if (curAssignee) assigneeSel.value = curAssignee;
   }
-
-  var groupSel = document.getElementById('tabGroupFilter');
-  var curGroup = groupSel.value;
-  groupSel.innerHTML = '<option value="">전체 그룹</option>';
-  Array.from(depts).sort().forEach(function(d) {
-    var opt = document.createElement('option');
-    opt.value = d; opt.textContent = d;
-    groupSel.appendChild(opt);
-  });
-  if (curGroup) groupSel.value = curGroup;
-
-  var statusSel = document.getElementById('tabStatusFilter');
-  var curStatus = statusSel.value;
-  statusSel.innerHTML = '<option value="">전체 상태</option>';
-  Array.from(statuses).sort().forEach(function(s) {
-    var opt = document.createElement('option');
-    opt.value = s; opt.textContent = s;
-    statusSel.appendChild(opt);
-  });
-  if (curStatus) statusSel.value = curStatus;
 }
 
 function getTabIssues() {
@@ -2765,25 +2705,36 @@ function getTabIssues() {
   // 'assignee' and 'all' keep all issues
 
   // Apply user filters
-  var groupF = document.getElementById('tabGroupFilter').value;
-  var assigneeF = document.getElementById('tabAssigneeSearch').value.trim().toLowerCase();
-  var statusF = document.getElementById('tabStatusFilter').value;
-  var sortF = document.getElementById('tabSortFilter').value;
+  var keywordF = (document.getElementById('tabKeywordSearch') || {}).value || '';
+  keywordF = keywordF.trim().toLowerCase();
+  var priorityF = (document.getElementById('tabPriorityFilter') || {}).value || '';
+  var assigneeF = (document.getElementById('tabAssigneeFilter') || {}).value || '';
+  var statusF = (document.getElementById('tabStatusFilter') || {}).value || '';
 
-  if (groupF) issues = issues.filter(function(i) { return i._dept === groupF; });
-  if (assigneeF) issues = issues.filter(function(i) {
-    return i._short.toLowerCase().includes(assigneeF) || i._uname.toLowerCase().includes(assigneeF);
+  if (keywordF) issues = issues.filter(function(i) {
+    return String(i.id).includes(keywordF) || i.subject.toLowerCase().includes(keywordF);
   });
-  if (statusF) issues = issues.filter(function(i) { return i.status === statusF; });
-
-  // Sort
-  if (sortF === 'due') {
-    issues.sort(function(a, b) { return (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1; });
-  } else if (sortF === 'elapsed') {
-    issues.sort(function(a, b) { return (a._elapsed !== null ? a._elapsed : 9999) - (b._elapsed !== null ? b._elapsed : 9999); });
-  } else if (sortF === 'assignee') {
-    issues.sort(function(a, b) { return a._uname.localeCompare(b._uname); });
+  if (priorityF) issues = issues.filter(function(i) {
+    var p = i.priority || '';
+    if (priorityF === 'High') return p === 'High' || p === '높음';
+    if (priorityF === 'Normal') return p === 'Normal' || p === '보통';
+    if (priorityF === 'Low') return p === 'Low' || p === '낮음';
+    return true;
+  });
+  if (assigneeF) issues = issues.filter(function(i) { return i._uname === assigneeF; });
+  if (statusF === 'closed') {
+    issues = issues.filter(function(i) { return CLOSED_SET_JS.has(i.status) || HOLD_SET_JS.has(i.status); });
+  } else if (statusF === 'all') {
+    // no additional filter
+  } else {
+    // default: open issues only (exclude closed/hold) — but only for 'all' tab; other tabs already filtered
+    if (currentTab === 'all') {
+      issues = issues.filter(function(i) { return !CLOSED_SET_JS.has(i.status) && !HOLD_SET_JS.has(i.status); });
+    }
   }
+
+  // Sort by due date ascending by default
+  issues.sort(function(a, b) { return (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1; });
 
   return issues;
 }
@@ -2843,19 +2794,18 @@ function renderTab() {
 
   tbody.innerHTML = issues.map(function(i) {
     var isOverdue = i.due_date && i.due_date < todayStr && !CLOSED_SET_JS.has(i.status) && !HOLD_SET_JS.has(i.status);
-    var elapsed, elapsedColor;
+    var elapsed, elapsedColor, elapsedCls;
     if (i._elapsed !== null) {
       if (i._elapsed < 0) {
-        elapsed = 'D+' + Math.abs(i._elapsed);
-        elapsedColor = isOverdue ? (Math.abs(i._elapsed) > 7 ? '#c0392b' : '#b7770d') : '#c0392b';
+        elapsed = '+' + Math.abs(i._elapsed);
+        elapsedCls = Math.abs(i._elapsed) > 7 ? 'red' : 'orange';
       } else {
-        elapsed = ddayLabel(i.due_date);
-        elapsedColor = ddayColor(i.due_date);
+        var d = i._elapsed;
+        elapsed = d <= 0 ? 'D-Day' : 'D-' + d;
+        elapsedCls = d <= 3 ? 'red' : d <= 10 ? 'orange' : 'gray';
       }
-    } else {
-      elapsed = '—';
-      elapsedColor = '#bbb';
-    }
+    } else { elapsed = '—'; elapsedCls = 'gray'; }
+
     if (!window._deptColorMap) window._deptColorMap = {};
     if (!window._deptColorIndex) window._deptColorIndex = 0;
     var _palette = ['#f59e0b','#2563eb','#e11d48','#16a34a','#7c3aed','#111111','#0891b2','#f97316'];
@@ -2863,19 +2813,28 @@ function renderTab() {
       window._deptColorMap[i._dept] = _palette[window._deptColorIndex % _palette.length];
       window._deptColorIndex++;
     }
-    var rowDeptColor = (i._dept && window._deptColorMap[i._dept]) || '#aaa';
+    var rowDeptColor = (i._dept && window._deptColorMap[i._dept]) || '#ccc';
+    var statusCls = CLOSED_SET_JS.has(i.status) ? 'done' : HOLD_SET_JS.has(i.status) ? 'wait' : '';
+    var priorityCls = (i.priority === 'High' || i.priority === '높음') ? 'high' : '';
+    var priorityTxt = (i.priority === 'High' || i.priority === '높음') ? 'HIGH'
+      : (i.priority === 'Low' || i.priority === '낙음') ? 'LOW' : 'NORMAL';
+    var dueTip = i.due_date ? '마감 ' + i.due_date : '마감일 없음';
+
     return '<tr onclick="openIssue(' + i.id + ')" style="border-left:3px solid ' + rowDeptColor + ';">' +
-      '<td class="issue-id">#' + i.id + '</td>' +
-      '<td>' +
-        '<div class="issue-subject">' + escHtml(i.subject) + '</div>' +
-        '<div class="issue-meta">' + escHtml(i.project) + '</div>' +
-      '</td>' +
-      '<td>' + deptTag(i._dept) + '</td>' +
+      '<td class="td-id">#' + i.id + '</td>' +
+      '<td><div class="td-subject">' + escHtml(i.subject) + '</div>' +
+        '<div class="td-project">' + escHtml(i.project) + '</div></td>' +
+      '<td><span class="td-group-badge">' + escHtml(i._dept || '—') + '</span></td>' +
       '<td style="font-size:11px;font-weight:500;">' + escHtml(i._short) + '</td>' +
-      '<td>' + statusBadge(i.status) + '</td>' +
-      '<td style="font-family:\\'DM Mono\\',monospace;font-size:10px;color:#999;">' + (i.due_date || '—') + '</td>' +
-      '<td><span class="elapsed-text" style="color:' + elapsedColor + ';">' + elapsed + '</span></td>' +
-      '</tr>';
+      '<td><span class="status-badge ' + statusCls + '">' + escHtml(i.status) + '</span></td>' +
+      '<td class="td-priority ' + priorityCls + '">' + priorityTxt + '</td>' +
+      '<td style="text-align:right;">' +
+        '<div class="dday-wrap">' +
+          '<span class="td-dday ' + elapsedCls + '">' + elapsed + '</span>' +
+          '<div class="dday-tooltip">' + dueTip + '</div>' +
+        '</div>' +
+      '</td>' +
+    '</tr>';
   }).join('');
 }
 
