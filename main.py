@@ -780,11 +780,11 @@ body {
 .risk-member-row:hover { background: #f5f3f3; }
 .risk-member-row.selected { background: #f5f3f3; outline: 1px solid rgba(0,0,0,0.15); }
 .risk-member-top { display: flex; align-items: center; gap: 10px; padding: 11px 18px; }
-.risk-member-name-block { width: 110px; flex-shrink: 0; }
-.risk-member-bar-section { display: flex; flex-direction: column; gap: 5px; flex: 1; min-width: 0; }
+.risk-member-name-block { flex: 0 0 20%; min-width: 0; }
+.risk-member-bar-section { display: flex; flex-direction: column; gap: 5px; flex: 0 0 55%; min-width: 0; }
 .risk-member-bar-row { display: flex; align-items: center; gap: 6px; }
 .risk-member-bar-lbl { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(0,0,0,0.35); width: 28px; flex-shrink: 0; }
-.risk-member-bar-track { height: 3px; background: #f0f0f0; flex: 1; min-width: 0; overflow: hidden; }
+.risk-member-bar-track { height: 3px; background: #f0f0f0; flex: 1; min-width: 0; max-width: 600px; overflow: hidden; }
 .risk-member-bar-fill { height: 100%; transition: width 0.4s ease; }
 .risk-member-bar-val { font-size: 11px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
 .risk-member-avatar { width: 30px; height: 30px; border-radius: 0; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; flex-shrink: 0; margin-right: 12px; }
@@ -796,7 +796,7 @@ body {
 .risk-member-stat-val { font-size: 13px; font-weight: 700; line-height: 1; }
 .risk-member-stat-label { font-size: 9px; color: rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 0.07em; margin-top: 2px; }
 .risk-member-divider { width: 1px; height: 22px; background: rgba(0,0,0,0.08); }
-.risk-member-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 0; letter-spacing: 0.08em; text-transform: uppercase; }
+.risk-member-badge { font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 0; letter-spacing: 0.08em; text-transform: uppercase; align-self: center; }
 .risk-member-arrow { font-size: 13px; color: rgba(0,0,0,0.25); margin-left: 10px; flex-shrink: 0; }
 .risk-member-row:hover .risk-member-arrow,
 .risk-member-row.selected .risk-member-arrow { color: #000; }
@@ -876,7 +876,7 @@ body {
 /* ── AI Analysis Section ── */
 .ai-analysis-section {
   display: grid;
-  grid-template-columns: 1fr minmax(220px, 28%);
+  grid-template-columns: 1fr minmax(280px, 35%);
   gap: 0;
   margin: 0 16px 16px;
   align-items: stretch;
@@ -1056,11 +1056,14 @@ body {
   justify-content: flex-start;
 }
 .ai-label-mono {
-  font-family: 'DM Mono', monospace;
   font-size: 9px;
-  letter-spacing: 0.15em;
-  color: #555;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
+  color: #fff;
+  background: #1a5276;
+  padding: 4px 10px;
+  display: inline-block;
   margin-bottom: 10px;
 }
 .ai-card-headline {
@@ -1108,12 +1111,15 @@ body {
   justify-content: space-between;
 }
 .ai-label-mono {
-  font-family: 'DM Mono', monospace;
   font-size: 9px;
-  letter-spacing: 0.15em;
-  color: #555;
+  font-weight: 700;
+  letter-spacing: 0.2em;
   text-transform: uppercase;
-  margin-bottom: 12px;
+  color: #fff;
+  background: #1a5276;
+  padding: 4px 10px;
+  display: inline-block;
+  margin-bottom: 10px;
 }
 .ai-card-headline {
   font-family: 'DM Sans', sans-serif;
@@ -1189,8 +1195,8 @@ body {
   font-size: 9px;
   text-transform: uppercase;
   letter-spacing: 0.18em;
-  color: #bbb;
-  font-weight: 500;
+  color: #111;
+  font-weight: 700;
   padding: 10px 12px;
   text-align: left;
   border-bottom: 1px solid #e8e6e2;
@@ -1207,6 +1213,7 @@ body {
 .td-project { font-size: 10px; color: #bbb; font-weight: 300; }
 .td-group-badge { display: inline-block; font-size: 9px; font-weight: 500; letter-spacing: 0.08em; padding: 2px 6px; border: 0.5px solid #ccc; color: #555; text-transform: uppercase; }
 .status-badge { display: inline-block; font-size: 9px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; padding: 3px 8px; border: 1px solid #111; color: #111; }
+.status-badge.progress { background: #111; color: #fff; border-color: #111; }
 .status-badge.wait { border-color: #b7770d; color: #b7770d; }
 .status-badge.done { border-color: #bbb; color: #bbb; }
 .td-priority { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.08em; }
@@ -1288,12 +1295,14 @@ body {
 
 /* ── AI Summary ── */
 .ai-card-label {
-  font-size: 1.05rem;
-  color: #1a3a6e;
-  font-weight: 300;
+  font-size: 9px;
+  font-weight: 700;
   letter-spacing: 0.2em;
   text-transform: uppercase;
-  margin-bottom: 8px;
+  color: #fff;
+  background: #2471a3;
+  padding: 4px 10px;
+  display: inline-block;
 }
 .ai-text { font-size: 13px; color: #444; line-height: 1.8; white-space: pre-wrap; font-weight: 300; }
 .ai-text.placeholder { color: #ccc; }
@@ -1303,46 +1312,46 @@ body {
   margin: 0 36px 32px;
 }
 .tab-bar {
-  display: flex;
-  padding: 12px 16px 0;
-  overflow-x: auto;
+  border: 1px solid #aaa;
+  display: inline-flex;
+  align-items: center;
+  margin-bottom: 8px;
 }
 .tab-item {
-  padding: 12px 16px;
+  padding: 12px 20px;
   font-size: 9px;
   font-weight: 400;
   letter-spacing: 0.18em;
   text-transform: uppercase;
   color: #bbb;
   cursor: pointer;
-  border-bottom: 2px solid transparent;
   white-space: nowrap;
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: -1px;
-  user-select: none;
-  background: transparent;
+  border-right: 1px solid #e8e6e2;
+  border-bottom: none;
   transition: color 0.15s;
+  user-select: none;
 }
+.tab-item:last-child { border-right: none; }
 .tab-item:hover { color: #555; }
-.tab-item.active { color: #111; font-weight: 600; border-bottom: 2px solid #111; }
-.tab-badge {
-  font-size: 9px;
-  padding: 1px 5px;
-  font-weight: 600;
-}
-.tab-badge.red { color: #8b1a1a; }
-.tab-badge.blue { color: #2563eb; }
+.tab-item.active { color: #111; font-weight: 700; }
+.tab-item[data-tab="imminent"],
+.tab-item[data-tab="overdue"] { font-weight: 700; color: #111; }
+.tab-badge { font-size: 9px; font-weight: 600; }
+.tab-badge.red { color: #c0392b; }
+.tab-badge.blue { color: #2471a3; }
 .tab-filters {
+  margin-top: 8px;
+  border: 1px solid #aaa;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
-  border-bottom: 1px solid #e8e6e2;
-  border-top: none;
+  margin-bottom: 0;
 }
 .tab-filter-cell {
   padding: 10px 14px;
-  border-right: 1px solid #e8e6e2;
+  border-right: 1px solid #aaa;
   display: flex;
   flex-direction: column;
   gap: 4px;
@@ -1368,12 +1377,41 @@ body {
   cursor: pointer;
   width: 100%;
 }
-.tab-filter-cell input::placeholder { color: #bbb; font-size: 11px; }
+.tab-filter-cell input::placeholder { color: #bbb; }
 .tab-filter-cell input:focus,
 .tab-filter-cell select:focus { color: #111; }
-.tab-count { font-size: 10px; color: #bbb; padding: 10px 16px; border-bottom: 1px solid #e8e6e2; text-align: right; letter-spacing: 0.5px; }
-.tab-content { overflow-x: auto; }
+.tab-count { font-size: 10px; color: #bbb; padding: 6px 16px; text-align: right; letter-spacing: 0.5px; }
+.tab-content {
+  overflow-x: auto;
+  min-height: 320px;
+  margin-top: 16px;
+}
+.tab-table {
+  opacity: 1;
+  transition: opacity 0.2s ease;
+}
+.tab-table.fading {
+  opacity: 0;
+}
 .tab-table tbody tr { cursor: pointer; }
+
+/* ── Pagination ── */
+.pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 0.5px solid #e8e6e2; margin-top: 0; }
+.pg-left { display: flex; align-items: center; gap: 12px; }
+.pg-info { font-size: 9px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: #555; }
+.pg-toggle { display: flex; align-items: center; }
+.pg-toggle-btn { font-size: 9px; font-weight: 400; letter-spacing: 0.1em; color: #bbb; cursor: pointer; padding: 0 6px; border-right: 1px solid #ddd; }
+.pg-toggle-btn:last-child { border-right: none; }
+.pg-toggle-btn.active { font-weight: 700; color: #111; }
+.pg-toggle-btn:hover { color: #111; }
+.pg-controls { display: flex; align-items: center; gap: 2px; }
+.pg-btn { font-size: 9px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; padding: 4px 8px; border: none; background: transparent; color: #555; cursor: pointer; }
+.pg-btn:hover { color: #111; }
+.pg-btn:disabled { color: #ccc; cursor: default; }
+.pg-num { font-size: 9px; font-weight: 500; letter-spacing: 0.08em; padding: 4px 8px; color: #555; cursor: pointer; }
+.pg-num:hover { color: #111; }
+.pg-num.active { font-weight: 700; color: #111; border-bottom: 1.5px solid #111; }
+.pg-ellipsis { font-size: 9px; color: #bbb; padding: 4px 2px; }
 
 /* ── Issue Modal ── */
 .modal-overlay {
@@ -1748,7 +1786,7 @@ body {
             <div class="ai-dow-btn" onclick="setDow(this,0)">월</div>
             <div class="ai-dow-btn" onclick="setDow(this,1)">화</div>
             <div class="ai-dow-btn" onclick="setDow(this,2)">수</div>
-            <div class="ai-dow-btn active" onclick="setDow(this,3)">목</div>
+            <div class="ai-dow-btn" onclick="setDow(this,3)">목</div>
             <div class="ai-dow-btn" onclick="setDow(this,4)">금</div>
             <div class="ai-dow-btn" onclick="setDow(this,5)">토</div>
             <div class="ai-dow-btn" onclick="setDow(this,6)">일</div>
@@ -1758,7 +1796,7 @@ body {
           <label>표시 주수</label>
           <div class="ai-dow-btns" id="weeksBtns">
             <div class="ai-dow-btn" onclick="setWeeks(this,4)">4주</div>
-            <div class="ai-dow-btn active" onclick="setWeeks(this,8)">8주</div>
+            <div class="ai-dow-btn" onclick="setWeeks(this,8)">8주</div>
             <div class="ai-dow-btn" onclick="setWeeks(this,12)">12주</div>
           </div>
         </div>
@@ -1894,15 +1932,18 @@ body {
 
 <!-- Bottom Tab Section -->
 <div class="bottom-section">
-  <div class="tab-bar">
-    <div class="tab-item active" data-tab="imminent" onclick="switchTab('imminent')">
-      마감 임박 <span class="tab-badge blue" id="badge-imminent">0</span>
+  <div style="display:flex;align-items:center;gap:16px;margin-bottom:8px;">
+    <div class="tab-bar" style="margin-bottom:0;">
+      <div class="tab-item active" data-tab="imminent" onclick="switchTab('imminent')">
+        마감 임박 <span class="tab-badge blue" id="badge-imminent">0</span>
+      </div>
+      <div class="tab-item" data-tab="overdue" onclick="switchTab('overdue')">
+        마감 초과 <span class="tab-badge red" id="badge-overdue">0</span>
+      </div>
+      <div class="tab-item" data-tab="assignee" onclick="switchTab('assignee')">담당자별</div>
+      <div class="tab-item" data-tab="all" onclick="switchTab('all')">전체 이슈</div>
     </div>
-    <div class="tab-item" data-tab="overdue" onclick="switchTab('overdue')">
-      마감 초과 <span class="tab-badge red" id="badge-overdue">0</span>
-    </div>
-    <div class="tab-item" data-tab="assignee" onclick="switchTab('assignee')">담당자별</div>
-    <div class="tab-item" data-tab="all" onclick="switchTab('all')">전체 이슈</div>
+    <span id="tabCount" style="font-size:13px;font-weight:700;color:#111;white-space:nowrap;">0건</span>
   </div>
   <div class="tab-filters">
     <div class="tab-filter-cell">
@@ -1933,9 +1974,6 @@ body {
       </select>
     </div>
   </div>
-  <div style="text-align:right;padding:6px 16px;border-bottom:1px solid #e8e6e2;">
-    <span class="tab-count" id="tabCount">0건</span>
-  </div>
   <div class="tab-content">
     <div id="tab-card-list"></div>
     <table class="data-table tab-table">
@@ -1954,6 +1992,16 @@ body {
         <tr class="loading-row"><td colspan="7"><span class="loading-spinner"></span></td></tr>
       </tbody>
     </table>
+  </div>
+  <div class="pagination">
+    <div class="pg-left">
+      <span class="pg-info" id="pgInfo">Showing 1–10 of 0 entries</span>
+      <div class="pg-toggle">
+        <span class="pg-toggle-btn active" onclick="setPerPage(10, this)">10</span>
+        <span class="pg-toggle-btn" onclick="setPerPage(50, this)">50</span>
+      </div>
+    </div>
+    <div class="pg-controls" id="pgControls"></div>
   </div>
 </div>
 
@@ -2170,6 +2218,14 @@ async function loadData() {
     generateAiSummary();
     _riskDow   = parseInt(localStorage.getItem('riskDow')   || '3');
     _riskWeeks = parseInt(localStorage.getItem('riskWeeks') || '8');
+    document.querySelectorAll('#dowBtns .ai-dow-btn').forEach(function(b) {
+      b.classList.toggle('active', b.getAttribute('onclick').includes(',' + _riskDow + ')'));
+    });
+    document.querySelectorAll('#weeksBtns .ai-dow-btn').forEach(function(b) {
+      b.classList.toggle('active', b.getAttribute('onclick').includes(',' + _riskWeeks + ')'));
+    });
+    var subEl = document.querySelector('.ai-chart-sub');
+    if (subEl) subEl.textContent = 'Weekly volatility · last ' + _riskWeeks + ' weeks';
     loadRiskHistory();
   } catch(e) {
     console.error('loadData error:', e);
@@ -2378,6 +2434,8 @@ function renderImminentCard() {
 
 // ============================================================
 function getInitials(name) {
+  name = name.trim();
+  if (!name) return '?';
   if (/[\uAC00-\uD7A3\u4E00-\u9FFF\u3040-\u30FF]/.test(name)) return name[0];
   var words = name.trim().split(/\s+/).filter(function(w) { return /[a-zA-Z]/.test(w); });
   if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
@@ -2448,7 +2506,7 @@ function renderRiskMembers(allData) {
               '<span class="risk-member-bar-val" style="color:var(--color-text-primary);">' + r.open + '</span>' +
             '</div>' +
           '</div>' +
-          '<span class="risk-member-badge" style="background:' + badgeBg + ';color:' + badgeFg + ';width:64px;text-align:center;flex-shrink:0;">' + label + '</span>' +
+          '<span class="risk-member-badge" style="background:' + badgeBg + ';color:' + badgeFg + ';width:64px;text-align:center;flex-shrink:0;margin:0 auto;">' + label + '</span>' +
         '</div>' +
       '</div>'
     );
@@ -2639,17 +2697,17 @@ function selectMemberFromCard(el) {
 }
 
 function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.tab-item').forEach(function(el) {
-    el.classList.toggle('active', el.dataset.tab === tab);
-  });
-// 담당자별 탭이 아닌 탭으로 전환 시 담당자 필터 초기화
-  if (tab !== 'assignee') {
-    document.querySelectorAll('.assignee-stat-row').forEach(function(row) {
-      row.style.backgroundColor = '';
+  var table = document.querySelector('.tab-table');
+  if (table) table.classList.add('fading');
+
+  setTimeout(function() {
+    currentTab = tab;
+    document.querySelectorAll('.tab-item').forEach(function(el) {
+      el.classList.toggle('active', el.dataset.tab === tab);
     });
-  }
-  renderTab();
+    renderTab();
+    if (table) table.classList.remove('fading');
+  }, 200);
 }
 
 function populateTabFilters() {
@@ -2723,20 +2781,74 @@ function getTabIssues() {
   });
   if (assigneeF) issues = issues.filter(function(i) { return i._uname === assigneeF; });
   if (statusF === 'closed') {
-    issues = issues.filter(function(i) { return CLOSED_SET_JS.has(i.status) || HOLD_SET_JS.has(i.status); });
+    issues = issues.filter(function(i) { return CLOSED_SET_JS.has(i.status); });
   } else if (statusF === 'all') {
-    // no additional filter
+    // 전체 — 필터 없음
   } else {
-    // default: open issues only (exclude closed/hold) — but only for 'all' tab; other tabs already filtered
-    if (currentTab === 'all') {
-      issues = issues.filter(function(i) { return !CLOSED_SET_JS.has(i.status) && !HOLD_SET_JS.has(i.status); });
-    }
+    // 기본값: OPEN ISSUES — 완료/보류 제외
+    issues = issues.filter(function(i) {
+      return !CLOSED_SET_JS.has(i.status) && !HOLD_SET_JS.has(i.status);
+    });
   }
 
   // Sort by due date ascending by default
   issues.sort(function(a, b) { return (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1; });
 
   return issues;
+}
+
+var currentPage = 1;
+var perPage = 10;
+
+function setPerPage(n, el) {
+  perPage = n;
+  currentPage = 1;
+  document.querySelectorAll('.pg-toggle-btn').forEach(function(b) { b.classList.remove('active'); });
+  el.classList.add('active');
+  renderTab();
+}
+
+function renderPagination(total) {
+  var totalPages = Math.ceil(total / perPage);
+  var start = (currentPage - 1) * perPage + 1;
+  var end = Math.min(currentPage * perPage, total);
+  var infoEl = document.getElementById('pgInfo');
+  var ctrlEl = document.getElementById('pgControls');
+  if (infoEl) infoEl.textContent = 'Showing ' + start + '\u2013' + end + ' of ' + total + ' entries';
+  if (!ctrlEl) return;
+
+  var html = '';
+  html += '<button class="pg-btn" onclick="goPage(' + (currentPage - 1) + ')"' + (currentPage <= 1 ? ' disabled' : '') + '>Previous</button>';
+
+  var pages = [];
+  if (totalPages <= 5) {
+    for (var i = 1; i <= totalPages; i++) pages.push(i);
+  } else {
+    pages.push(1);
+    if (currentPage > 3) pages.push('...');
+    for (var i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+    if (currentPage < totalPages - 2) pages.push('...');
+    pages.push(totalPages);
+  }
+
+  pages.forEach(function(p) {
+    if (p === '...') {
+      html += '<span class="pg-ellipsis">...</span>';
+    } else {
+      html += '<span class="pg-num' + (p === currentPage ? ' active' : '') + '" onclick="goPage(' + p + ')">' + String(p).padStart(2, '0') + '</span>';
+    }
+  });
+
+  html += '<button class="pg-btn" onclick="goPage(' + (currentPage + 1) + ')"' + (currentPage >= totalPages ? ' disabled' : '') + '>Next</button>';
+  ctrlEl.innerHTML = html;
+}
+
+function goPage(p) {
+  var total = getTabIssues().length;
+  var totalPages = Math.ceil(total / perPage);
+  if (p < 1 || p > totalPages) return;
+  currentPage = p;
+  renderTab();
 }
 
 function renderTab() {
@@ -2747,7 +2859,12 @@ function renderTab() {
   var tbody = document.getElementById('tab-tbody');
 
   if (issues.length === 0) {
-    tbody.innerHTML = '<tr class="empty-row"><td colspan="7">이슈 없음</td></tr>';
+    var emptyHtml = '<tr><td colspan="7" style="padding:13px 12px;color:#bbb;font-size:11px;">이슈 없음</td></tr>';
+    for (var e = 0; e < perPage - 1; e++) {
+      emptyHtml += '<tr style="border-bottom:0.5px solid #e8e6e2;"><td colspan="7" style="padding:0;height:51px;"></td></tr>';
+    }
+    tbody.innerHTML = emptyHtml;
+    renderPagination(0);
     return;
   }
 
@@ -2792,6 +2909,10 @@ function renderTab() {
     }).join('');
   }
 
+  var allIssues = issues;
+  issues = issues.slice((currentPage - 1) * perPage, currentPage * perPage);
+  renderPagination(allIssues.length);
+
   tbody.innerHTML = issues.map(function(i) {
     var isOverdue = i.due_date && i.due_date < todayStr && !CLOSED_SET_JS.has(i.status) && !HOLD_SET_JS.has(i.status);
     var elapsed, elapsedColor, elapsedCls;
@@ -2814,7 +2935,7 @@ function renderTab() {
       window._deptColorIndex++;
     }
     var rowDeptColor = (i._dept && window._deptColorMap[i._dept]) || '#ccc';
-    var statusCls = CLOSED_SET_JS.has(i.status) ? 'done' : HOLD_SET_JS.has(i.status) ? 'wait' : '';
+    var statusCls = CLOSED_SET_JS.has(i.status) ? 'done' : HOLD_SET_JS.has(i.status) ? 'wait' : i.status === '진행' ? 'progress' : '';
     var priorityCls = (i.priority === 'High' || i.priority === '높음') ? 'high' : '';
     var priorityTxt = (i.priority === 'High' || i.priority === '높음') ? 'HIGH'
       : (i.priority === 'Low' || i.priority === '낙음') ? 'LOW' : 'NORMAL';
@@ -2836,6 +2957,18 @@ function renderTab() {
       '</td>' +
     '</tr>';
   }).join('');
+
+  var currentRows = issues.length;
+  var emptyRows = perPage - currentRows;
+  if (emptyRows > 0) {
+    var emptyHtml = '';
+    for (var e = 0; e < emptyRows; e++) {
+      emptyHtml += '<tr style="border-bottom:0.5px solid #e8e6e2;">' +
+        '<td colspan="7" style="padding:0;height:51px;">&nbsp;</td>' +
+      '</tr>';
+    }
+    tbody.innerHTML += emptyHtml;
+  }
 }
 
 // ============================================================
@@ -3059,6 +3192,8 @@ function applyRiskSettings() {
   localStorage.setItem('riskWeeks', _riskWeeks);
   document.getElementById('riskSettingsPanel').classList.remove('open');
   document.getElementById('riskGearBtn').classList.remove('active');
+  var subEl = document.querySelector('.ai-chart-sub');
+  if (subEl) subEl.textContent = 'Weekly volatility · last ' + _riskWeeks + ' weeks';
   loadRiskHistory();
 }
 async function loadRiskHistory() {
@@ -3082,7 +3217,8 @@ function renderRiskChart(history) {
   var maxScore = Math.max.apply(null, history.map(function(d){ return d.score; })) || 1;
   bars.innerHTML = history.map(function(d) {
     var h = Math.max(4, Math.round((d.score / maxScore) * 100));
-    var cls = d.level === 'Critical' ? 'critical' : d.level === 'Low' ? 'low' : 'normal';
+    var lvl = (d.level || '').toLowerCase();
+    var cls = lvl === 'critical' ? 'critical' : lvl === 'low' ? 'low' : 'normal';
     return '<div class="ai-bar-group"><div class="ai-bar ' + cls + '" style="height:' + h + '%;"></div></div>';
   }).join('');
   labels.innerHTML = history.map(function(d) {
@@ -3117,8 +3253,8 @@ async function generateAiSummary() {
         var keyMap = {'상황1': 'ST1', '상황2': 'ST2', '상황': 'ST', '원인': 'CA', '대처': 'AC'};
         var key = (keyMap[rawKey] || rawKey) + ':';
         var val = line.slice(line.indexOf(':') + 1).trim();
-        var keyColor = '#444';
-        var valColor = isS1 ? '#e05a4e' : isS2 ? '#d4824a' : '#aaa';
+        var keyColor = '#555';
+        var valColor = isS1 ? '#e05a4e' : isS2 ? '#d4824a' : '#fff';
         return '<div style="display:flex;gap:8px;margin-bottom:10px;align-items:baseline;">' +
           '<span style="font-family:DM Mono,monospace;font-size:9px;color:' + keyColor + ';text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">' + key + '</span>' +
           '<span style="font-size:11px;color:' + valColor + ';line-height:1.5;">' + escHtml(val) + '</span>' +
