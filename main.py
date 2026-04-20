@@ -352,7 +352,7 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01"):
     project_risk_list = sorted(project_risk.values(), key=lambda x: -x["risk_score"])
 
     # ── 마감 임박 이슈 (오늘 ~ D+3) ──
-    future_3 = (date.today() + timedelta(days=3)).strftime("%Y-%m-%d")
+    future_3 = (date.today() + timedelta(days=7)).strftime("%Y-%m-%d")
     imminent_issues = []
     for uname, ud in users_data.items():
         for i in ud.get("issues", []):
@@ -412,9 +412,108 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01"):
         "pending_client":   pending_client,
         "project_risk":     project_risk_list,
         "users_data":       {k: {"issues": v["issues"], "projects": list(v["projects"])} for k, v in users_data.items()},
+        "imminent_count":   len(imminent_issues),
         "imminent_issues":  imminent_issues,
         "trend_7days":      trend_7days,
     }
+
+
+def get_groups(project_id=""):
+    """
+    프로젝트 멤버십 기반 그룹 목록 + 8주 오버듀 역산
+    - 담당자명 접두사(기획_, 서버_ 등)로 그룹 매핑
+    - 주차별 오버듀 수 역산해서 스파크라인 데이터 반환
+    """
+    if not project_id:
+        return []
+    try:
+        from datetime import date, timedelta
+
+        # 1. 멤버십에서 그룹 목록 추출
+        members = fetch(f"/projects/{project_id}/memberships.json").get("memberships", [])
+        group_map = {}  # group_name -> {id, name, user_count}
+        # 1차: 그룹 엔트리로 그룹 목록 확보
+        for m in members:
+            grp = m.get("group")
+            if grp:
+                gname = grp["name"]
+                if gname not in group_map:
+                    group_map[gname] = {"id": grp["id"], "name": gname, "user_count": 0}
+        # 2차: 유저 엔트리 접두사로 실제 인원 카운트
+        for m in members:
+            user = m.get("user")
+            if user and "_" in user.get("name", ""):
+                prefix = user["name"].split("_")[0].strip()
+                if prefix in group_map:
+                    group_map[prefix]["user_count"] += 1
+
+        if not group_map:
+            return []
+
+        # 2. 이슈 전체 로드
+        issues = get_issues(project_id, updated_after="2024-01-01")
+
+        # 3. 담당자명 접두사로 그룹 매핑 (기획_홍길동 → 기획)
+        def extract_group(assignee_name):
+            if "_" in assignee_name:
+                prefix = assignee_name.split("_")[0].strip()
+                if prefix in group_map:
+                    return prefix
+            return None
+
+        # 4. 8주 역산 계산
+        today = date.today()
+        days_since_thu = (today.weekday() - 3) % 7  # 목요일 기준
+        this_week_start = today - timedelta(days=days_since_thu)
+        WEEKS = 8
+
+        results = []
+        for gname, ginfo in group_map.items():
+            spark = []
+            for w in range(WEEKS - 1, -1, -1):
+                week_end = (this_week_start - timedelta(weeks=w) + timedelta(days=6)).strftime("%Y-%m-%d")
+                overdue_count = 0
+                for i in issues:
+                    assignee = i.get("assigned_to", {}).get("name", "")
+                    if extract_group(assignee) != gname:
+                        continue
+                    status = i.get("status", {}).get("name", "")
+                    if status in CLOSED_SET or status in HOLD_SET:
+                        continue
+                    due = i.get("due_date", "")
+                    if due and due < week_end:
+                        overdue_count += 1
+                spark.append(overdue_count)
+
+            overdue_now = spark[-1] if spark else 0
+            overdue_prev = spark[-2] if len(spark) >= 2 else 0
+            wow = overdue_now - overdue_prev
+
+            # 리스크 배지: Critical(오버듀 5+), High(2+), Stable
+            if overdue_now >= 5:
+                risk = "Critical"
+            elif overdue_now >= 2:
+                risk = "High"
+            else:
+                risk = "Stable"
+
+            results.append({
+                "id":           ginfo["id"],
+                "name":         gname,
+                "user_count":   ginfo["user_count"],
+                "overdue_now":  overdue_now,
+                "overdue_wow":  wow,
+                "risk":         risk,
+                "spark":        spark,
+            })
+
+        # 오버듀 내림차순 정렬
+        results.sort(key=lambda x: -x["overdue_now"])
+        return results
+
+    except Exception as e:
+        print(f"[get_groups error] {e}")
+        return []
 
 
 def get_versions(project_id=""):
@@ -752,7 +851,7 @@ body {
 }
 .summary-row2 {
   display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
   gap: 0;
   background: #fbf9f8;
   margin-bottom: 24px;
@@ -830,6 +929,7 @@ body {
 }
 .sum-value.amber { color: #d97706; }
 .sum-value.red   { color: #e74c3c; }
+.sum-value.blue  { color: #1a5276; }
 .sum-spark {
   margin-top: 12px;
   display: flex;
@@ -1150,11 +1250,9 @@ body {
 .masonry-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  grid-template-rows: 320px 320px;
   gap: 0;
 }
 .masonry-grid .card {
-  height: 320px;
   display: flex;
   flex-direction: column;
   border-right: 1px solid #e8e6e2;
@@ -1845,6 +1943,16 @@ body {
     <div class="sum-hint">담당자별 현황 ↓</div>
   </div>
 
+  <!-- 마감 임박 (신규) -->
+  <div class="sum-card clickable" id="card-imminent" onclick="goToTab('imminent')" style="background:#ffffff !important;">
+    <div class="sum-label">Imminent / 마감 임박</div>
+    <div class="sum-value blue" id="val-imminent">—</div>
+    <div class="sum-spark">
+      <span class="sum-delta" id="delta-imminent" style="color:#1a5276;">D-7 이내</span>
+    </div>
+    <div class="sum-hint">마감 임박 이슈 ↓</div>
+  </div>
+
   <!-- 마감 초과 -->
   <div class="sum-card clickable" id="card-overdue" onclick="goToTab('overdue')" style="background:#e4e2e2 !important;">
     <div class="sum-label">Overdue</div>
@@ -1883,46 +1991,32 @@ body {
 <div class="main-content">
   <div class="masonry-grid">
 
-    <!-- Card 01: 마감 초과 이슈 -->
-    <div class="card" id="sec-overdue">
+    <!-- Card 03: 그룹 현황 -->
+    <div class="card" id="sec-group" style="background:#ffffff;">
       <div class="card-header">
-        <span>01 / Overdue Issues · 마감 초과 이슈</span>
-        <span class="card-header-sub" id="overdue-header-sub">0건</span>
-      </div>
-      <div class="card-body">
-        <div id="overdue-tbody"></div>
-      </div>
-    </div>
-
-    <!-- Card 02: 마감 임박 -->
-    <div class="card" id="sec-imminent" style="background:#f5f3f3 !important;">
-      <div class="card-header">
-        <span>02 / Imminent Deadlines · 마감 임박</span>
-        <span class="card-header-sub" id="imminent-header-sub">D-3 이내 · 0건</span>
-      </div>
-      <div class="card-body">
-        <div id="imminent-tbody"></div>
-      </div>
-    </div>
-
-    <!-- Card 03: 담당자별 현황 -->
-    <div class="card" id="sec-assignee" style="background:#f5f3f3 !important;">
-      <div class="card-header">
-        <span>03 / Team Status · 담당자별 현황</span>
-        <span class="card-header-sub">초과 많은 순</span>
+        <span>01 / Group Status · 그룹 현황</span>
+        <span class="card-header-sub" id="group-header-sub">—</span>
       </div>
       <div class="card-body" style="padding:0;">
-        <div id="assignee-tbody"></div>
+        <div id="group-col-header" style="display:grid;grid-template-columns:120px 1fr 56px 52px 72px;padding:7px 16px;background:#f5f3f3;border-bottom:1px solid #e4e2e2;gap:10px;">
+          <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;">Group</div>
+          <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;">Trend (8W)</div>
+          <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;text-align:right;">Overdue</div>
+          <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;text-align:right;">±WoW</div>
+          <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;text-align:right;">Risk</div>
+        </div>
+        <div id="group-tbody"></div>
+        <div id="group-hidden-msg" style="display:none;padding:20px 16px;font-size:11px;color:#ccc;text-align:center;">프로젝트를 선택하면 그룹 현황이 표시됩니다.</div>
       </div>
     </div>
 
     <!-- Card 04: 버전/마일스톤 -->
     <div class="card" id="sec-version">
       <div class="card-header">
-        <span>04 / Milestones · 버전 / 마일스톤</span>
+        <span>02 / Milestones · 버전 / 마일스톤</span>
         <span class="card-header-sub" id="version-project-name">—</span>
       </div>
-      <div class="card-body" id="version-body" style="overflow-y:auto; max-height:270px;">
+      <div class="card-body" id="version-body" style="overflow-y:auto; display:flex; flex-direction:column; justify-content:space-evenly; flex:1;">
         <div style="padding:16px;text-align:center;font-size:11px;color:#ccc;">로딩 중...</div>
       </div>
     </div>
@@ -2252,9 +2346,113 @@ function renderAll() {
   renderAssigneeCard();
   renderOverdueCard();
   renderVersionCard();
+  renderGroupStatus(currentProjectId);
   renderTab();
   updateCacheAge();
   populateTabFilters();
+}
+
+async function renderGroupStatus(projectId) {
+  var tbody = document.getElementById('group-tbody');
+  var hiddenMsg = document.getElementById('group-hidden-msg');
+  var headerSub = document.getElementById('group-header-sub');
+  var colHeader = document.getElementById('group-col-header');
+
+  if (!projectId || projectId === '') {
+    if (tbody) tbody.innerHTML = '';
+    if (hiddenMsg) hiddenMsg.style.display = 'block';
+    if (colHeader) colHeader.style.display = 'none';
+    return;
+  }
+  if (hiddenMsg) hiddenMsg.style.display = 'none';
+  if (colHeader) colHeader.style.display = 'grid';
+
+  try {
+    var res = await fetch('/api/groups?project_id=' + encodeURIComponent(projectId));
+    var data = await res.json();
+    var groups = data.groups || [];
+    if (headerSub) headerSub.textContent = groups.length + ' groups';
+    if (!tbody) return;
+    if (groups.length === 0) {
+      tbody.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#ccc;text-align:center;">그룹 정보 없음</div>';
+      return;
+    }
+
+    tbody.innerHTML = groups.map(function(g, idx) {
+      var bg = idx % 2 === 1 ? '#f5f3f3' : '#fff';
+
+      // 스파크라인 SVG 생성
+      var spark = g.spark || [];
+      var maxVal = Math.max.apply(null, spark.concat([1]));
+      var minVal = Math.min.apply(null, spark);
+      var range = maxVal - minVal || 1;
+      var svgW = 180, svgH = 32, pad = 4;
+      var points = spark.map(function(v, i) {
+        var x = spark.length === 1 ? svgW / 2 : Math.round((i / (spark.length - 1)) * svgW);
+        var y = Math.round(pad + ((maxVal - v) / range) * (svgH - pad * 2));
+        return x + ',' + y;
+      }).join(' ');
+      var lastY = spark.length > 0 ? Math.round(pad + ((maxVal - spark[spark.length-1]) / range) * (svgH - pad * 2)) : svgH / 2;
+
+      // 증가추세=빨강, 감소=검정, 보합=회색점선
+      var wow = g.overdue_wow || 0;
+      var strokeColor = wow > 0 ? '#c0392b' : wow < 0 ? '#000000' : '#bbbbbb';
+      var dashArray = wow === 0 ? '3,2' : 'none';
+
+      // 리스크 배지
+      var riskBg = g.risk === 'Critical' ? '#c0392b' : g.risk === 'High' ? '#000000' : '#e4e2e2';
+      var riskColor = g.risk === 'Stable' ? '#666' : '#fff';
+
+      // ±WoW 색상
+      var wowColor = wow > 0 ? '#c0392b' : wow < 0 ? '#000' : '#bbb';
+      var wowText = wow > 0 ? '+' + wow : wow === 0 ? '0' : '' + wow;
+
+      // 오버듀 색상
+      var overdueColor = g.overdue_now > 0 ? '#c0392b' : '#000';
+
+      // A안: 면적 채우기 + 주차 구분선
+      var gradId = 'grad-' + idx;
+      var fillColor = wow > 0 ? '#c0392b' : wow < 0 ? '#000000' : '#bbbbbb';
+      var fillOpacity1 = wow > 0 ? '0.12' : '0.06';
+      // polygon: 선 포인트 + 우하단 + 좌하단 닫기
+      var polyPoints = points + ' ' + svgW + ',' + svgH + ' 0,' + svgH;
+      // 주차 구분선 (7개: W1~W7 사이)
+      var gridLines = '';
+      var step = svgW / (spark.length - 1 || 1);
+      for (var gi = 1; gi < spark.length; gi++) {
+        var gx = Math.round(gi * step);
+        gridLines += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + svgH + '" stroke="#e4e2e2" stroke-width="0.5"/>';
+      }
+      // W1, W8 레이블
+      var wLabels = '<text x="2" y="' + (svgH - 2) + '" font-size="7" fill="#ccc" font-family="sans-serif">W1</text>' +
+                    '<text x="' + (svgW - 14) + '" y="' + (svgH - 2) + '" font-size="7" fill="#ccc" font-family="sans-serif">W8</text>';
+
+      return '<div style="display:grid;grid-template-columns:120px 1fr 56px 52px 72px;padding:11px 16px;border-bottom:1px solid #eae8e7;gap:10px;align-items:center;background:' + bg + ';">' +
+        '<div>' +
+          '<div style="font-size:12px;font-weight:700;color:#000;">' + g.name + '</div>' +
+          '<div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.07em;margin-top:1px;">' + g.user_count + '명</div>' +
+        '</div>' +
+        '<svg width="100%" height="' + svgH + '" viewBox="0 0 ' + svgW + ' ' + svgH + '" preserveAspectRatio="none">' +
+          '<defs>' +
+            '<linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">' +
+              '<stop offset="0%" stop-color="' + fillColor + '" stop-opacity="' + fillOpacity1 + '"/>' +
+              '<stop offset="100%" stop-color="' + fillColor + '" stop-opacity="0.01"/>' +
+            '</linearGradient>' +
+          '</defs>' +
+          gridLines +
+          '<polygon points="' + polyPoints + '" fill="url(#' + gradId + ')"/>' +
+          '<polyline points="' + points + '" fill="none" stroke="' + strokeColor + '" stroke-width="2.5" stroke-dasharray="' + dashArray + '"/>' +
+          '<circle cx="' + svgW + '" cy="' + lastY + '" r="3" fill="' + strokeColor + '"/>' +
+          wLabels +
+        '</svg>' +
+        '<div style="font-size:12px;font-weight:600;text-align:right;color:' + overdueColor + ';">' + g.overdue_now + '</div>' +
+        '<div style="font-size:11px;font-weight:600;text-align:right;color:' + wowColor + ';">' + wowText + '</div>' +
+        '<div style="text-align:right;"><span style="font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:3px 7px;background:' + riskBg + ';color:' + riskColor + ';">' + g.risk + '</span></div>' +
+      '</div>';
+    }).join('');
+  } catch(e) {
+    if (tbody) tbody.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#ccc;text-align:center;">그룹 로드 실패</div>';
+  }
 }
 
 // ============================================================
@@ -2284,6 +2482,10 @@ function renderSummaryCards() {
     deltaOpenEl.textContent = dOpen === 0 ? '— No Change' : (dOpen > 0 ? '+' + dOpen + ' Increase' : dOpen + ' Decrease');
     deltaOpenEl.className = 'sum-delta ' + (dOpen > 0 ? 'up' : dOpen < 0 ? 'down' : '');
   }
+
+  // Card 2-5 — 마감 임박
+  var valImminentEl = document.getElementById('val-imminent');
+  if (valImminentEl) valImminentEl.textContent = (d.imminent_count !== undefined) ? d.imminent_count : (d.imminent_issues || []).length;
 
   // Card 3 — 마감 초과
   var valOverdueEl = document.getElementById('val-overdue');
@@ -2401,9 +2603,11 @@ function renderSummaryCards() {
 function renderImminentCard() {
   var issues = allData.imminent_issues || [];
   var tbody = document.getElementById('imminent-tbody');
-  document.getElementById('imminent-header-sub').textContent = 'D-3 이내 · ' + issues.length + '건';
+  var imminentHeaderSub = document.getElementById('imminent-header-sub');
+  if (imminentHeaderSub) imminentHeaderSub.textContent = 'D-10 이내 · ' + issues.length + '건';
 
   var container = document.getElementById('imminent-tbody');
+  if (!container) return;
   if (issues.length === 0) {
     container.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#ccc;text-align:center;">마감 임박 이슈 없음</div>';
     return;
@@ -2538,6 +2742,7 @@ function renderAssigneeCard() {
 
 function renderAssigneeRows(data) {
   const container = document.getElementById('assignee-tbody');
+  if (!container) return;
   if (!data || data.length === 0) {
     container.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#ccc;text-align:center;">담당자 데이터 없음</div>';
     return;
@@ -2599,9 +2804,11 @@ function renderOverdueCard() {
   }
   overdues.sort(function(a, b) { return a.elapsed - b.elapsed; });
 
-  document.getElementById('overdue-header-sub').textContent = overdues.length + '건';
+  var overdueHeaderSub = document.getElementById('overdue-header-sub');
+  if (overdueHeaderSub) overdueHeaderSub.textContent = overdues.length + '건';
 
   var container = document.getElementById('overdue-tbody');
+  if (!container) return;
   if (overdues.length === 0) {
     container.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#ccc;text-align:center;">마감 초과 이슈 없음</div>';
     return;
@@ -2733,7 +2940,7 @@ function getTabIssues() {
   if (!allData) return [];
   var usersData = allData.users_data || {};
   var todayStr = new Date().toISOString().slice(0,10);
-  var future3 = new Date(); future3.setDate(future3.getDate() + 3);
+  var future3 = new Date(); future3.setDate(future3.getDate() + 7);
   var future3Str = future3.toISOString().slice(0,10);
 
   var issues = [];
@@ -3470,6 +3677,14 @@ async def api_data(project_id: str = "", updated_after: str = "2026-03-01", forc
     data = build_dashboard_data(project_id, updated_after)
     set_cache(project_id, updated_after, data)
     return {**data, "cached": False, "cache_age": None}
+
+
+@app.get("/api/groups")
+async def api_groups(project_id: str = ""):
+    if not project_id:
+        return {"groups": []}
+    groups = get_groups(project_id)
+    return {"groups": groups}
 
 
 @app.get("/api/versions")
