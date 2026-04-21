@@ -260,7 +260,7 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01"):
         users_data[uname]["projects"].add(iss["project"]["name"])
 
     all_statuses = [i["status"] for ud in users_data.values() for i in ud["issues"]]
-    open_issues  = sum(1 for s in all_statuses if s not in CLOSED_SET)
+    open_issues  = sum(1 for s in all_statuses if s not in CLOSED_SET and s not in HOLD_SET)
 
     today_str = date.today().strftime("%Y-%m-%d")
 
@@ -913,8 +913,9 @@ body {
 .sum-card.clickable { cursor: pointer; }
 .sum-card.clickable:hover { background: #f7f5f2; }
 .sum-label {
-  font-size: 9px;
-  letter-spacing: 0.18em;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
   text-transform: uppercase;
   color: #999;
   margin-bottom: 16px;
@@ -929,7 +930,7 @@ body {
 }
 .sum-value.amber { color: #d97706; }
 .sum-value.red   { color: #e74c3c; }
-.sum-value.blue  { color: #1a5276; }
+.sum-value.blue  { color: #0047A0; }
 .sum-spark {
   margin-top: 12px;
   display: flex;
@@ -996,8 +997,8 @@ body {
 }
 .ai-chart-title {
   font-family: 'DM Sans', sans-serif;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #111;
@@ -1257,6 +1258,8 @@ body {
   flex-direction: column;
   border-right: 1px solid #e8e6e2;
   border-bottom: 1px solid #e8e6e2;
+  height: 340px;
+  overflow: visible;
 }
 
 /* ── Cards ── */
@@ -1317,10 +1320,13 @@ body {
 .td-priority { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.08em; }
 .td-priority.high { color: #c0392b; font-weight: 500; }
 .dday-wrap { position: relative; display: inline-block; }
+@keyframes dday-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
 .td-dday { font-size: 16px; font-weight: 700; cursor: default; }
-.td-dday.red { color: #c0392b; }
+.td-dday.red { color: #c0392b; animation: dday-blink 1.4s ease-in-out infinite; }
 .td-dday.orange { color: #b7770d; }
+.td-dday.orange-overdue { color: #b7770d; animation: dday-blink 1.4s ease-in-out infinite; }
 .td-dday.gray { color: #bbb; }
+.td-dday.closed { color: #000; }
 .dday-tooltip { display: none; position: absolute; right: 0; top: -28px; background: #111; color: #fff; font-size: 10px; padding: 4px 8px; white-space: nowrap; pointer-events: none; z-index: 10; }
 .dday-wrap:hover .dday-tooltip { display: block; }
 
@@ -1386,9 +1392,10 @@ body {
 .ver-pct-box.danger { border-color: #c0392b; color: #c0392b; }
 .ver-pct-box.muted { border-color: #ddd; color: #ccc; }
 .ver-name { font-size: 11px; font-weight: 700; color: #111; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sort-icon { font-size: 9px; opacity: 0.6; }
 .ver-dday { font-size: 11px; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
 .ver-dday.red { color: #c0392b; }
-.ver-dday.blue { color: #2471a3; }
+.ver-dday.blue { color: #0047A0; }
 .ver-dday.muted { color: #ccc; font-weight: 300; }
 
 /* ── AI Summary ── */
@@ -1439,7 +1446,7 @@ body {
 .tab-item[data-tab="overdue"] { font-weight: 700; color: #111; }
 .tab-badge { font-size: 9px; font-weight: 600; }
 .tab-badge.red { color: #c0392b; }
-.tab-badge.blue { color: #2471a3; }
+.tab-badge.blue { color: #0047A0; }
 .tab-filters {
   margin-top: 8px;
   border: 1px solid #aaa;
@@ -1462,14 +1469,23 @@ body {
   text-transform: uppercase;
   color: #bbb;
 }
-.tab-filter-cell input,
-.tab-filter-cell select {
+.tab-filter-cell input {
   font-size: 11px;
   border: none;
   outline: none;
   background: transparent;
   color: #111;
   padding: 0;
+  cursor: pointer;
+  width: 100%;
+}
+.tab-filter-cell select {
+  font-size: 11px;
+  border: none;
+  outline: none;
+  background: transparent url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23111' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 2px center;
+  color: #111;
+  padding-right: 14px;
   -webkit-appearance: none;
   appearance: none;
   cursor: pointer;
@@ -1497,6 +1513,7 @@ body {
 .pagination { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 0.5px solid #e8e6e2; margin-top: 0; }
 .pg-left { display: flex; align-items: center; gap: 12px; }
 .pg-info { font-size: 9px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: #555; }
+.pg-info span { font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0.15em; }
 .pg-toggle { display: flex; align-items: center; }
 .pg-toggle-btn { font-size: 9px; font-weight: 400; letter-spacing: 0.1em; color: #bbb; cursor: pointer; padding: 0 6px; border-right: 1px solid #ddd; }
 .pg-toggle-btn:last-child { border-right: none; }
@@ -1945,10 +1962,10 @@ body {
 
   <!-- 마감 임박 (신규) -->
   <div class="sum-card clickable" id="card-imminent" onclick="goToTab('imminent')" style="background:#ffffff !important;">
-    <div class="sum-label">Imminent / 마감 임박</div>
+    <div class="sum-label">Imminent</div>
     <div class="sum-value blue" id="val-imminent">—</div>
     <div class="sum-spark">
-      <span class="sum-delta" id="delta-imminent" style="color:#1a5276;">D-7 이내</span>
+      <span class="sum-delta" id="delta-imminent" style="color:#2980b9;">D-7 이내</span>
     </div>
     <div class="sum-hint">마감 임박 이슈 ↓</div>
   </div>
@@ -2016,7 +2033,7 @@ body {
         <span>02 / Milestones · 버전 / 마일스톤</span>
         <span class="card-header-sub" id="version-project-name">—</span>
       </div>
-      <div class="card-body" id="version-body" style="overflow-y:auto; display:flex; flex-direction:column; justify-content:space-evenly; flex:1;">
+      <div class="card-body" id="version-body" style="overflow-y:scroll; display:flex; flex-direction:column; flex:1; min-height:0; max-height:285px;">
         <div style="padding:16px;text-align:center;font-size:11px;color:#ccc;">로딩 중...</div>
       </div>
     </div>
@@ -2073,13 +2090,13 @@ body {
     <table class="data-table tab-table">
       <thead>
         <tr>
-          <th>ID</th>
-          <th>SUBJECT 이슈 제목</th>
-          <th>그룹</th>
-          <th>담당자</th>
-          <th>상태</th>
-          <th>PRIORITY</th>
-          <th style="text-align:right;">D-DAY</th>
+          <th data-sort="id" onclick="setSort('id')" style="cursor:pointer;color:#bbb;">ID<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="subject" onclick="setSort('subject')" style="cursor:pointer;color:#bbb;">SUBJECT 이슈 제목<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="dept" onclick="setSort('dept')" style="cursor:pointer;color:#bbb;">그룹<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="assignee" onclick="setSort('assignee')" style="cursor:pointer;color:#bbb;">담당자<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="status" onclick="setSort('status')" style="cursor:pointer;color:#bbb;">상태<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="priority" onclick="setSort('priority')" style="cursor:pointer;color:#bbb;">PRIORITY<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="due_date" onclick="setSort('due_date')" style="cursor:pointer;color:#000;text-align:right;">D-DAY<span class="sort-icon"> ▲</span></th>
         </tr>
       </thead>
       <tbody id="tab-tbody">
@@ -2122,9 +2139,12 @@ body {
         💡 API 키 확인 →<br>Redmine 접속 › <b>내 계정</b> › 우측 하단 <b>API 액세스 키</b> › <b>표시</b> 클릭
       </div>
       <button class="btn btn-black" onclick="saveSettings()" style="width:100%;justify-content:center;">SAVE</button>
-      <div style="font-size:11px;color:#bbb;text-align:center;margin-top:12px;display:flex;align-items:center;justify-content:center;gap:5px;">
-        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="7" width="10" height="8" rx="1.5" stroke="#bbb" stroke-width="1.2"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="#bbb" stroke-width="1.2" stroke-linecap="round"/></svg>
-        입력된 정보는 외부로 전송되지 않으며 브라우저에만 저장됩니다.
+      <div style="margin-top:12px;background:#0047A0;padding:10px 14px;">
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
+          <svg width="12" height="12" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg"><rect x="3" y="7" width="10" height="8" rx="1.5" stroke="#fff" stroke-width="1.2"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
+          <span style="font-size:11px;font-weight:700;color:#fff;letter-spacing:0.08em;">보안 안내</span>
+        </div>
+        <div style="font-size:11px;color:#fff;opacity:0.85;">입력된 정보는 Vantix 서버로 전송되지 않으며, 로컬 브라우저에만 저장됩니다.</div>
       </div>
     </div>
   </div>
@@ -2423,15 +2443,16 @@ async function renderGroupStatus(projectId) {
         var gx = Math.round(gi * step);
         gridLines += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + svgH + '" stroke="#e4e2e2" stroke-width="0.5"/>';
       }
-      // W1, W8 레이블
-      var wLabels = '<text x="2" y="' + (svgH - 2) + '" font-size="7" fill="#ccc" font-family="sans-serif">W1</text>' +
-                    '<text x="' + (svgW - 14) + '" y="' + (svgH - 2) + '" font-size="7" fill="#ccc" font-family="sans-serif">W8</text>';
+      var wLabels = '';
 
       return '<div style="display:grid;grid-template-columns:120px 1fr 56px 52px 72px;padding:11px 16px;border-bottom:1px solid #eae8e7;gap:10px;align-items:center;background:' + bg + ';">' +
         '<div>' +
           '<div style="font-size:12px;font-weight:700;color:#000;">' + g.name + '</div>' +
           '<div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.07em;margin-top:1px;">' + g.user_count + '명</div>' +
         '</div>' +
+        '<div style="position:relative;">' +
+        '<div style="position:absolute;bottom:0;left:0;font-size:7px;color:#ccc;font-family:sans-serif;line-height:1;pointer-events:none;">W1</div>' +
+        '<div style="position:absolute;bottom:0;right:0;font-size:7px;color:#ccc;font-family:sans-serif;line-height:1;pointer-events:none;">W8</div>' +
         '<svg width="100%" height="' + svgH + '" viewBox="0 0 ' + svgW + ' ' + svgH + '" preserveAspectRatio="none">' +
           '<defs>' +
             '<linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">' +
@@ -2442,9 +2463,9 @@ async function renderGroupStatus(projectId) {
           gridLines +
           '<polygon points="' + polyPoints + '" fill="url(#' + gradId + ')"/>' +
           '<polyline points="' + points + '" fill="none" stroke="' + strokeColor + '" stroke-width="2.5" stroke-dasharray="' + dashArray + '"/>' +
-          '<circle cx="' + svgW + '" cy="' + lastY + '" r="3" fill="' + strokeColor + '"/>' +
           wLabels +
         '</svg>' +
+        '</div>' +
         '<div style="font-size:12px;font-weight:600;text-align:right;color:' + overdueColor + ';">' + g.overdue_now + '</div>' +
         '<div style="font-size:11px;font-weight:600;text-align:right;color:' + wowColor + ';">' + wowText + '</div>' +
         '<div style="text-align:right;"><span style="font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:3px 7px;background:' + riskBg + ';color:' + riskColor + ';">' + g.risk + '</span></div>' +
@@ -2898,7 +2919,18 @@ function selectMemberFromCard(el) {
   });
   var searchEl = document.getElementById('tabAssigneeSearch');
   if (searchEl) searchEl.value = shortName;
+  // tabAssigneeFilter(드롭다운)도 동기화 — 실제 필터링에 사용됨
+  var assigneeSelect = document.getElementById('tabAssigneeFilter');
+  if (assigneeSelect && shortName) {
+    for (var i = 0; i < assigneeSelect.options.length; i++) {
+      if (assigneeSelect.options[i].text.trim() === shortName.trim()) {
+        assigneeSelect.selectedIndex = i;
+        break;
+      }
+    }
+  }
   switchTab('assignee');
+  renderTab();
   var bottomEl = document.querySelector('.bottom-section');
   if (bottomEl) bottomEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -2912,6 +2944,16 @@ function switchTab(tab) {
     document.querySelectorAll('.tab-item').forEach(function(el) {
       el.classList.toggle('active', el.dataset.tab === tab);
     });
+    // assignee 탭이 아닌 탭으로 전환 시 담당자 필터 초기화
+    if (tab !== 'assignee') {
+      var assigneeSelect = document.getElementById('tabAssigneeFilter');
+      if (assigneeSelect) assigneeSelect.selectedIndex = 0;
+      var assigneeSearch = document.getElementById('tabAssigneeSearch');
+      if (assigneeSearch) assigneeSearch.value = '';
+      document.querySelectorAll('.risk-member-row').forEach(function(row) {
+        row.classList.remove('selected');
+      });
+    }
     renderTab();
     if (table) table.classList.remove('fading');
   }, 200);
@@ -2998,10 +3040,46 @@ function getTabIssues() {
     });
   }
 
-  // Sort by due date ascending by default
-  issues.sort(function(a, b) { return (a.due_date || '9999') < (b.due_date || '9999') ? -1 : 1; });
+  // Sort
+  var sk = window._sortKey || 'due_date';
+  var sd = window._sortDir || 'asc';
+  issues.sort(function(a, b) {
+    var av, bv;
+    if (sk === 'id')       { av = a.id; bv = b.id; }
+    else if (sk === 'subject') { av = (a.subject||'').toLowerCase(); bv = (b.subject||'').toLowerCase(); }
+    else if (sk === 'dept')    { av = (a._dept||'').toLowerCase(); bv = (b._dept||'').toLowerCase(); }
+    else if (sk === 'assignee'){ av = (a._short||'').toLowerCase(); bv = (b._short||'').toLowerCase(); }
+    else if (sk === 'status')  { av = (a.status||'').toLowerCase(); bv = (b.status||'').toLowerCase(); }
+    else if (sk === 'priority'){ var pm={'high':0,'높음':0,'normal':1,'보통':1,'low':2,'낮음':2}; av = pm[(a.priority||'').toLowerCase()]??9; bv = pm[(b.priority||'').toLowerCase()]??9; }
+    else { av = a.due_date || '9999'; bv = b.due_date || '9999'; } // due_date default
+    if (av < bv) return sd === 'asc' ? -1 : 1;
+    if (av > bv) return sd === 'asc' ? 1 : -1;
+    return 0;
+  });
 
   return issues;
+}
+
+function setSort(key) {
+  if (window._sortKey === key) {
+    window._sortDir = window._sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    window._sortKey = key;
+    window._sortDir = 'asc';
+  }
+  currentPage = 1;
+  document.querySelectorAll('th[data-sort]').forEach(function(th) {
+    var icon = th.querySelector('.sort-icon');
+    if (!icon) return;
+    if (th.dataset.sort === window._sortKey) {
+      icon.textContent = window._sortDir === 'asc' ? ' ▲' : ' ▼';
+      th.style.color = '#000';
+    } else {
+      icon.textContent = ' ⇅';
+      th.style.color = '#bbb';
+    }
+  });
+  renderTab();
 }
 
 var currentPage = 1;
@@ -3021,7 +3099,7 @@ function renderPagination(total) {
   var end = Math.min(currentPage * perPage, total);
   var infoEl = document.getElementById('pgInfo');
   var ctrlEl = document.getElementById('pgControls');
-  if (infoEl) infoEl.textContent = 'Showing ' + start + '\u2013' + end + ' of ' + total + ' entries';
+  if (infoEl) infoEl.innerHTML = 'Showing ' + start + '\u2013' + end + ' of <span style="color:#0047A0;font-size:11px;letter-spacing:0.1em;">' + total + ' ENTRIES</span>';
   if (!ctrlEl) return;
 
   var html = '';
@@ -3122,15 +3200,17 @@ function renderTab() {
 
   tbody.innerHTML = issues.map(function(i) {
     var isOverdue = i.due_date && i.due_date < todayStr && !CLOSED_SET_JS.has(i.status) && !HOLD_SET_JS.has(i.status);
+    var isClosed = CLOSED_SET_JS.has(i.status) || HOLD_SET_JS.has(i.status);
     var elapsed, elapsedColor, elapsedCls;
     if (i._elapsed !== null) {
       if (i._elapsed < 0) {
-        elapsed = '+' + Math.abs(i._elapsed);
-        elapsedCls = Math.abs(i._elapsed) > 7 ? 'red' : 'orange';
+        elapsed = 'D+' + Math.abs(i._elapsed);
+        elapsed = isClosed ? 'CLOSED' : 'D+' + Math.abs(i._elapsed);
+        elapsedCls = isClosed ? 'closed' : (Math.abs(i._elapsed) > 7 ? 'red' : 'orange-overdue');
       } else {
         var d = i._elapsed;
-        elapsed = d <= 0 ? 'D-Day' : 'D-' + d;
-        elapsedCls = d <= 3 ? 'red' : d <= 10 ? 'orange' : 'gray';
+        elapsed = isClosed ? 'CLOSED' : (d <= 0 ? 'D-Day' : 'D-' + d);
+        elapsedCls = isClosed ? 'closed' : (d <= 3 ? 'red' : d <= 10 ? 'orange' : 'gray');
       }
     } else { elapsed = '—'; elapsedCls = 'gray'; }
 

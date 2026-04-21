@@ -1,6 +1,6 @@
 PROGRESS_SET = {"진행", "진행대기", "In Progress"}
 RESOLVED_SET = {"해결", "해결됨", "Resolved"}
-CLOSED_SET   = {"완료", "완료(잔땡처리)", "Closed", "반려", "Rejected"}
+CLOSED_SET   = {"완료", "완료(잔땡처리)", "Closed", "반려", "Rejected", "해결"}
 HOLD_SET     = {"보류", "보류(스펙아웃)", "스펙아웃"}
 
 DEPT_NORMALIZE = {
