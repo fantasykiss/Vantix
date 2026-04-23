@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vantix — AI Risk Analysis for Redmine</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,900;1,9..40,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --black: #000000;
+      --canvas: #fbf9f8;
+      --surface-low: #f5f3f3;
+      --surface-high: #eae8e7;
+      --surface-highest: #e4e2e2;
+      --ghost: rgba(0,0,0,0.12);
+      --ghost-line: rgba(0,0,0,0.08);
+      --white: #ffffff;
+      --mono: 'DM Mono', monospace;
+      --sans: 'DM Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      background: var(--canvas);
+      color: var(--black);
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+
+    /* ─── NAV ─── */
+    nav {
+      position: fixed;
+      top: 0; left: 0; right: 0;
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 48px;
+      height: 56px;
+      background: rgba(0,0,0,0.72);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+
+    .nav-logo {
+      font-size: 15px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--white);
+    }
+
+    .nav-cta {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: var(--white);
+      border: 1px solid rgba(255,255,255,0.35);
+      padding: 8px 20px;
+      cursor: pointer;
+      background: transparent;
+      text-decoration: none;
+      transition: none;
+    }
+    .nav-cta:hover {
+      background: var(--white);
+      color: var(--black);
+      border-color: var(--white);
+    }
+
+    /* ─── HERO ─── */
+    #hero {
+      position: relative;
+      min-height: 100vh;
+      background: var(--black);
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-end;
+      padding: 0 48px 80px;
+      overflow: hidden;
+    }
+
+    /* Blueprint grid overlay */
+    #hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px);
+      background-size: 80px 80px;
+      pointer-events: none;
+    }
+
+    /* Vertical accent lines */
+    #hero::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 50%;
+      width: 1px;
+      background: rgba(255,255,255,0.06);
+      pointer-events: none;
+    }
+
+    .hero-label {
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.4);
+      margin-bottom: 32px;
+    }
+
+    .hero-headline {
+      font-size: clamp(56px, 9vw, 140px);
+      font-weight: 900;
+      line-height: 0.92;
+      letter-spacing: -0.03em;
+      color: var(--white);
+      text-wrap: balance;
+      max-width: 14ch;
+      margin-bottom: 40px;
+    }
+
+    .hero-headline em {
+      font-style: normal;
+      color: rgba(255,255,255,0.3);
+    }
+
+    .hero-sub {
+      font-size: clamp(15px, 1.6vw, 18px);
+      font-weight: 300;
+      line-height: 1.65;
+      color: rgba(255,255,255,0.55);
+      max-width: 480px;
+      margin-bottom: 56px;
+    }
+
+    .hero-sub strong {
+      color: rgba(255,255,255,0.85);
+      font-weight: 500;
+    }
+
+    /* Waitlist Form */
+    .waitlist-form {
+      display: flex;
+      gap: 0;
+      align-items: stretch;
+      max-width: 480px;
+    }
+
+    .waitlist-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(255,255,255,0.3);
+      color: var(--white);
+      font-family: var(--sans);
+      font-size: 15px;
+      font-weight: 400;
+      padding: 12px 0;
+      outline: none;
+      letter-spacing: 0.01em;
+    }
+    .waitlist-input::placeholder { color: rgba(255,255,255,0.25); }
+    .waitlist-input:focus { border-bottom-color: var(--white); }
+
+    .waitlist-btn {
+      background: var(--white);
+      color: var(--black);
+      border: none;
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0 28px;
+      cursor: pointer;
+      margin-left: 16px;
+    }
+    .waitlist-btn:hover { background: var(--surface-high); }
+
+    .hero-footnote {
+      margin-top: 16px;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.1em;
+      color: rgba(255,255,255,0.2);
+    }
+
+    /* Hero vertical text */
+    .hero-vertical {
+      position: absolute;
+      right: 48px;
+      top: 50%;
+      transform: translateY(-50%) rotate(90deg);
+      transform-origin: center center;
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.15);
+      white-space: nowrap;
+    }
+
+    /* ─── STRIP: KEY POINTS ─── */
+    #strip {
+      background: var(--black);
+      border-top: 1px solid rgba(255,255,255,0.08);
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+    }
+
+    .strip-item {
+      padding: 48px 48px;
+      border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    .strip-item:last-child { border-right: none; }
+
+    .strip-num {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.2em;
+      color: rgba(255,255,255,0.25);
+      margin-bottom: 20px;
+    }
+
+    .strip-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--white);
+      margin-bottom: 10px;
+      line-height: 1.2;
+    }
+
+    .strip-body {
+      font-size: 13px;
+      font-weight: 300;
+      line-height: 1.7;
+      color: rgba(255,255,255,0.45);
+    }
+
+    /* ─── TESTIMONIALS ─── */
+    #testimonials {
+      background: var(--canvas);
+      padding: 120px 48px;
+      position: relative;
+    }
+
+    /* Blueprint vertical lines */
+    #testimonials::before {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 33.333%;
+      width: 1px;
+      background: var(--ghost-line);
+      pointer-events: none;
+    }
+    #testimonials::after {
+      content: '';
+      position: absolute;
+      top: 0; bottom: 0;
+      left: 66.666%;
+      width: 1px;
+      background: var(--ghost-line);
+      pointer-events: none;
+    }
+
+    .section-label {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.25em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.3);
+      margin-bottom: 80px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .section-label::after {
+      content: '';
+      height: 1px;
+      width: 40px;
+      background: rgba(0,0,0,0.2);
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0;
+    }
+
+    .testimonial {
+      padding: 0 48px 0 0;
+      border-right: 1px solid var(--ghost);
+      margin-right: 48px;
+    }
+    .testimonial:last-child {
+      border-right: none;
+      margin-right: 0;
+    }
+
+    .testimonial-quote {
+      font-size: clamp(17px, 1.6vw, 20px);
+      font-weight: 400;
+      line-height: 1.6;
+      color: var(--black);
+      margin-bottom: 32px;
+      text-wrap: pretty;
+    }
+
+    .testimonial-quote::before {
+      content: '\201C';
+      font-size: 48px;
+      line-height: 1;
+      font-weight: 900;
+      display: block;
+      margin-bottom: 16px;
+      color: rgba(0,0,0,0.12);
+    }
+
+    .testimonial-author {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.35);
+      line-height: 1.8;
+    }
+
+    .testimonial-author strong {
+      display: block;
+      font-size: 12px;
+      color: var(--black);
+      font-weight: 500;
+      letter-spacing: 0.05em;
+    }
+
+    /* ─── FOOTER CTA ─── */
+    #footer-cta {
+      background: var(--surface-low);
+      border-top: 1px solid var(--ghost);
+      padding: 120px 48px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 80px;
+      align-items: center;
+    }
+
+    .footer-headline {
+      font-size: clamp(32px, 4vw, 56px);
+      font-weight: 900;
+      line-height: 1.0;
+      letter-spacing: -0.02em;
+    }
+
+    .footer-right {}
+    .footer-sub {
+      font-size: 14px;
+      font-weight: 300;
+      line-height: 1.7;
+      color: rgba(0,0,0,0.5);
+      margin-bottom: 40px;
+      max-width: 360px;
+    }
+
+    .footer-form {
+      display: flex;
+      gap: 0;
+      align-items: stretch;
+    }
+
+    .footer-input {
+      flex: 1;
+      background: transparent;
+      border: none;
+      border-bottom: 1px solid rgba(0,0,0,0.25);
+      color: var(--black);
+      font-family: var(--sans);
+      font-size: 15px;
+      padding: 12px 0;
+      outline: none;
+    }
+    .footer-input::placeholder { color: rgba(0,0,0,0.25); }
+    .footer-input:focus { border-bottom-color: var(--black); border-bottom-width: 2px; }
+
+    .footer-btn {
+      background: var(--black);
+      color: var(--white);
+      border: none;
+      font-family: var(--sans);
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      padding: 0 28px;
+      cursor: pointer;
+      margin-left: 16px;
+    }
+    .footer-btn:hover { background: #1b1b1b; }
+
+    /* ─── BOTTOM BAR ─── */
+    footer {
+      background: var(--black);
+      padding: 28px 48px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo {
+      font-size: 13px;
+      font-weight: 700;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--white);
+    }
+
+    .footer-meta {
+      font-family: var(--mono);
+      font-size: 10px;
+      letter-spacing: 0.12em;
+      color: rgba(255,255,255,0.25);
+    }
+
+    /* ─── SUCCESS STATE ─── */
+    .success-msg {
+      display: none;
+      font-family: var(--mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-top: 12px;
+    }
+    .success-msg.visible { display: block; }
+    .hero-success { color: rgba(255,255,255,0.5); }
+    .footer-success { color: rgba(0,0,0,0.4); }
+
+    /* ─── TWEAKS PANEL ─── */
+    #tweaks-panel {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--white);
+      border: 1px solid var(--surface-highest);
+      padding: 24px;
+      z-index: 9999;
+      width: 260px;
+      box-shadow: 0 0 64px rgba(0,0,0,0.06);
+    }
+    #tweaks-panel.open { display: block; }
+    .tweak-title {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      margin-bottom: 20px;
+      color: var(--black);
+    }
+    .tweak-row {
+      margin-bottom: 16px;
+    }
+    .tweak-label {
+      font-family: var(--mono);
+      font-size: 9px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: rgba(0,0,0,0.4);
+      margin-bottom: 6px;
+    }
+    .tweak-select, .tweak-check {
+      font-family: var(--sans);
+      font-size: 12px;
+      width: 100%;
+      border: 1px solid var(--surface-highest);
+      padding: 6px 8px;
+      background: var(--canvas);
+      outline: none;
+      cursor: pointer;
+    }
+    .tweak-check { width: auto; }
+
+    /* ── MOBILE NAV MENU ── */
+    .nav-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .nav-menu-btn span {
+      display: block;
+      width: 22px;
+      height: 1.5px;
+      background: var(--white);
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .nav-menu-btn.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    .nav-menu-btn.open span:nth-child(2) { opacity: 0; }
+    .nav-menu-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+    .mobile-menu {
+      display: none;
+      position: fixed;
+      top: 56px;
+      left: 0; right: 0;
+      background: rgba(0,0,0,0.96);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      z-index: 99;
+      padding: 24px;
+      border-top: 1px solid rgba(255,255,255,0.08);
+      flex-direction: column;
+      gap: 0;
+    }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a {
+      display: block;
+      padding: 16px 0;
+      font-size: 17px;
+      font-weight: 500;
+      color: var(--white);
+      text-decoration: none;
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+      letter-spacing: 0.01em;
+    }
+    .mobile-menu a:last-child { border-bottom: none; }
+    .mobile-menu a:active { opacity: 0.6; }
+
+    @media (max-width: 768px) {
+      nav { padding: 0 20px; }
+      .nav-cta { display: none; }
+      .nav-menu-btn { display: flex; }
+
+      #hero {
+        padding: 0 20px 64px;
+        min-height: 100svh;
+      }
+      .hero-label { margin-bottom: 20px; margin-top: 80px; }
+      .hero-headline {
+        font-size: clamp(40px, 11vw, 56px);
+        margin-bottom: 28px;
+      }
+      .hero-sub {
+        font-size: 15px;
+        margin-bottom: 40px;
+      }
+      .hero-vertical { display: none; }
+      .waitlist-form {
+        flex-direction: column;
+        gap: 12px;
+      }
+      .waitlist-input {
+        border-bottom: 1px solid rgba(255,255,255,0.3);
+        padding: 14px 0;
+        font-size: 16px; /* prevent iOS zoom */
+      }
+      .waitlist-btn {
+        margin-left: 0;
+        padding: 14px 0;
+        font-size: 12px;
+        min-height: 48px;
+      }
+
+      #strip { grid-template-columns: 1fr; }
+      .strip-item {
+        border-right: none;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+        padding: 32px 20px;
+      }
+      .strip-item:last-child { border-bottom: none; }
+
+      #testimonials { padding: 64px 20px; }
+      #testimonials::before, #testimonials::after { display: none; }
+      .section-label { margin-bottom: 48px; }
+      .testimonials-grid { grid-template-columns: 1fr; gap: 0; }
+      .testimonial {
+        border-right: none;
+        margin-right: 0;
+        padding-right: 0;
+        border-bottom: 1px solid var(--ghost);
+        padding-bottom: 40px;
+        margin-bottom: 40px;
+      }
+      .testimonial:last-child {
+        border-bottom: none;
+        padding-bottom: 0;
+        margin-bottom: 0;
+      }
+
+      #footer-cta {
+        grid-template-columns: 1fr;
+        padding: 64px 20px;
+        gap: 32px;
+      }
+      .footer-form {
+        flex-direction: column;
+        gap: 12px;
+      }
+      .footer-input {
+        font-size: 16px;
+        padding: 14px 0;
+      }
+      .footer-btn {
+        margin-left: 0;
+        padding: 14px 0;
+        min-height: 48px;
+      }
+
+      footer {
+        padding: 24px 20px;
+        flex-direction: column;
+        gap: 8px;
+        text-align: center;
+      }
+
+      #tweaks-panel {
+        width: calc(100% - 32px);
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      .hero-headline { font-size: 36px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- NAV -->
+  <nav>
+    <span class="nav-logo" style="color: rgb(234, 14, 14);">Vantix</span>
+    <a class="nav-cta" href="#footer-cta">Join Waitlist</a>
+    <button class="nav-menu-btn" id="menu-btn" aria-label="메뉴" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu" id="mobile-menu">
+    <a href="#strip" onclick="closeMenu()">기능</a>
+    <a href="#testimonials" onclick="closeMenu()">후기</a>
+    <a href="#footer-cta" onclick="closeMenu()">얼리 액세스 신청</a>
+  </div>
+
+  <!-- HERO -->
+  <section id="hero">
+    <span class="hero-vertical">AI-Powered Risk Intelligence — Redmine Native</span>
+
+    <div class="hero-label">Vantix — Early Access 2025</div>
+
+    <h1 class="hero-headline">
+      RISK,<br/>
+      BEFORE IT<br/>
+      <em>BECOMES</em><br/>
+      A PROBLEM.
+    </h1>
+
+    <p class="hero-sub">
+      <strong>Redmine 전용 AI 리스크 분석 도구.</strong><br/>
+      이슈 데이터를 실시간으로 읽고, 프로젝트가 위험해지기 전에 경고합니다.<br/>
+      설치 없이, 지금 바로 연동.
+    </p>
+
+    <form class="waitlist-form" onsubmit="handleHeroSubmit(event)">
+      <input class="waitlist-input" type="email" placeholder="work@company.com" required id="hero-email" />
+      <button class="waitlist-btn" type="submit">얼리 액세스 신청</button>
+    </form>
+    <p class="hero-footnote">스팸 없음. 론칭 시 단 한 번의 알림만.</p>
+    <p class="success-msg hero-success" id="hero-success">— 등록 완료. 감사합니다.</p>
+  </section>
+
+  <!-- KEY POINTS STRIP -->
+  <section id="strip">
+    <div class="strip-item">
+      <div class="strip-num">01</div>
+      <div class="strip-title">Redmine 네이티브</div>
+      <div class="strip-body">별도 마이그레이션 없이 기존 Redmine 이슈 데이터에 직접 연결됩니다. 도입 비용 제로.</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-num">02</div>
+      <div class="strip-title">선제적 리스크 탐지</div>
+      <div class="strip-body">AI가 이슈 패턴, 지연 신호, 의존성을 분석해 문제가 커지기 전에 PM에게 알립니다.</div>
+    </div>
+    <div class="strip-item">
+      <div class="strip-num">03</div>
+      <div class="strip-title">확장 예정</div>
+      <div class="strip-body">현재 Redmine 전용. Jira, Linear 등 주요 툴로의 확장을 준비 중입니다.</div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section id="testimonials">
+    <div class="section-label">사용자 후기 / References</div>
+    <div class="testimonials-grid">
+      <div class="testimonial">
+        <p class="testimonial-quote">
+          리스크를 뒤늦게 보고받는 게 항상 문제였어요. Vantix는 이슈가 커지기 3일 전에 먼저 알려줬습니다.
+        </p>
+        <div class="testimonial-author">
+          <strong>김민준</strong>
+          Senior PM · 핀테크 스타트업
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial-quote">
+          Redmine을 오래 써왔는데 이렇게 자연스럽게 붙는 AI 툴은 처음입니다. 팀 전환 비용이 거의 없었어요.
+        </p>
+        <div class="testimonial-author">
+          <strong>이서연</strong>
+          Project Lead · SI 기업
+        </div>
+      </div>
+      <div class="testimonial">
+        <p class="testimonial-quote">
+          대시보드 하나로 전체 프로젝트 건강 상태를 볼 수 있다는 게 가장 큰 장점입니다.
+        </p>
+        <div class="testimonial-author">
+          <strong>박지호</strong>
+          PM · 공공 IT 프로젝트
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER CTA -->
+  <section id="footer-cta">
+    <div>
+      <h2 class="footer-headline">지금<br/>신청하세요.</h2>
+    </div>
+    <div class="footer-right">
+      <p class="footer-sub">
+        얼리 액세스 사용자에게는 론칭 후 6개월 무료 사용 혜택이 제공됩니다.<br/>
+        선착순 마감.
+      </p>
+      <form class="footer-form" onsubmit="handleFooterSubmit(event)">
+        <input class="footer-input" type="email" placeholder="work@company.com" required id="footer-email" />
+        <button class="footer-btn" type="submit">신청하기</button>
+      </form>
+      <p class="success-msg footer-success" id="footer-success">— 등록 완료. 감사합니다.</p>
+    </div>
+  </section>
+
+  <!-- FOOTER BAR -->
+  <footer>
+    <span class="footer-logo">Vantix</span>
+    <span class="footer-meta">© 2025 Vantix · AI Risk Intelligence for Project Teams</span>
+  </footer>
+
+  <!-- TWEAKS PANEL -->
+  <div id="tweaks-panel">
+    <div class="tweak-title">Tweaks</div>
+    <div class="tweak-row">
+      <div class="tweak-label">Hero 헤드라인 스타일</div>
+      <select class="tweak-select" onchange="setHeadlineStyle(this.value)">
+        <option value="split">분리형 (현재)</option>
+        <option value="inline">한 줄 연속형</option>
+        <option value="kr">한국어 우선</option>
+      </select>
+    </div>
+    <div class="tweak-row">
+      <div class="tweak-label">Strip 배경</div>
+      <select class="tweak-select" onchange="setStripBg(this.value)">
+        <option value="black">다크 (현재)</option>
+        <option value="canvas">라이트</option>
+      </select>
+    </div>
+    <div class="tweak-row">
+      <div class="tweak-label">Grid 라인 강도</div>
+      <select class="tweak-select" onchange="setGridOpacity(this.value)">
+        <option value="0.08">미묘 (현재)</option>
+        <option value="0.18">보통</option>
+        <option value="0.30">강함</option>
+      </select>
+    </div>
+  </div>
+
+  <script>
+    function toggleMenu() {
+      const btn = document.getElementById('menu-btn');
+      const menu = document.getElementById('mobile-menu');
+      btn.classList.toggle('open');
+      menu.classList.toggle('open');
+    }
+    function closeMenu() {
+      document.getElementById('menu-btn').classList.remove('open');
+      document.getElementById('mobile-menu').classList.remove('open');
+    }
+
+    // Tweaks panel
+    window.addEventListener('message', e => {
+      if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks-panel').classList.add('open');
+      if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks-panel').classList.remove('open');
+    });
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+    // Waitlist submit handlers
+    function handleHeroSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('hero-email').value;
+      saveEmail(email);
+      document.querySelector('.waitlist-form').style.opacity = '0.3';
+      document.getElementById('hero-success').classList.add('visible');
+    }
+
+    function handleFooterSubmit(e) {
+      e.preventDefault();
+      const email = document.getElementById('footer-email').value;
+      saveEmail(email);
+      document.querySelector('.footer-form').style.opacity = '0.3';
+      document.getElementById('footer-success').classList.add('visible');
+    }
+
+    function saveEmail(email) {
+      const existing = JSON.parse(localStorage.getItem('vantix_waitlist') || '[]');
+      if (!existing.includes(email)) {
+        existing.push(email);
+        localStorage.setItem('vantix_waitlist', JSON.stringify(existing));
+      }
+    }
+
+    // Tweaks
+    function setHeadlineStyle(v) {
+      const h = document.querySelector('.hero-headline');
+      if (v === 'split') h.innerHTML = 'RISK,<br/>BEFORE IT<br/><em>BECOMES</em><br/>A PROBLEM.';
+      if (v === 'inline') h.innerHTML = 'RISK BEFORE<br/><em>IT BECOMES</em><br/>A PROBLEM.';
+      if (v === 'kr') h.innerHTML = '리스크,<br/>문제가 되기<br/><em>전에.</em>';
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { headlineStyle: v } }, '*');
+    }
+
+    function setStripBg(v) {
+      const strip = document.getElementById('strip');
+      if (v === 'black') {
+        strip.style.background = '#000';
+        strip.querySelectorAll('.strip-title').forEach(el => el.style.color = '#fff');
+        strip.querySelectorAll('.strip-body').forEach(el => el.style.color = 'rgba(255,255,255,0.45)');
+        strip.querySelectorAll('.strip-num').forEach(el => el.style.color = 'rgba(255,255,255,0.25)');
+        strip.querySelectorAll('.strip-item').forEach(el => el.style.borderColor = 'rgba(255,255,255,0.08)');
+      } else {
+        strip.style.background = '#fbf9f8';
+        strip.style.borderTop = '1px solid rgba(0,0,0,0.08)';
+        strip.querySelectorAll('.strip-title').forEach(el => el.style.color = '#000');
+        strip.querySelectorAll('.strip-body').forEach(el => el.style.color = 'rgba(0,0,0,0.5)');
+        strip.querySelectorAll('.strip-num').forEach(el => el.style.color = 'rgba(0,0,0,0.25)');
+        strip.querySelectorAll('.strip-item').forEach(el => el.style.borderColor = 'rgba(0,0,0,0.08)');
+      }
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { stripBg: v } }, '*');
+    }
+
+    function setGridOpacity(v) {
+      document.documentElement.style.setProperty('--ghost-line', `rgba(0,0,0,${v})`);
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { gridOpacity: v } }, '*');
+    }
+  </script>
+</body>
+</html>

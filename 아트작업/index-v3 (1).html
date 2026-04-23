@@ -1,0 +1,852 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Vantix — AI Risk Intelligence</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --r: 20px;
+      --r-lg: 28px;
+      --r-pill: 999px;
+      --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+
+      /* Glass tokens */
+      --glass-bg: rgba(255,255,255,0.38);
+      --glass-bg-heavy: rgba(255,255,255,0.58);
+      --glass-border: rgba(255,255,255,0.70);
+      --glass-border-subtle: rgba(255,255,255,0.40);
+      --glass-shadow: 0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
+      --glass-shadow-lg: 0 24px 64px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.07);
+      --glass-inset: inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.2);
+
+      /* Text */
+      --text: #1a1a1e;
+      --text-secondary: rgba(60,60,67,0.6);
+      --text-tertiary: rgba(60,60,67,0.35);
+
+      /* Accent */
+      --accent: #007AFF;
+      --accent-light: rgba(0,122,255,0.12);
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--sans);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* ── GRADIENT MESH BACKGROUND ── */
+    .bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      background: #e8edf5;
+      overflow: hidden;
+    }
+
+    .orb {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(80px);
+      opacity: 0.55;
+      animation: float linear infinite;
+    }
+    .orb-1 { width: 700px; height: 700px; background: radial-gradient(circle, #b8d4f8, #d4e8ff); top: -200px; left: -100px; animation-duration: 30s; }
+    .orb-2 { width: 600px; height: 600px; background: radial-gradient(circle, #e8d5f5, #f3e8ff); top: 20%; right: -150px; animation-duration: 38s; animation-direction: reverse; }
+    .orb-3 { width: 500px; height: 500px; background: radial-gradient(circle, #c8f0e8, #d8f5ee); bottom: 10%; left: 20%; animation-duration: 25s; }
+    .orb-4 { width: 400px; height: 400px; background: radial-gradient(circle, #fde8d8, #fef0e8); bottom: -100px; right: 10%; animation-duration: 32s; animation-direction: reverse; }
+
+    @keyframes float {
+      0%   { transform: translate(0, 0) scale(1); }
+      33%  { transform: translate(40px, -30px) scale(1.05); }
+      66%  { transform: translate(-20px, 40px) scale(0.97); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+
+    /* ── GLASS MIXIN-STYLE CLASSES ── */
+    .glass {
+      background: var(--glass-bg);
+      backdrop-filter: blur(24px) saturate(160%);
+      -webkit-backdrop-filter: blur(24px) saturate(160%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow), var(--glass-inset);
+    }
+
+    .glass-heavy {
+      background: var(--glass-bg-heavy);
+      backdrop-filter: blur(40px) saturate(200%);
+      -webkit-backdrop-filter: blur(40px) saturate(200%);
+      border: 1px solid var(--glass-border);
+      box-shadow: var(--glass-shadow-lg), var(--glass-inset);
+    }
+
+    /* ── NAV ── */
+    nav {
+      position: fixed;
+      top: 16px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 100;
+      width: calc(100% - 48px);
+      max-width: 1100px;
+      border-radius: var(--r-pill);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 12px 20px 12px 24px;
+    }
+
+    .nav-logo {
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      color: var(--text);
+    }
+    .nav-logo span { color: #007AFF; }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-link {
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--text-secondary);
+      text-decoration: none;
+      padding: 6px 14px;
+      border-radius: var(--r-pill);
+      transition: background 0.15s, color 0.15s;
+    }
+    .nav-link:hover { background: rgba(0,0,0,0.06); color: var(--text); }
+
+    .nav-btn {
+      font-size: 14px;
+      font-weight: 600;
+      color: #fff;
+      background: var(--text);
+      border: none;
+      padding: 8px 18px;
+      border-radius: var(--r-pill);
+      cursor: pointer;
+      text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .nav-btn:hover { opacity: 0.8; }
+
+    /* ── HERO ── */
+    #hero {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+      font-weight: 600;
+      color: var(--accent);
+      padding: 5px 14px;
+      border-radius: var(--r-pill);
+      background: var(--accent-light);
+      border: 1px solid rgba(0,122,255,0.2);
+      margin-bottom: 28px;
+      letter-spacing: 0.01em;
+    }
+    .hero-badge::before {
+      content: '';
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2s infinite;
+    }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.5; transform: scale(0.85); }
+    }
+
+    h1 {
+      font-size: clamp(44px, 7.5vw, 96px);
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      max-width: 14ch;
+      margin-bottom: 24px;
+      text-wrap: balance;
+    }
+
+    h1 .gradient-text {
+      background: linear-gradient(135deg, #007AFF 0%, #5856D6 50%, #AF52DE 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-sub {
+      font-size: clamp(16px, 1.8vw, 20px);
+      font-weight: 400;
+      line-height: 1.6;
+      color: var(--text-secondary);
+      max-width: 500px;
+      margin-bottom: 48px;
+      text-wrap: pretty;
+    }
+
+    /* Glass CTA Card */
+    .cta-card {
+      border-radius: var(--r-lg);
+      padding: 28px 32px;
+      max-width: 420px;
+      width: 100%;
+    }
+
+    .cta-card p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin-bottom: 16px;
+      text-align: left;
+    }
+
+    .input-row {
+      display: flex;
+      gap: 8px;
+      align-items: stretch;
+    }
+
+    .glass-input {
+      flex: 1;
+      background: rgba(255,255,255,0.6);
+      border: 1px solid var(--glass-border);
+      border-radius: var(--r-pill);
+      padding: 12px 18px;
+      font-family: var(--sans);
+      font-size: 15px;
+      color: var(--text);
+      outline: none;
+      backdrop-filter: blur(8px);
+      transition: border-color 0.15s, box-shadow 0.15s;
+    }
+    .glass-input::placeholder { color: var(--text-tertiary); }
+    .glass-input:focus {
+      border-color: rgba(0,122,255,0.5);
+      box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
+    }
+
+    .cta-btn {
+      background: var(--text);
+      color: #fff;
+      border: none;
+      border-radius: var(--r-pill);
+      padding: 12px 22px;
+      font-family: var(--sans);
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: opacity 0.15s;
+    }
+    .cta-btn:hover { opacity: 0.82; }
+
+    .cta-note {
+      text-align: center !important;
+      margin-top: 12px !important;
+      margin-bottom: 0 !important;
+      font-size: 11px !important;
+    }
+
+    .success-inline {
+      display: none;
+      text-align: center;
+      padding: 12px 0 4px;
+      font-size: 14px;
+      font-weight: 500;
+      color: var(--accent);
+    }
+    .success-inline.show { display: block; }
+
+    /* ── FEATURES ── */
+    #features {
+      padding: 80px 24px 100px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .section-eyebrow {
+      text-align: center;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 12px;
+    }
+
+    .section-title {
+      text-align: center;
+      font-size: clamp(28px, 3.5vw, 44px);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      margin-bottom: 56px;
+      color: var(--text);
+    }
+
+    .features-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .feature-card {
+      border-radius: var(--r-lg);
+      padding: 32px 28px;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .feature-card:hover {
+      transform: translateY(-3px);
+      box-shadow: var(--glass-shadow-lg), var(--glass-inset);
+    }
+
+    .feature-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .icon-blue  { background: linear-gradient(135deg, #007AFF, #5856D6); }
+    .icon-purple { background: linear-gradient(135deg, #5856D6, #AF52DE); }
+    .icon-green  { background: linear-gradient(135deg, #34C759, #30D158); }
+
+    .feature-icon svg { width: 22px; height: 22px; }
+
+    .feature-title {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.01em;
+      margin-bottom: 8px;
+      color: var(--text);
+    }
+
+    .feature-body {
+      font-size: 14px;
+      font-weight: 400;
+      line-height: 1.65;
+      color: var(--text-secondary);
+    }
+
+    /* ── TESTIMONIALS ── */
+    #testimonials {
+      padding: 40px 24px 100px;
+      max-width: 1100px;
+      margin: 0 auto;
+    }
+
+    .testimonials-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 16px;
+    }
+
+    .tcard {
+      border-radius: var(--r-lg);
+      padding: 28px 24px;
+    }
+
+    .tcard-quote {
+      font-size: 15px;
+      font-weight: 400;
+      line-height: 1.65;
+      color: var(--text);
+      margin-bottom: 24px;
+      text-wrap: pretty;
+    }
+
+    .tcard-quote::before {
+      content: '\201C';
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--accent);
+      line-height: 1;
+      display: block;
+      margin-bottom: 10px;
+    }
+
+    .tcard-author {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .author-avatar {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+      flex-shrink: 0;
+    }
+    .av-blue   { background: linear-gradient(135deg, #007AFF, #5856D6); }
+    .av-purple { background: linear-gradient(135deg, #AF52DE, #FF2D55); }
+    .av-teal   { background: linear-gradient(135deg, #34C759, #007AFF); }
+
+    .author-info { line-height: 1.3; }
+    .author-name { font-size: 13px; font-weight: 600; color: var(--text); }
+    .author-role { font-size: 12px; color: var(--text-secondary); }
+
+    /* ── FOOTER CTA ── */
+    #footer-cta {
+      padding: 40px 24px 100px;
+      max-width: 680px;
+      margin: 0 auto;
+      text-align: center;
+    }
+
+    .footer-card {
+      border-radius: 32px;
+      padding: 56px 48px;
+    }
+
+    .footer-card h2 {
+      font-size: clamp(28px, 4vw, 44px);
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      line-height: 1.1;
+      margin-bottom: 16px;
+    }
+
+    .footer-card p {
+      font-size: 16px;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      margin-bottom: 36px;
+      max-width: 360px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    .footer-form {
+      display: flex;
+      gap: 8px;
+      max-width: 400px;
+      margin: 0 auto 12px;
+    }
+
+    .footer-note {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* ── BOTTOM BAR ── */
+    footer {
+      padding: 20px 48px 32px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .footer-logo {
+      font-size: 14px;
+      font-weight: 700;
+      color: var(--text);
+      letter-spacing: -0.01em;
+    }
+    .footer-logo span { color: var(--accent); }
+
+    .footer-meta {
+      font-size: 12px;
+      color: var(--text-tertiary);
+    }
+
+    /* ── TWEAKS ── */
+    #tweaks-panel {
+      display: none;
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      border-radius: var(--r-lg);
+      padding: 24px;
+      z-index: 9999;
+      width: 260px;
+    }
+    #tweaks-panel.open { display: block; }
+    .tweak-t { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 16px; color: var(--text); }
+    .tweak-r { margin-bottom: 14px; }
+    .tweak-l { font-size: 11px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
+    .tweak-s { font-family: var(--sans); font-size: 13px; width: 100%; border: 1px solid var(--glass-border); border-radius: 8px; padding: 6px 10px; background: rgba(255,255,255,0.6); color: var(--text); outline: none; cursor: pointer; }
+
+    /* ── MOBILE NAV MENU ── */
+    .nav-menu-btn {
+      display: none;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 8px;
+      flex-direction: column;
+      gap: 5px;
+    }
+    .nav-menu-btn span {
+      display: block;
+      width: 22px;
+      height: 1.5px;
+      background: var(--text);
+      transition: transform 0.2s, opacity 0.2s;
+    }
+    .nav-menu-btn.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
+    .nav-menu-btn.open span:nth-child(2) { opacity: 0; }
+    .nav-menu-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
+
+    .mobile-menu-v3 {
+      display: none;
+      position: fixed;
+      top: 70px;
+      left: 16px; right: 16px;
+      border-radius: var(--r-lg);
+      z-index: 99;
+      padding: 8px;
+      flex-direction: column;
+    }
+    .mobile-menu-v3.open { display: flex; }
+    .mobile-menu-v3 a {
+      display: block;
+      padding: 14px 16px;
+      font-size: 16px;
+      font-weight: 500;
+      color: var(--text);
+      text-decoration: none;
+      border-radius: 12px;
+      transition: background 0.15s;
+    }
+    .mobile-menu-v3 a:active { background: rgba(0,0,0,0.06); }
+
+    @media (max-width: 768px) {
+      nav {
+        top: 12px;
+        width: calc(100% - 24px);
+        padding: 10px 16px;
+      }
+      .nav-links { display: none; }
+      .nav-menu-btn { display: flex; }
+
+      #hero {
+        padding: 100px 20px 64px;
+        min-height: 100svh;
+      }
+      h1 { font-size: clamp(36px, 10vw, 52px); }
+      .hero-sub { font-size: 15px; margin-bottom: 36px; }
+      .hero-badge { font-size: 11px; }
+
+      .cta-card { padding: 20px; }
+      .input-row { flex-direction: column; gap: 10px; }
+      .glass-input { font-size: 16px; padding: 14px 18px; min-height: 48px; }
+      .cta-btn { min-height: 48px; padding: 14px 22px; }
+
+      #features { padding: 56px 20px 64px; }
+      .section-title { margin-bottom: 32px; }
+      .features-grid { grid-template-columns: 1fr; gap: 12px; }
+      .feature-card { padding: 24px 20px; }
+
+      #testimonials { padding: 16px 20px 64px; }
+      .testimonials-grid { grid-template-columns: 1fr; gap: 12px; }
+      .tcard { padding: 24px 20px; }
+
+      #footer-cta { padding: 24px 20px 80px; }
+      .footer-card { padding: 32px 20px; border-radius: 24px; }
+      .footer-form { flex-direction: column; gap: 10px; }
+
+      footer { flex-direction: column; gap: 8px; text-align: center; padding: 20px; }
+
+      #tweaks-panel {
+        width: calc(100% - 32px);
+        left: 16px;
+        right: 16px;
+        bottom: 16px;
+      }
+    }
+
+    @media (max-width: 390px) {
+      h1 { font-size: 34px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- BACKGROUND -->
+  <div class="bg">
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+    <div class="orb orb-4"></div>
+  </div>
+
+  <!-- NAV -->
+  <nav class="glass">
+    <span class="nav-logo">Vantix<span>.</span></span>
+    <div class="nav-links">
+      <a class="nav-link" href="#features">기능</a>
+      <a class="nav-link" href="#testimonials">후기</a>
+      <a class="nav-btn" href="#footer-cta">시작하기</a>
+    </div>
+    <button class="nav-menu-btn glass" id="menu-btn-v3" aria-label="메뉴" onclick="toggleMenuV3()">
+      <span></span><span></span><span></span>
+    </button>
+  </nav>
+
+  <!-- MOBILE MENU -->
+  <div class="mobile-menu-v3 glass-heavy" id="mobile-menu-v3">
+    <a href="#features" onclick="closeMenuV3()">기능</a>
+    <a href="#testimonials" onclick="closeMenuV3()">후기</a>
+    <a href="#footer-cta" onclick="closeMenuV3()" style="color:var(--accent);font-weight:600;">시작하기 →</a>
+  </div>
+
+  <!-- HERO -->
+  <section id="hero">
+    <div class="hero-badge">Redmine 전용 AI 리스크 분석</div>
+    <h1>리스크를 <span class="gradient-text">먼저</span><br/>감지합니다.</h1>
+    <p class="hero-sub">
+      AI가 Redmine 이슈 데이터를 실시간으로 읽고,<br/>
+      문제가 생기기 전에 조용히 알려드립니다.
+    </p>
+
+    <div class="cta-card glass-heavy">
+      <p>얼리 액세스 신청 — 선착순 마감</p>
+      <form class="input-row" onsubmit="handleHero(event)">
+        <input class="glass-input" type="email" placeholder="work@company.com" required id="hero-email" />
+        <button class="cta-btn" type="submit">신청하기</button>
+      </form>
+      <p class="cta-note">스팸 없음 · 론칭 시 단 한 번 알림</p>
+      <div class="success-inline" id="hero-success">✓ 등록되었습니다. 감사합니다!</div>
+    </div>
+  </section>
+
+  <!-- FEATURES -->
+  <section id="features">
+    <div class="section-eyebrow">핵심 기능</div>
+    <h2 class="section-title">왜 Vantix인가요?</h2>
+    <div class="features-grid">
+      <div class="feature-card glass">
+        <div class="feature-icon icon-blue">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+        </div>
+        <div class="feature-title">Redmine 네이티브 연동</div>
+        <div class="feature-body">별도 마이그레이션 없이 기존 Redmine에 바로 연결됩니다. 설정 시간 10분 이내.</div>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-icon icon-purple">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
+        </div>
+        <div class="feature-title">선제적 리스크 탐지</div>
+        <div class="feature-body">이슈 패턴과 지연 신호를 분석해 문제가 커지기 전에 PM에게 먼저 알립니다.</div>
+      </div>
+      <div class="feature-card glass">
+        <div class="feature-icon icon-green">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+        </div>
+        <div class="feature-title">실시간 대시보드</div>
+        <div class="feature-body">전체 프로젝트 건강도를 한눈에. 리스크 수준별로 우선순위가 자동 정렬됩니다.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- TESTIMONIALS -->
+  <section id="testimonials">
+    <div class="section-eyebrow">사용자 후기</div>
+    <h2 class="section-title" style="margin-bottom: 40px;">실제 PM들의 이야기</h2>
+    <div class="testimonials-grid">
+      <div class="tcard glass">
+        <p class="tcard-quote">리스크를 뒤늦게 보고받는 게 항상 문제였어요. Vantix는 이슈가 커지기 3일 전에 먼저 알려줬습니다.</p>
+        <div class="tcard-author">
+          <div class="author-avatar av-blue">김</div>
+          <div class="author-info">
+            <div class="author-name">김민준</div>
+            <div class="author-role">Senior PM · 핀테크 스타트업</div>
+          </div>
+        </div>
+      </div>
+      <div class="tcard glass">
+        <p class="tcard-quote">Redmine을 오래 써왔는데 이렇게 자연스럽게 붙는 AI 툴은 처음입니다. 팀 전환 비용이 거의 없었어요.</p>
+        <div class="tcard-author">
+          <div class="author-avatar av-purple">이</div>
+          <div class="author-info">
+            <div class="author-name">이서연</div>
+            <div class="author-role">Project Lead · SI 기업</div>
+          </div>
+        </div>
+      </div>
+      <div class="tcard glass">
+        <p class="tcard-quote">대시보드 하나로 전체 프로젝트 건강 상태를 볼 수 있다는 게 가장 큰 장점입니다.</p>
+        <div class="tcard-author">
+          <div class="author-avatar av-teal">박</div>
+          <div class="author-info">
+            <div class="author-name">박지호</div>
+            <div class="author-role">PM · 공공 IT 프로젝트</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER CTA -->
+  <section id="footer-cta">
+    <div class="footer-card glass-heavy">
+      <h2>지금 무료로<br/>시작하세요.</h2>
+      <p>얼리 액세스 사용자에게는 론칭 후 6개월 무료 혜택이 제공됩니다.</p>
+      <form class="footer-form" onsubmit="handleFooter(event)">
+        <input class="glass-input" type="email" placeholder="work@company.com" required id="footer-email" style="flex:1" />
+        <button class="cta-btn" type="submit">신청하기</button>
+      </form>
+      <p class="footer-note" id="footer-note">선착순 · 스팸 없음 · 언제든 취소 가능</p>
+      <div class="success-inline" id="footer-success">✓ 등록되었습니다. 감사합니다!</div>
+    </div>
+  </section>
+
+  <!-- BOTTOM BAR -->
+  <footer>
+    <span class="footer-logo">Vantix<span>.</span></span>
+    <span class="footer-meta">© 2025 Vantix · AI Risk Intelligence for Redmine</span>
+  </footer>
+
+  <!-- TWEAKS -->
+  <div id="tweaks-panel" class="glass-heavy">
+    <div class="tweak-t">Tweaks</div>
+    <div class="tweak-r">
+      <div class="tweak-l">배경 컬러</div>
+      <select class="tweak-s" onchange="setBg(this.value)">
+        <option value="default">블루 그라디언트 (현재)</option>
+        <option value="warm">웜 선셋</option>
+        <option value="cool">쿨 민트</option>
+        <option value="neutral">뉴트럴 그레이</option>
+      </select>
+    </div>
+    <div class="tweak-r">
+      <div class="tweak-l">글라스 강도</div>
+      <select class="tweak-s" onchange="setBlur(this.value)">
+        <option value="24px">보통 (현재)</option>
+        <option value="8px">얕은 블러</option>
+        <option value="48px">강한 블러</option>
+      </select>
+    </div>
+    <div class="tweak-r">
+      <div class="tweak-l">네비 형태</div>
+      <select class="tweak-s" onchange="setNav(this.value)">
+        <option value="pill">플로팅 필 (현재)</option>
+        <option value="bar">상단 풀 바</option>
+      </select>
+    </div>
+  </div>
+
+  <script>
+    function toggleMenuV3() {
+      const btn = document.getElementById('menu-btn-v3');
+      const menu = document.getElementById('mobile-menu-v3');
+      btn.classList.toggle('open');
+      menu.classList.toggle('open');
+    }
+    function closeMenuV3() {
+      document.getElementById('menu-btn-v3').classList.remove('open');
+      document.getElementById('mobile-menu-v3').classList.remove('open');
+    }
+
+    // Tweaks
+    window.addEventListener('message', e => {
+      if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks-panel').classList.add('open');
+      if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks-panel').classList.remove('open');
+    });
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+
+    const bgPresets = {
+      default: ['#b8d4f8,#d4e8ff', '#e8d5f5,#f3e8ff', '#c8f0e8,#d8f5ee', '#fde8d8,#fef0e8', '#e8edf5'],
+      warm:    ['#ffd4b8,#ffe8cc', '#f5d5e8,#ffe8f3', '#ffeab8,#fff3d4', '#ffd4d8,#ffe8ea', '#f5ede8'],
+      cool:    ['#b8e8d4,#ccf3e8', '#b8d4f8,#cce8ff', '#d4f5e8,#e8fff5', '#c8d8f8,#dce8ff', '#e8f0f5'],
+      neutral: ['#e8e8e8,#f0f0f0', '#e8e0f0,#f0ecf8', '#f0e8e8,#f8f0f0', '#e0e8e8,#ecf0f0', '#f0efee'],
+    };
+
+    function setBg(v) {
+      const orbs = document.querySelectorAll('.orb');
+      const colors = bgPresets[v];
+      document.querySelector('.bg').style.background = colors[4];
+      orbs.forEach((o, i) => {
+        o.style.background = `radial-gradient(circle, ${colors[i]})`;
+      });
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { bg: v } }, '*');
+    }
+
+    function setBlur(v) {
+      document.querySelectorAll('.glass, .glass-heavy').forEach(el => {
+        el.style.backdropFilter = `blur(${v}) saturate(180%)`;
+        el.style.webkitBackdropFilter = `blur(${v}) saturate(180%)`;
+      });
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { blur: v } }, '*');
+    }
+
+    function setNav(v) {
+      const nav = document.querySelector('nav');
+      if (v === 'bar') {
+        nav.style.top = '0';
+        nav.style.width = '100%';
+        nav.style.maxWidth = 'none';
+        nav.style.borderRadius = '0';
+        nav.style.left = '0';
+        nav.style.transform = 'none';
+        nav.style.padding = '12px 48px';
+      } else {
+        nav.style.top = '16px';
+        nav.style.width = 'calc(100% - 48px)';
+        nav.style.maxWidth = '1100px';
+        nav.style.borderRadius = '999px';
+        nav.style.left = '50%';
+        nav.style.transform = 'translateX(-50%)';
+        nav.style.padding = '12px 20px 12px 24px';
+      }
+      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { nav: v } }, '*');
+    }
+
+    // Forms
+    function handleHero(e) {
+      e.preventDefault();
+      const email = document.getElementById('hero-email').value;
+      saveEmail(email);
+      e.target.style.display = 'none';
+      document.getElementById('hero-success').classList.add('show');
+    }
+
+    function handleFooter(e) {
+      e.preventDefault();
+      const email = document.getElementById('footer-email').value;
+      saveEmail(email);
+      e.target.style.display = 'none';
+      document.getElementById('footer-note').style.display = 'none';
+      document.getElementById('footer-success').classList.add('show');
+    }
+
+    function saveEmail(email) {
+      const list = JSON.parse(localStorage.getItem('vantix_v3') || '[]');
+      if (!list.includes(email)) { list.push(email); localStorage.setItem('vantix_v3', JSON.stringify(list)); }
+    }
+  </script>
+</body>
+</html>

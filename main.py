@@ -630,7 +630,7 @@ HTML_PAGE = """<!DOCTYPE html>
 <title>Vantix — Project Risk Intelligence</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSJ3aGl0ZSIvPjx0ZXh0IHg9IjE2IiB5PSIyNCIgZm9udC1mYW1pbHk9IkFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjY2MwMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5WPC90ZXh0Pjwvc3ZnPg==">
 <style>
-.card, .section-card, .dashboard-card, [class*="card"]:not(.ai-card-dark), [class*="section"]:not(.ai-analysis-section), .grid-item, .panel {
+.card, .section-card, .dashboard-card, [class*="card"]:not(.ai-card-dark):not([class*="tl-"]), [class*="section"]:not(.ai-analysis-section), .grid-item, .panel {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -1252,14 +1252,15 @@ body {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 0;
+  align-items: start;
 }
 .masonry-grid .card {
   display: flex;
   flex-direction: column;
   border-right: 1px solid #e8e6e2;
   border-bottom: 1px solid #e8e6e2;
-  height: 340px;
-  overflow: visible;
+  min-height: 340px;
+  overflow: hidden;
 }
 
 /* ── Cards ── */
@@ -1273,9 +1274,9 @@ body {
   flex-shrink: 0;
 }
 .card-header span:first-child {
-  font-size: 10px;
+  font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
+  letter-spacing: 0.05em;
   font-weight: 700;
   color: #111;
 }
@@ -1386,11 +1387,35 @@ body {
 .zero-count { color: #ccc; }
 
 /* ── Version card ── */
-.ver-row { display: flex; align-items: center; gap: 14px; padding: 10px 16px; border-bottom: 0.5px solid #e8e6e2; }
-.ver-row:last-child { border-bottom: none; }
-.ver-pct-box { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; border: 3px solid #999; flex-shrink: 0; }
-.ver-pct-box.danger { border-color: #c0392b; color: #c0392b; }
-.ver-pct-box.muted { border-color: #ddd; color: #ccc; }
+.tl-body { position: relative; padding: 12px 16px 12px 24px; border-left: 1px solid #ddd; margin-left: 8px; }
+.tl-line { display: none; }
+.tl-item { position: relative; margin-bottom: 20px; cursor: pointer; padding-left: 12px; }
+.tl-content { transition: transform 150ms linear; transform-origin: left center; }
+.tl-item:hover .tl-content { transform: scale(1.05); }
+.tl-item:hover .tl-passive { background: #f5f3f3; }
+.tl-item:hover .tl-active-card { background: #eae8e7; }
+.tl-passive { display: flex; justify-content: space-between; align-items: flex-start; padding: 4px 0; transition: background 150ms linear; }
+.tl-dot { position: absolute; left: -20px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #f5f3f3; border: 1.5px solid #ccc; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; }
+.tl-dot::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #ccc; }
+.tl-dot.active { border-color: #111; background: #f5f3f3; }
+.tl-dot.active::after { background: #111; }
+.tl-dot.done { border-color: #ccc; background: #f5f3f3; }
+.tl-dot.done::after { background: #ccc; }
+.tl-passive-name { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.tl-passive-name.done { color: #ccc; text-decoration: line-through; }
+.tl-passive-name.upcoming { color: #bbb; }
+.tl-passive-sub { font-size: 9px; color: #ccc; margin-top: 2px; }
+.tl-passive-dday { font-size: 10px; white-space: nowrap; margin-left: 10px; }
+.tl-active-card { background: #e4e2e2; border-left: 3px solid #111; padding: 10px 12px; margin-top: 0; }
+.tl-active-card.overdue { background: #e4e2e2; border-left-color: #c0392b; }
+.tl-active-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.tl-active-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: #111; }
+.tl-active-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 6px; }
+.tl-active-badge.overdue { background: #000; color: #fff; }
+.tl-active-badge.imminent { background: #c0392b; color: #fff; }
+.tl-active-desc { font-size: 10px; color: #888; line-height: 1.6; }
+.tl-active-dday { font-size: 11px; font-weight: 700; margin-top: 6px; }
+.tl-active-dday.red { color: #c0392b; }
 .ver-name { font-size: 11px; font-weight: 700; color: #111; flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .sort-icon { font-size: 9px; opacity: 0.6; }
 .ver-dday { font-size: 11px; font-weight: 500; white-space: nowrap; flex-shrink: 0; }
@@ -2011,15 +2036,14 @@ body {
     <!-- Card 03: 그룹 현황 -->
     <div class="card" id="sec-group" style="background:#ffffff;">
       <div class="card-header">
-        <span>01 / Group Status · 그룹 현황</span>
+        <span>Group Status · 그룹 현황</span>
         <span class="card-header-sub" id="group-header-sub">—</span>
       </div>
       <div class="card-body" style="padding:0;">
-        <div id="group-col-header" style="display:grid;grid-template-columns:120px 1fr 56px 52px 72px;padding:7px 16px;background:#f5f3f3;border-bottom:1px solid #e4e2e2;gap:10px;">
+        <div id="group-col-header" style="display:grid;grid-template-columns:100px 1fr 52px 72px;padding:7px 16px;background:#f5f3f3;border-bottom:1px solid #e4e2e2;gap:10px;">
           <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;">Group</div>
-          <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;">Trend (8W)</div>
-          <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;text-align:right;">Overdue</div>
-          <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;text-align:right;">±WoW</div>
+          <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;">Overdue Ratio</div>
+          <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;text-align:right;">OVR</div>
           <div style="font-size:9px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:#bbb;text-align:right;">Risk</div>
         </div>
         <div id="group-tbody"></div>
@@ -2030,10 +2054,10 @@ body {
     <!-- Card 04: 버전/마일스톤 -->
     <div class="card" id="sec-version">
       <div class="card-header">
-        <span>02 / Milestones · 버전 / 마일스톤</span>
+        <span>Milestones · 버전 / 마일스톤</span>
         <span class="card-header-sub" id="version-project-name">—</span>
       </div>
-      <div class="card-body" id="version-body" style="overflow-y:scroll; display:flex; flex-direction:column; flex:1; min-height:0; max-height:285px;">
+      <div class="card-body" id="version-body" style="overflow-y:auto; flex:1; min-height:0; max-height:308px;">
         <div style="padding:16px;text-align:center;font-size:11px;color:#ccc;">로딩 중...</div>
       </div>
     </div>
@@ -2154,6 +2178,22 @@ body {
 <div class="no-conn-overlay" id="noConnOverlay">
   <div class="no-conn-title">Redmine 연결이 필요합니다</div>
   <button class="btn btn-black" onclick="openSettingsModal()">설정하기</button>
+</div>
+
+<div class="modal-overlay" id="confirmModal" onclick="closeConfirmModal(event)">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:3px;color:#111;">REDMINE 로드맵 페이지 이동</div>
+      <button class="modal-close" onclick="closeConfirmModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:#555;line-height:1.7;margin-bottom:16px;">레드마인 로드맵 상세페이지로 이동하여 전체 현황을 확인합니다.<br><br><span id="confirmUrl" style="color:#0047A0;font-size:11px;word-break:break-all;"></span></p>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-black" style="flex:1;justify-content:center;" onclick="confirmRedmineGo()">확인</button>
+        <button class="btn" style="flex:1;justify-content:center;border:1px solid #e4e2e2;" onclick="closeConfirmModal()">취소</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="modal-overlay" id="issueModal" onclick="closeModalOnOverlay(event)">
@@ -2400,74 +2440,25 @@ async function renderGroupStatus(projectId) {
 
     tbody.innerHTML = groups.map(function(g, idx) {
       var bg = idx % 2 === 1 ? '#f5f3f3' : '#fff';
-
-      // 스파크라인 SVG 생성
-      var spark = g.spark || [];
-      var maxVal = Math.max.apply(null, spark.concat([1]));
-      var minVal = Math.min.apply(null, spark);
-      var range = maxVal - minVal || 1;
-      var svgW = 180, svgH = 32, pad = 4;
-      var points = spark.map(function(v, i) {
-        var x = spark.length === 1 ? svgW / 2 : Math.round((i / (spark.length - 1)) * svgW);
-        var y = Math.round(pad + ((maxVal - v) / range) * (svgH - pad * 2));
-        return x + ',' + y;
-      }).join(' ');
-      var lastY = spark.length > 0 ? Math.round(pad + ((maxVal - spark[spark.length-1]) / range) * (svgH - pad * 2)) : svgH / 2;
-
-      // 증가추세=빨강, 감소=검정, 보합=회색점선
-      var wow = g.overdue_wow || 0;
-      var strokeColor = wow > 0 ? '#c0392b' : wow < 0 ? '#000000' : '#bbbbbb';
-      var dashArray = wow === 0 ? '3,2' : 'none';
-
-      // 리스크 배지
-      var riskBg = g.risk === 'Critical' ? '#c0392b' : g.risk === 'High' ? '#000000' : '#e4e2e2';
+      var totalIssues = g.total_issues || 1;
+      var overdueRatio = Math.min(100, Math.round((g.overdue_now / totalIssues) * 100));
+      var barColor = g.risk === 'Critical' ? '#c0392b' : g.risk === 'High' ? '#000' : '#bbb';
+      var riskBg = g.risk === 'Critical' ? '#c0392b' : g.risk === 'High' ? '#000' : '#e4e2e2';
       var riskColor = g.risk === 'Stable' ? '#666' : '#fff';
-
-      // ±WoW 색상
-      var wowColor = wow > 0 ? '#c0392b' : wow < 0 ? '#000' : '#bbb';
-      var wowText = wow > 0 ? '+' + wow : wow === 0 ? '0' : '' + wow;
-
-      // 오버듀 색상
       var overdueColor = g.overdue_now > 0 ? '#c0392b' : '#000';
 
-      // A안: 면적 채우기 + 주차 구분선
-      var gradId = 'grad-' + idx;
-      var fillColor = wow > 0 ? '#c0392b' : wow < 0 ? '#000000' : '#bbbbbb';
-      var fillOpacity1 = wow > 0 ? '0.12' : '0.06';
-      // polygon: 선 포인트 + 우하단 + 좌하단 닫기
-      var polyPoints = points + ' ' + svgW + ',' + svgH + ' 0,' + svgH;
-      // 주차 구분선 (7개: W1~W7 사이)
-      var gridLines = '';
-      var step = svgW / (spark.length - 1 || 1);
-      for (var gi = 1; gi < spark.length; gi++) {
-        var gx = Math.round(gi * step);
-        gridLines += '<line x1="' + gx + '" y1="0" x2="' + gx + '" y2="' + svgH + '" stroke="#e4e2e2" stroke-width="0.5"/>';
-      }
-      var wLabels = '';
-
-      return '<div style="display:grid;grid-template-columns:120px 1fr 56px 52px 72px;padding:11px 16px;border-bottom:1px solid #eae8e7;gap:10px;align-items:center;background:' + bg + ';">' +
+      return '<div style="display:grid;grid-template-columns:100px 1fr 52px 72px;padding:11px 16px;border-bottom:1px solid #eae8e7;gap:10px;align-items:center;background:' + bg + ';">' +
         '<div>' +
           '<div style="font-size:12px;font-weight:700;color:#000;">' + g.name + '</div>' +
           '<div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.07em;margin-top:1px;">' + g.user_count + '명</div>' +
         '</div>' +
-        '<div style="position:relative;">' +
-        '<div style="position:absolute;bottom:0;left:0;font-size:7px;color:#ccc;font-family:sans-serif;line-height:1;pointer-events:none;">W1</div>' +
-        '<div style="position:absolute;bottom:0;right:0;font-size:7px;color:#ccc;font-family:sans-serif;line-height:1;pointer-events:none;">W8</div>' +
-        '<svg width="100%" height="' + svgH + '" viewBox="0 0 ' + svgW + ' ' + svgH + '" preserveAspectRatio="none">' +
-          '<defs>' +
-            '<linearGradient id="' + gradId + '" x1="0" y1="0" x2="0" y2="1">' +
-              '<stop offset="0%" stop-color="' + fillColor + '" stop-opacity="' + fillOpacity1 + '"/>' +
-              '<stop offset="100%" stop-color="' + fillColor + '" stop-opacity="0.01"/>' +
-            '</linearGradient>' +
-          '</defs>' +
-          gridLines +
-          '<polygon points="' + polyPoints + '" fill="url(#' + gradId + ')"/>' +
-          '<polyline points="' + points + '" fill="none" stroke="' + strokeColor + '" stroke-width="2.5" stroke-dasharray="' + dashArray + '"/>' +
-          wLabels +
-        '</svg>' +
+        '<div>' +
+          '<div style="height:6px;background:#eae8e7;border-radius:3px;overflow:hidden;">' +
+            '<div style="height:6px;background:' + barColor + ';width:' + overdueRatio + '%;border-radius:3px;transition:width 0.3s;"></div>' +
+          '</div>' +
+          '<div style="font-size:9px;color:#bbb;margin-top:3px;">' + overdueRatio + '% overdue</div>' +
         '</div>' +
         '<div style="font-size:12px;font-weight:600;text-align:right;color:' + overdueColor + ';">' + g.overdue_now + '</div>' +
-        '<div style="font-size:11px;font-weight:600;text-align:right;color:' + wowColor + ';">' + wowText + '</div>' +
         '<div style="text-align:right;"><span style="font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:3px 7px;background:' + riskBg + ';color:' + riskColor + ';">' + g.risk + '</span></div>' +
       '</div>';
     }).join('');
@@ -2877,31 +2868,59 @@ async function renderVersionCard() {
       body.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#ccc;">버전 없음</div>';
       return;
     }
-    body.innerHTML = versions.map(function(v) {
+    var html = '<div class="tl-body"><div class="tl-line"></div>';
+    versions.forEach(function(v, idx) {
       var pct = v.done_pct || 0;
       var hasDate = !!v.due_date;
       var raw = hasDate ? ddayLabel(v.due_date) : null;
       var isOverdue = raw && raw.toString().startsWith('D+');
       var dNum = raw ? parseInt(raw.toString().replace(/[^0-9]/g, '')) : null;
       var isImminent = !isOverdue && dNum !== null && dNum <= 10;
+      var isDone = pct === 100 && !isOverdue && !isImminent;
+      var isActive = isOverdue || isImminent;
 
-      var boxCls = isOverdue ? 'ver-pct-box danger' : pct === 0 ? 'ver-pct-box muted' : 'ver-pct-box';
-      var ddayCls = (isOverdue || isImminent) ? 'ver-dday red' : hasDate ? 'ver-dday blue' : 'ver-dday muted';
+      html += '<div class="tl-item" onclick="goToRedmineVersion(this)" data-pid="' + currentProjectId + '" data-vid="' + v.id + '">';
 
-      var ddayTxt = isOverdue
-        ? 'D+' + dNum + ' 마감 초과'
-        : isImminent
-          ? 'D-' + dNum + ' 마감 임박'
-          : hasDate
-            ? 'D-' + dNum + ' 진행 중'
-            : '미정 · 미시작';
+      if (isActive) {
+        var cardCls = isOverdue ? 'tl-active-card overdue' : 'tl-active-card';
+        var badgeCls = isOverdue ? 'tl-active-badge overdue' : 'tl-active-badge imminent';
+        var badgeTxt = isOverdue ? 'OVERDUE' : 'IMMINENT';
+        var ddayTxt = isOverdue ? 'D+' + dNum + ' 마감 초과' : 'D-' + dNum + ' 마감 임박';
+        var pctColor = isOverdue ? '#c0392b' : '#b7770d';
+        var desc = '완료율 <span style="font-weight:700;color:' + pctColor + ';">' + pct + '%</span> · ' + (isOverdue ? '마감일 초과 상태. 잔여 이슈 확인 필요.' : '마감까지 ' + dNum + '일 남음.');
+        html += '<div class="tl-dot active"></div>';
+        html += '<div class="tl-content"><div class="' + cardCls + '">' +
+          '<div class="tl-active-top">' +
+            '<span class="tl-active-name">' + escHtml(v.name) + '</span>' +
+            '<span class="' + badgeCls + '">' + badgeTxt + '</span>' +
+          '</div>' +
+          '<div class="tl-active-desc">' + desc + '</div>' +
+          '<div class="tl-active-dday red">' + ddayTxt + '</div>' +
+        '</div></div>';
+      } else if (isDone) {
+        var dStr = hasDate ? 'D+' + dNum : '완료';
+        html += '<div class="tl-dot done"></div>';
+        html += '<div class="tl-content"><div class="tl-passive">' +
+          '<div><div class="tl-passive-name done">' + escHtml(v.name) + '</div>' +
+          '<div class="tl-passive-sub">' + pct + '% 완료</div></div>' +
+          '<span class="tl-passive-dday" style="color:#ccc;">' + dStr + '</span>' +
+        '</div></div>';
+      } else {
+        var ddayColor = (hasDate && dNum <= 30) ? '#0047A0' : '#bbb';
+        var ddayStr = hasDate ? 'D-' + dNum : '미정';
+        var subTxt = pct > 0 ? pct + '% 진행 중' : '0% 미시작';
+        html += '<div class="tl-dot"></div>';
+        html += '<div class="tl-content"><div class="tl-passive">' +
+          '<div><div class="tl-passive-name upcoming">' + escHtml(v.name) + '</div>' +
+          '<div class="tl-passive-sub">' + subTxt + '</div></div>' +
+          '<span class="tl-passive-dday" style="color:' + ddayColor + ';">' + ddayStr + '</span>' +
+        '</div></div>';
+      }
 
-      return '<div class="ver-row">' +
-        '<div class="' + boxCls + '">' + pct + '%</div>' +
-        '<span class="ver-name">' + escHtml(v.name) + '</span>' +
-        '<span class="' + ddayCls + '">' + ddayTxt + '</span>' +
-      '</div>';
-    }).join('');
+      html += '</div>';
+    });
+    html += '</div>';
+    body.innerHTML = html;
   } catch(e) {
     body.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#c0392b;">로딩 실패</div>';
   }
@@ -2912,6 +2931,28 @@ async function renderVersionCard() {
 
 // Tab Section
 // ============================================================
+var _confirmUrl = '';
+function goToRedmineVersion(el) {
+  var item = el.closest('.tl-item');
+  var projectId = item.getAttribute('data-pid');
+  var versionId = item.getAttribute('data-vid');
+  var base = localStorage.getItem('redmine_url') || '';
+  if (!base) { alert('Redmine URL이 설정되지 않았습니다.'); return; }
+  _confirmUrl = base.replace(/\/$/, '') + '/projects/' + projectId + '/roadmap#version-' + versionId;
+  document.getElementById('confirmUrl').textContent = _confirmUrl;
+  document.getElementById('confirmModal').classList.add('open');
+}
+function confirmRedmineGo() {
+  var url = _confirmUrl;
+  closeConfirmModal();
+  if (url) window.open(url, '_blank');
+}
+function closeConfirmModal(e) {
+  if (e && e.target !== document.getElementById('confirmModal')) return;
+  document.getElementById('confirmModal').classList.remove('open');
+  _confirmUrl = '';
+}
+
 function selectMemberFromCard(el) {
   var shortName = el.getAttribute('data-name');
   document.querySelectorAll('.risk-member-row').forEach(function(row) {
