@@ -142,6 +142,70 @@ def _job_weekly_report():
     except Exception as e:
         print(f"  리포트 오류: {e}")
 
+# ── Risk 스냅샷 저장 ──────────────────────────────────────────
+import json, os
+RISK_HISTORY_PATH = os.path.join(os.path.dirname(__file__), "risk_history.json")
+
+def save_risk_snapshot():
+    """
+    매주 지정 요일에 현재 캐시의 risk_score를 스냅샷으로 저장.
+    키: "all" 또는 "project_{id}"
+    """
+    from datetime import date
+    today = date.today().isoformat()
+
+    try:
+        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+            history = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        history = {}
+
+    # 캐시에서 project_risk가 있는 첫 항목 탐색
+    cached = None
+    for entry in _cache.values():
+        d = entry.get("data", {})
+        if d.get("project_risk"):
+            cached = d
+            break
+    if not cached:
+        return  # 캐시 없으면 스킵
+
+    projects = cached.get("project_risk", [])
+    if not projects:
+        return
+
+    # 전체 평균 스냅샷
+    avg_score = round(sum(p["risk_score"] for p in projects) / len(projects), 1)
+    avg_level = "Critical" if avg_score >= 30 else "High" if avg_score >= 15 else "Medium" if avg_score >= 5 else "Low"
+    history.setdefault("all", [])
+    if not history["all"] or history["all"][-1]["date"] != today:
+        history["all"].append({"date": today, "score": avg_score, "level": avg_level})
+    history["all"] = history["all"][-52:]  # 최대 52주 보관
+
+    # 프로젝트별 스냅샷
+    for p in projects:
+        pname = p.get("name", "")
+        if not pname:
+            continue
+        key = f"project_{pname}"
+        history.setdefault(key, [])
+        score = round(p["risk_score"], 1)
+        level = p["risk_level"]
+        if not history[key] or history[key][-1]["date"] != today:
+            history[key].append({"date": today, "score": score, "level": level})
+        history[key] = history[key][-52:]
+
+    with open(RISK_HISTORY_PATH, "w", encoding="utf-8") as f:
+        json.dump(history, f, ensure_ascii=False, indent=2)
+
+def _job_risk_snapshot():
+    print("  리스크 스냅샷 저장 중...")
+    try:
+        save_risk_snapshot()
+        print("  리스크 스냅샷 저장 완료")
+    except Exception as e:
+        print(f"  스냅샷 오류: {e}")
+
 from config import DEFAULT_PROJECT_ID, DEFAULT_UPDATED_AFTER
 
 _scheduler = BackgroundScheduler(timezone="Asia/Seoul")
@@ -149,6 +213,9 @@ _scheduler.add_job(_job_refresh_cache, "interval", minutes=30, id="cache_refresh
 _scheduler.add_job(_job_weekly_report, CronTrigger(
     day_of_week=REPORT_DAY, hour=REPORT_HOUR, minute=REPORT_MINUTE
 ), id="weekly_report")
+_scheduler.add_job(save_risk_snapshot, CronTrigger(
+    day_of_week="fri", hour=23, minute=0, timezone="Asia/Seoul"
+), id="risk_snapshot")
 _scheduler.start()
 print(f"  스케줄러 시작!")
 
@@ -1141,6 +1208,18 @@ body {
   gap: 10px;
   margin-top: 6px;
 }
+.risk-chart-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  width: 100%;
+  color: #999;
+  font-family: 'DM Mono', monospace;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
 .ai-bar-label {
   flex: 1;
   text-align: center;
@@ -1387,7 +1466,7 @@ body {
 .zero-count { color: #ccc; }
 
 /* ── Version card ── */
-.tl-body { position: relative; padding: 12px 16px 12px 24px; border-left: 1px solid #ddd; margin-left: 8px; }
+.tl-body { position: relative; padding: 12px 16px 12px 24px; margin-left: 8px; }
 .tl-line { display: none; }
 .tl-item { position: relative; margin-bottom: 20px; cursor: pointer; padding-left: 12px; }
 .tl-content { transition: transform 150ms linear; transform-origin: left center; }
@@ -1395,7 +1474,9 @@ body {
 .tl-item:hover .tl-passive { background: #f5f3f3; }
 .tl-item:hover .tl-active-card { background: #eae8e7; }
 .tl-passive { display: flex; justify-content: space-between; align-items: flex-start; padding: 4px 0; transition: background 150ms linear; }
-.tl-dot { position: absolute; left: -20px; top: 5px; width: 12px; height: 12px; border-radius: 50%; background: #f5f3f3; border: 1.5px solid #ccc; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; }
+.tl-dot { position: absolute; left: -20px; top: 6px; width: 12px; height: 12px; border-radius: 50%; background: #f5f3f3; border: 1.5px solid #ccc; transform: translateX(-50%); display: flex; align-items: center; justify-content: center; z-index: 1; }
+.tl-dot::before { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 1px; background: #ddd; top: calc(100% + 6px); height: calc(var(--tl-item-h, 60px) - 18px); }
+.tl-item:last-child .tl-dot::before { display: none; }
 .tl-dot::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #ccc; }
 .tl-dot.active { border-color: #111; background: #f5f3f3; }
 .tl-dot.active::after { background: #111; }
@@ -1921,18 +2002,6 @@ body {
       <div class="ai-settings-panel" id="riskSettingsPanel">
         <div class="ai-settings-label">Chart Settings</div>
         <div class="ai-settings-row">
-          <label>주 시작 기준일</label>
-          <div class="ai-dow-btns" id="dowBtns">
-            <div class="ai-dow-btn" onclick="setDow(this,0)">월</div>
-            <div class="ai-dow-btn" onclick="setDow(this,1)">화</div>
-            <div class="ai-dow-btn" onclick="setDow(this,2)">수</div>
-            <div class="ai-dow-btn" onclick="setDow(this,3)">목</div>
-            <div class="ai-dow-btn" onclick="setDow(this,4)">금</div>
-            <div class="ai-dow-btn" onclick="setDow(this,5)">토</div>
-            <div class="ai-dow-btn" onclick="setDow(this,6)">일</div>
-          </div>
-        </div>
-        <div class="ai-settings-row">
           <label>표시 주수</label>
           <div class="ai-dow-btns" id="weeksBtns">
             <div class="ai-dow-btn" onclick="setWeeks(this,4)">4주</div>
@@ -1942,7 +2011,7 @@ body {
         </div>
         <button class="ai-settings-apply" onclick="applyRiskSettings()">Apply</button>
       </div>
-      <div class="ai-chart-sub" id="riskChartSub">Weekly volatility · last 8 weeks</div>
+      <div class="ai-chart-sub">Weekly volatility · updated every Friday</div>
       <div class="ai-chart-area">
         <div class="ai-gridlines">
           <div class="ai-gridline"></div>
@@ -2370,16 +2439,10 @@ async function loadData() {
     setServerStatus('online');
     renderAll();
     generateAiSummary();
-    _riskDow   = parseInt(localStorage.getItem('riskDow')   || '3');
-    _riskWeeks = parseInt(localStorage.getItem('riskWeeks') || '8');
-    document.querySelectorAll('#dowBtns .ai-dow-btn').forEach(function(b) {
-      b.classList.toggle('active', b.getAttribute('onclick').includes(',' + _riskDow + ')'));
-    });
+    _riskWeeks = parseInt(localStorage.getItem('riskWeeks') || '12');
     document.querySelectorAll('#weeksBtns .ai-dow-btn').forEach(function(b) {
       b.classList.toggle('active', b.getAttribute('onclick').includes(',' + _riskWeeks + ')'));
     });
-    var subEl = document.querySelector('.ai-chart-sub');
-    if (subEl) subEl.textContent = 'Weekly volatility · last ' + _riskWeeks + ' weeks';
     loadRiskHistory();
   } catch(e) {
     console.error('loadData error:', e);
@@ -2921,6 +2984,10 @@ async function renderVersionCard() {
     });
     html += '</div>';
     body.innerHTML = html;
+    body.querySelectorAll('.tl-item').forEach(function(item) {
+      var h = item.getBoundingClientRect().height;
+      item.querySelector('.tl-dot').style.setProperty('--tl-item-h', h + 'px');
+    });
   } catch(e) {
     body.innerHTML = '<div style="padding:16px;text-align:center;font-size:11px;color:#c0392b;">로딩 실패</div>';
   }
@@ -3442,62 +3509,9 @@ function closeModalOnOverlay(e) {
 // ============================================================
 
 /* ── Risk Chart ── */
-function renderRiskChart(data) {
-  var container = document.getElementById('riskChartBars');
-  if (!container) return;
-
-  // Build 8-week simulated trend from current allData
-  var weeks = [];
-  var now = new Date();
-  for (var i = 7; i >= 0; i--) {
-    var d = new Date(now);
-    d.setDate(d.getDate() - i * 7);
-    var label = (d.getMonth()+1) + '/' + d.getDate();
-    weeks.push(label);
-  }
-
-  // Use current risk scores as baseline; simulate prior weeks with ±noise
-  var baseAvg = 0, baseCrit = 0, total = 0;
-  if (data && data.projects) {
-    data.projects.forEach(function(p) {
-      baseAvg += (p.risk_score || 0);
-      if ((p.risk_score || 0) >= 30) baseCrit++;
-      total++;
-    });
-    if (total > 0) baseAvg = baseAvg / total;
-  }
-
-  // Generate 8 plausible weekly data points (last = current)
-  var avgPoints = [], critPoints = [];
-  for (var w = 0; w < 8; w++) {
-    var factor = 0.7 + Math.sin(w * 0.9) * 0.25 + (w === 7 ? 0 : (Math.random() * 0.2 - 0.1));
-    avgPoints.push(Math.max(0, Math.round(baseAvg * factor)));
-    critPoints.push(Math.max(0, Math.round(baseCrit * factor)));
-  }
-  avgPoints[7] = Math.round(baseAvg);
-  critPoints[7] = baseCrit;
-
-  var maxVal = Math.max(1, Math.max.apply(null, avgPoints.concat(critPoints)));
-  var CHART_H = 90; // px available for bars
-
-  var html = '';
-  for (var j = 0; j < 8; j++) {
-    var avgH  = Math.max(2, Math.round((avgPoints[j]  / maxVal) * CHART_H));
-    var critH = Math.max(2, Math.round((critPoints[j] / maxVal) * CHART_H));
-    html += '<div class="ai-bar-group">' +
-              '<div class="ai-bar-inner">' +
-                '<div class="ai-bar avg"  style="height:' + avgH  + 'px;" title="AVG '  + avgPoints[j]  + '"></div>' +
-                '<div class="ai-bar crit" style="height:' + critH + 'px;" title="CRIT ' + critPoints[j] + '"></div>' +
-              '</div>' +
-              '<div class="ai-bar-label">' + weeks[j] + '</div>' +
-            '</div>';
-  }
-  container.innerHTML = html;
-}
 
 // ── Risk Chart ──
-var _riskDow = 3;   // 기본: 목요일
-var _riskWeeks = 8;
+var _riskWeeks = 12;
 
 function toggleRiskSettings() {
   var panel = document.getElementById('riskSettingsPanel');
@@ -3505,30 +3519,22 @@ function toggleRiskSettings() {
   panel.classList.toggle('open');
   btn.classList.toggle('active');
 }
-function setDow(el, val) {
-  el.parentElement.querySelectorAll('.ai-dow-btn').forEach(function(b){ b.classList.remove('active'); });
-  el.classList.add('active');
-  _riskDow = val;
-}
 function setWeeks(el, val) {
   el.parentElement.querySelectorAll('.ai-dow-btn').forEach(function(b){ b.classList.remove('active'); });
   el.classList.add('active');
   _riskWeeks = val;
 }
 function applyRiskSettings() {
-  localStorage.setItem('riskDow', _riskDow);
   localStorage.setItem('riskWeeks', _riskWeeks);
   document.getElementById('riskSettingsPanel').classList.remove('open');
   document.getElementById('riskGearBtn').classList.remove('active');
-  var subEl = document.querySelector('.ai-chart-sub');
-  if (subEl) subEl.textContent = 'Weekly volatility · last ' + _riskWeeks + ' weeks';
   loadRiskHistory();
 }
+
 async function loadRiskHistory() {
   try {
     var params = new URLSearchParams({
       project_id: currentProjectId,
-      dow: _riskDow,
       weeks: _riskWeeks
     });
     var res = await fetch('/api/risk-history?' + params);
@@ -3541,7 +3547,12 @@ async function loadRiskHistory() {
 function renderRiskChart(history) {
   var bars = document.getElementById('riskChartBars');
   var labels = document.getElementById('riskChartLabels');
-  if (!bars || !history.length) return;
+  if (!bars) return;
+  if (history.length < 2) {
+    bars.innerHTML = '<div class="risk-chart-empty">ACCUMULATING DATA</div>';
+    if (labels) labels.innerHTML = '';
+    return;
+  }
   var maxScore = Math.max.apply(null, history.map(function(d){ return d.score; })) || 1;
   bars.innerHTML = history.map(function(d) {
     var h = Math.max(4, Math.round((d.score / maxScore) * 100));
@@ -3830,52 +3841,37 @@ async def clear_cache():
 
 
 @app.get("/api/risk-history")
-async def api_risk_history(project_id: str = "", dow: int = 3, weeks: int = 8):
+async def api_risk_history(project_id: str = "", weeks: int = 12):
     """
-    과거 N주 risk_score 역산
-    dow: 주 시작 기준 요일 (0=월 ~ 6=일)
+    저장된 스냅샷에서 최근 N주 반환.
+    스냅샷 없으면 빈 배열 반환 (역산 제거).
     """
-    from datetime import date, timedelta
-    today = date.today()
-    # 이번 주 기준일 계산
-    days_since_dow = (today.weekday() - dow) % 7
-    this_week_start = today - timedelta(days=days_since_dow)
+    try:
+        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+            history = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        return {"history": []}
 
-    issues = get_issues(project_id, updated_after="2024-01-01")
-    today_str = today.strftime("%Y-%m-%d")
-    history = []
+    key = f"project_{project_id}" if project_id else "all"
+    records = history.get(key, [])[-weeks:]
 
-    for w in range(weeks - 1, -1, -1):
-        week_start = this_week_start - timedelta(weeks=w)
-        week_end   = (week_start + timedelta(days=6)).strftime("%Y-%m-%d")
-        week_label = f"W{weeks - w}"
+    result = []
+    for idx, r in enumerate(records, 1):
+        result.append({
+            "week": f"W{idx}",
+            "score": r["score"],
+            "level": r["level"],
+            "date": r["date"]
+        })
 
-        total = overdue = urgent = pending = 0
-        for i in issues:
-            if not i.get("due_date"):
-                continue
-            status = i.get("status", {}).get("name", "")
-            total += 1
-            if i["due_date"] < week_end and status not in CLOSED_SET and status not in HOLD_SET:
-                overdue += 1
-            due_dt = None
-            try:
-                due_dt = date.fromisoformat(i["due_date"])
-            except Exception:
-                pass
-            if due_dt:
-                diff = (due_dt - week_start).days
-                if 0 <= diff <= 3 and status not in CLOSED_SET:
-                    urgent += 1
-            if status in {"진행대기", "진행 대기"}:
-                pending += 1
+    return {"history": result}
 
-        t = total or 1
-        score = round((overdue/t*60) + (urgent/t*30) + (pending/t*10), 1)
-        level = "Critical" if score >= 30 else "High" if score >= 15 else "Medium" if score >= 5 else "Low"
-        history.append({"week": week_label, "score": score, "level": level})
 
-    return {"history": history}
+@app.post("/api/risk-snapshot/trigger")
+async def trigger_snapshot():
+    """개발용: 수동 스냅샷 저장"""
+    save_risk_snapshot()
+    return {"status": "ok"}
 
 
 @app.get("/api/visitors")

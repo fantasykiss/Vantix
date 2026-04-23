@@ -1,0 +1,30 @@
+{
+  "all": [
+    {
+      "date": "2026-04-23",
+      "score": 16.9,
+      "level": "High"
+    }
+  ],
+  "project_3RD_Project": [
+    {
+      "date": "2026-04-23",
+      "score": 43.1,
+      "level": "Critical"
+    }
+  ],
+  "project_1ST_Project": [
+    {
+      "date": "2026-04-23",
+      "score": 7.5,
+      "level": "Medium"
+    }
+  ],
+  "project_2ND_Project": [
+    {
+      "date": "2026-04-23",
+      "score": 0.0,
+      "level": "Low"
+    }
+  ]
+}
