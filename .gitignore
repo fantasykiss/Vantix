@@ -5,3 +5,4 @@ main_backup_*.py
 .DS_Store
 .claude/
 아트작업/
+risk_history.json
