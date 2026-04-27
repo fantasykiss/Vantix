@@ -214,8 +214,9 @@ _scheduler.add_job(_job_weekly_report, CronTrigger(
     day_of_week=REPORT_DAY, hour=REPORT_HOUR, minute=REPORT_MINUTE
 ), id="weekly_report")
 _scheduler.add_job(save_risk_snapshot, CronTrigger(
-    day_of_week="fri", hour=23, minute=0, timezone="Asia/Seoul"
+    hour=9, minute=0, timezone="Asia/Seoul"
 ), id="risk_snapshot")
+save_risk_snapshot()  # 서버 시작 시 즉시 1회 실행
 _scheduler.start()
 print(f"  스케줄러 시작!")
 
