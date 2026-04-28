@@ -1,0 +1,9 @@
+{
+  "st_project": {
+    "overdue": true,
+    "urgent": true,
+    "critical": true,
+    "hour": "9",
+    "notify_email": "fantasy2736@naver.com"
+  }
+}

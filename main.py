@@ -115,6 +115,93 @@ def cache_age_str(project_id, updated_after):
         return f"{age}초 전"
     return f"{age // 60}분 전"
 
+def _job_send_monitor_alerts():
+    import json as _json
+    monitor_path = os.path.join(os.path.dirname(__file__), "monitor_config.json")
+    try:
+        with open(monitor_path, "r", encoding="utf-8") as f:
+            all_cfg = _json.load(f)
+    except:
+        return
+
+    for project_id, cfg in all_cfg.items():
+        try:
+            notify_email = cfg.get("notify_email", "")
+            if not notify_email:
+                continue
+
+            dashboard = get_cache(project_id, DEFAULT_UPDATED_AFTER)
+            if not dashboard:
+                dashboard = build_dashboard_data(project_id, DEFAULT_UPDATED_AFTER)
+
+            risks = dashboard.get("project_risk", [])
+            if not risks:
+                continue
+
+            top = risks[0]
+            risk_level = top.get("risk_level", "")
+            risk_score = min(round(top.get("risk_score", 0) * 100 / 60), 100)
+            overdue = top.get("issues_overdue_count", 0)
+            urgent = top.get("issues_urgent_count", 0)
+
+            should_send = False
+            if cfg.get("overdue") and overdue > 0:
+                should_send = True
+            if cfg.get("urgent") and urgent > 0:
+                should_send = True
+            if cfg.get("critical") and risk_level == "Critical":
+                should_send = True
+
+            if not should_send:
+                continue
+
+            subject = f"[Vantix] {top['name']} 리스크 알림 — {risk_level} ({risk_score}점)"
+            body = f"""Vantix AI 리스크 모니터링 알림입니다.
+
+프로젝트: {top['name']}
+리스크 레벨: {risk_level} ({risk_score}점)
+마감 초과: {overdue}건
+마감 임박: {urgent}건
+
+Vantix 대시보드에서 상세 내용을 확인하세요."""
+
+            from app.reporter import send_report_email
+            from config import EMAIL_CFG
+            import copy
+            cfg_override = copy.copy(EMAIL_CFG)
+            cfg_override.recipients = [notify_email]
+            cfg_override.enabled = True
+            html_body = f"""
+    <div style="font-family:sans-serif;padding:24px;max-width:600px;">
+      <div style="font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#888;margin-bottom:8px;">VANTIX AI 리스크 알림</div>
+      <div style="font-size:24px;font-weight:700;color:#111;margin-bottom:16px;">{top['name']}</div>
+      <div style="display:flex;gap:16px;margin-bottom:16px;">
+        <div style="padding:12px 20px;background:#f5f3f3;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">리스크 레벨</div>
+          <div style="font-size:18px;font-weight:700;color:#c0392b;">{risk_level}</div>
+        </div>
+        <div style="padding:12px 20px;background:#f5f3f3;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">점수</div>
+          <div style="font-size:18px;font-weight:700;">{risk_score}점</div>
+        </div>
+        <div style="padding:12px 20px;background:#f5f3f3;">
+          <div style="font-size:10px;color:#888;text-transform:uppercase;">마감초과</div>
+          <div style="font-size:18px;font-weight:700;color:#c0392b;">{overdue}건</div>
+        </div>
+      </div>
+      <div style="font-size:11px;color:#666;border-left:3px solid #111;padding-left:12px;">
+        Vantix 대시보드에서 AI Command Panel을 확인하세요.
+      </div>
+    </div>
+    """
+            send_report_email(html_body, subject, cfg_override)
+            print(f"  모니터링 알림 발송: {notify_email} ({top['name']})")
+            print(f"  모니터링 알림 발송: {notify_email} ({top['name']})")
+
+        except Exception as e:
+            print(f"  모니터링 알림 실패 {project_id}: {e}")
+
+
 def _job_refresh_cache():
     if not _auto_refresh_params:
         return
@@ -182,12 +269,32 @@ def save_risk_snapshot():
         history["all"].append({"date": today, "score": avg_score, "level": avg_level})
     history["all"] = history["all"][-52:]  # 최대 52주 보관
 
-    # 프로젝트별 스냅샷
+    # 캐시 키에서 project_id → project_name 역매핑 구성
+    pid_to_name = {}
+    for cache_key, entry in _cache.items():
+        pid_part = cache_key.split("|")[0]
+        d = entry.get("data", {})
+        if isinstance(d, list):
+            continue
+        pr_list = d.get("project_risk", [])
+        for pr in pr_list:
+            pname = pr.get("name", "")
+            if pname and pid_part:
+                pid_to_name.setdefault(pname, pid_part)
+
+    # 프로젝트별 스냅샷 (키: project_{숫자ID})
     for p in projects:
         pname = p.get("name", "")
         if not pname:
             continue
-        key = f"project_{pname}"
+        pid = pid_to_name.get(pname, "")
+        key = f"project_{pid}" if pid else f"project_{pname}"
+
+        # 기존 이름 기반 키 마이그레이션
+        old_key = f"project_{pname}"
+        if key != old_key and old_key in history and key not in history:
+            history[key] = history.pop(old_key)
+
         history.setdefault(key, [])
         score = round(p["risk_score"], 1)
         level = p["risk_level"]
@@ -216,12 +323,22 @@ _scheduler.add_job(_job_weekly_report, CronTrigger(
 _scheduler.add_job(save_risk_snapshot, CronTrigger(
     hour=9, minute=0, timezone="Asia/Seoul"
 ), id="risk_snapshot")
+_scheduler.add_job(_job_send_monitor_alerts, CronTrigger(
+    hour=9, minute=5, timezone="Asia/Seoul"
+), id="monitor_alerts")
 save_risk_snapshot()  # 서버 시작 시 즉시 1회 실행
 _scheduler.start()
 print(f"  스케줄러 시작!")
 
 
 # ==================== API 유틸 ====================
+
+def get_current_user_email():
+    try:
+        data = fetch("/users/current.json")
+        return data.get("user", {}).get("mail", "")
+    except:
+        return ""
 
 def fetch(path, params=None, retries=2):
     url = BASE_URL.rstrip("/") + path
@@ -1149,6 +1266,20 @@ body {
   text-align: center;
 }
 .ai-dow-btn.active { background: #111; color: #fff; border-color: #111; }
+.ai-action-btn {
+  font-size: 9px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  cursor: pointer;
+  border: none;
+  font-family: inherit;
+  margin-top: 8px;
+  display: inline-block;
+}
+.ai-action-btn.reassign { background: #1a5276; color: #fff; }
+.ai-action-btn.escalate { background: #ffffff; color: #111; }
+.ai-action-btn.monitor  { background: transparent; color: #888; border: 1px solid #333; }
 .ai-settings-apply {
   width: 100%;
   padding: 8px;
@@ -1163,6 +1294,44 @@ body {
   border-radius: 4px;
   cursor: pointer;
   margin-top: 4px;
+}
+#ai-cmd-panel {
+  width: 280px;
+  background: #111;
+  color: #fff;
+  position: fixed;
+  right: 0;
+  top: 60px;
+  bottom: 0;
+  z-index: 50;
+  display: none;
+  flex-direction: column;
+}
+#ai-cmd-panel.open {
+  display: flex;
+}
+#ai-cmd-toggle {
+  position: fixed;
+  right: 0;
+  top: 120px;
+  background: #111;
+  color: #fff;
+  width: 32px;
+  padding: 20px 0;
+  cursor: pointer;
+  z-index: 51;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: .1em;
+  writing-mode: vertical-rl;
+}
+@media (min-width: 1400px) {
+  #ai-cmd-panel { width: 360px; }
+  #ai-cmd-toggle { width: 36px; }
+}
+@media (min-width: 1800px) {
+  #ai-cmd-panel { width: 420px; }
+  #ai-cmd-toggle { width: 40px; }
 }
 .ai-chart-sub {
   font-family: 'DM Sans', sans-serif;
@@ -3674,6 +3843,11 @@ async function forceRefresh() {
 // ============================================================
 function onProjectChange() {
   currentProjectId = document.getElementById('projectSelect').value;
+  // 패널 열려있으면 프로젝트 전환 시 자동 갱신
+  var panel = document.getElementById('ai-cmd-panel');
+  if (panel && panel.classList.contains('open')) {
+    loadActionSignals();
+  }
   loadData();
 }
 
@@ -3757,8 +3931,366 @@ function getShortName(uname) {
 }
 
 // ============================================================
+// AI Command Panel
+// ============================================================
+var rmCurrentStep = 1;
+var rmCurrentField = 'assignee';
+var rmSelectedIssues = [];
+
+function openRedmineModal() {
+  rmCurrentStep = 1;
+  rmSelectedIssues = [];
+  document.getElementById('redmine-modal').style.display = 'flex';
+  rmUpdateStep();
+  rmLoadIssues();
+}
+
+function closeRedmineModal() {
+  document.getElementById('redmine-modal').style.display = 'none';
+}
+
+function closeMonitorModal() {
+  document.getElementById('monitor-modal').style.display = 'none';
+}
+
+function applyMonitor() {
+  var pid = currentProjectId || '';
+  var cfg = {
+    overdue: document.getElementById('monitor-overdue').checked,
+    urgent: document.getElementById('monitor-urgent').checked,
+    critical: document.getElementById('monitor-critical').checked,
+    hour: document.getElementById('monitor-time').value
+  };
+  localStorage.setItem('monitor_' + pid, JSON.stringify(cfg));
+  fetch('/api/action/monitor', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({ project_id: pid, config: cfg })
+  })
+  .then(r => r.json())
+  .then(function() {
+    closeMonitorModal();
+    showToast('알림 설정 완료 — 매일 ' + cfg.hour + ':00 발송');
+  })
+  .catch(function() {
+    closeMonitorModal();
+    showToast('알림 설정 저장됨');
+  });
+}
+
+function rmLoadIssues() {
+  var pid = currentProjectId || '';
+  var list = document.getElementById('rm-issue-list');
+  fetch('/api/data?project_id=' + encodeURIComponent(pid) + '&updated_after=' + currentUpdatedAfter)
+    .then(r => r.json())
+    .then(data => {
+      var issues = [];
+      var users = data.users_data || {};
+      Object.values(users).forEach(function(u) {
+        u.issues.forEach(function(i) { issues.push(i); });
+      });
+      issues.sort(function(a,b) {
+        var today = new Date().toISOString().slice(0,10);
+        var ao = a.due_date && a.due_date < today ? -2 : 0;
+        var bo = b.due_date && b.due_date < today ? -2 : 0;
+        return ao - bo;
+      });
+      if (!issues.length) {
+        list.innerHTML = '<div style="font-size:11px;color:#555;text-align:center;padding:20px;">이슈 없음</div>';
+        return;
+      }
+      var assignees = {};
+      issues.forEach(function(i) { if(i.assignee) assignees[i.assignee] = true; });
+      var sel = document.getElementById('rm-assignee-val');
+      sel.innerHTML = '<option value="">담당자 선택...</option>';
+      Object.keys(assignees).forEach(function(a) {
+        sel.innerHTML += '<option value="' + escHtml(a) + '">' + escHtml(a) + '</option>';
+      });
+      fetch('/api/versions?project_id=' + encodeURIComponent(pid))
+        .then(r => r.json())
+        .then(vdata => {
+          var vsel = document.getElementById('rm-version-val');
+          vsel.innerHTML = '<option value="">버전 선택...</option>';
+          (vdata.versions || []).forEach(function(v) {
+            vsel.innerHTML += '<option value="' + v.id + '">' + escHtml(v.name) + '</option>';
+          });
+        }).catch(function(){});
+      list.innerHTML = issues.slice(0,20).map(function(i) {
+        var today = new Date().toISOString().slice(0,10);
+        var isOverdue = i.due_date && i.due_date < today;
+        var badge = isOverdue
+          ? '<span style="font-size:8px;padding:2px 5px;background:#c0392b;color:#fff;margin-left:4px;">초과</span>'
+          : (i.due_date ? '<span style="font-size:8px;padding:2px 5px;background:#e67e22;color:#fff;margin-left:4px;">임박</span>' : '');
+        return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1e1e1e;">' +
+          '<div onclick="rmToggleIssue(this,' + i.id + ')" style="width:13px;height:13px;border:1px solid #444;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;" data-id="' + i.id + '"></div>' +
+          '<span style="font-size:9px;color:#555;min-width:36px;">#' + i.id + '</span>' +
+          '<span style="font-size:10px;color:#ccc;flex:1;line-height:1.3;">' + escHtml(i.subject) + badge + '</span>' +
+          '</div>';
+      }).join('');
+    })
+    .catch(function() {
+      list.innerHTML = '<div style="font-size:11px;color:#c0392b;text-align:center;padding:20px;">로드 실패</div>';
+    });
+}
+
+function rmToggleIssue(el, id) {
+  var idx = rmSelectedIssues.indexOf(id);
+  if (idx === -1) {
+    rmSelectedIssues.push(id);
+    el.style.background = '#1a5276';
+    el.style.borderColor = '#1a5276';
+    el.textContent = '✓';
+  } else {
+    rmSelectedIssues.splice(idx, 1);
+    el.style.background = 'none';
+    el.style.borderColor = '#444';
+    el.textContent = '';
+  }
+}
+
+function rmSelectField(el, field) {
+  document.querySelectorAll('.rm-field-tab').forEach(function(t) {
+    t.style.background = 'transparent';
+    t.style.borderColor = '#333';
+    t.style.color = '#666';
+  });
+  el.style.background = '#1a5276';
+  el.style.borderColor = '#1a5276';
+  el.style.color = '#fff';
+  ['assignee','due','version','priority','status'].forEach(function(f) {
+    document.getElementById('rm-field-'+f).style.display = f === field ? 'block' : 'none';
+  });
+  rmCurrentField = field;
+}
+
+function rmNextStep() {
+  if (rmCurrentStep === 1 && rmSelectedIssues.length === 0) {
+    showToast('이슈를 1개 이상 선택해주세요');
+    return;
+  }
+  if (rmCurrentStep < 3) {
+    if (rmCurrentStep === 2) rmBuildConfirm();
+    rmCurrentStep++;
+    rmUpdateStep();
+  }
+}
+
+function rmPrevStep() {
+  if (rmCurrentStep > 1) {
+    rmCurrentStep--;
+    rmUpdateStep();
+  }
+}
+
+function rmUpdateStep() {
+  [1,2,3].forEach(function(i) {
+    document.getElementById('rm-step'+i).style.display = i === rmCurrentStep ? 'block' : 'none';
+    var tab = document.getElementById('rm-step'+i+'-tab');
+    tab.style.color = i === rmCurrentStep ? '#fff' : (i < rmCurrentStep ? '#27ae60' : '#555');
+    tab.style.borderBottom = i === rmCurrentStep ? '2px solid #1a5276' : (i < rmCurrentStep ? '2px solid #27ae60' : '2px solid transparent');
+  });
+  document.getElementById('rm-btn-prev').style.display = rmCurrentStep > 1 ? 'inline-block' : 'none';
+  document.getElementById('rm-btn-next').style.display = rmCurrentStep < 3 ? 'inline-block' : 'none';
+  document.getElementById('rm-btn-apply').style.display = rmCurrentStep === 3 ? 'inline-block' : 'none';
+}
+
+function rmBuildConfirm() {
+  var fieldLabels = {assignee:'담당자',due:'마감일',version:'버전',priority:'우선순위',status:'상태'};
+  var val = '';
+  if (rmCurrentField === 'assignee') val = document.getElementById('rm-assignee-val').value;
+  else if (rmCurrentField === 'due') val = document.getElementById('rm-due-val').value;
+  else if (rmCurrentField === 'version') val = document.getElementById('rm-version-val').options[document.getElementById('rm-version-val').selectedIndex].text;
+  else if (rmCurrentField === 'priority') val = document.getElementById('rm-priority-val').options[document.getElementById('rm-priority-val').selectedIndex].text;
+  else if (rmCurrentField === 'status') val = document.getElementById('rm-status-val').options[document.getElementById('rm-status-val').selectedIndex].text;
+  var html = rmSelectedIssues.map(function(id) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1e1e1e;">' +
+      '<span style="font-size:10px;color:#ccc;flex:1;">#' + id + '</span>' +
+      '<span style="font-size:10px;color:#1a5276;">→ ' + escHtml(val) + '</span>' +
+      '</div>';
+  }).join('');
+  html += '<div style="margin-top:10px;padding:8px;background:#0d0d0d;border-left:2px solid #1a5276;">' +
+    '<div style="font-size:9px;color:#888;">변경 항목</div>' +
+    '<div style="font-size:10px;color:#fff;margin-top:2px;">' + fieldLabels[rmCurrentField] + ' → ' + escHtml(val) + '</div>' +
+    '</div>';
+  document.getElementById('rm-confirm-list').innerHTML = html;
+}
+
+function rmApply() {
+  var pid = currentProjectId || '';
+  var field = rmCurrentField;
+  var val = '';
+  if (field === 'assignee') val = document.getElementById('rm-assignee-val').value;
+  else if (field === 'due') val = document.getElementById('rm-due-val').value;
+  else if (field === 'version') val = document.getElementById('rm-version-val').value;
+  else if (field === 'priority') val = document.getElementById('rm-priority-val').value;
+  else if (field === 'status') val = document.getElementById('rm-status-val').value;
+  fetch('/api/action/redmine-update', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({
+      project_id: pid,
+      issue_ids: rmSelectedIssues,
+      field: field,
+      value: val
+    })
+  })
+  .then(r => r.json())
+  .then(function(data) {
+    closeRedmineModal();
+    showToast('Redmine 적용 완료 (' + (data.success || []).length + '건)');
+  })
+  .catch(function() {
+    showToast('적용 실패 — 다시 시도해주세요');
+  });
+}
+function openEscalateModal() {
+  var m = document.getElementById('escalate-modal');
+  m.style.display = 'flex';
+}
+
+function closeEscalateModal() {
+  document.getElementById('escalate-modal').style.display = 'none';
+}
+
+function applyEscalate() {
+  var type = document.getElementById('escalate-type').value;
+  closeEscalateModal();
+  if (type === 'email') {
+    var pid = currentProjectId || '';
+    fetch('/api/report/send?project_id=' + encodeURIComponent(pid), { method: 'POST' })
+      .then(r => r.json())
+      .then(function() { showToast('보고서 이메일 발송 완료'); })
+      .catch(function() { showToast('발송 실패 — 이메일 설정 확인 필요'); });
+  } else {
+    var btn = document.querySelector('[onclick*="report"]') || document.getElementById('report-btn');
+    if (btn) btn.click();
+    else showToast('리포트 버튼을 눌러주세요');
+  }
+}
+
+function showToast(msg) {
+  var t = document.getElementById('ai-toast');
+  if (!t) {
+    t = document.createElement('div');
+    t.id = 'ai-toast';
+    t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 20px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:1px solid #333;z-index:999;';
+    document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(function() { t.style.display = 'none'; }, 2500);
+}
+function openMonitorModal() {
+  var pid = currentProjectId || '';
+  var modal = document.getElementById('monitor-modal');
+  if (!modal) { console.error('monitor-modal not found'); return; }
+  var saved = localStorage.getItem('monitor_' + pid);
+  if (saved) {
+    try {
+      var cfg = JSON.parse(saved);
+      document.getElementById('monitor-overdue').checked = cfg.overdue !== false;
+      document.getElementById('monitor-urgent').checked = cfg.urgent !== false;
+      document.getElementById('monitor-critical').checked = cfg.critical === true;
+      document.getElementById('monitor-time').value = cfg.hour || '9';
+      document.getElementById('monitor-status-text').textContent = '현재: 알림 ON';
+      document.getElementById('monitor-status-text').style.color = '#27ae60';
+    } catch(e) {}
+  } else {
+    document.getElementById('monitor-status-text').textContent = '';
+  }
+  modal.style.display = 'flex';
+}
+
+function toggleAiPanel() {
+  var p = document.getElementById('ai-cmd-panel');
+  var opening = !p.classList.contains('open');
+  p.classList.toggle('open');
+  if (opening) loadActionSignals();
+}
+
+function loadActionSignals() {
+  var pid = currentProjectId || '';
+  var list = document.getElementById('ai-cmd-list');
+  list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">분석 중...</div>';
+
+  function attempt(retryCount) {
+    fetch('/api/ai/action-signals?project_id=' + encodeURIComponent(pid))
+      .then(r => r.json())
+      .then(data => {
+        var signals = data.signals || [];
+        // P1 → P2 → P3 순서 정렬
+        var priorityOrder = {'P1': 1, 'P2': 2, 'P3': 3};
+        signals.sort(function(a, b) {
+          return (priorityOrder[a.priority] || 9) - (priorityOrder[b.priority] || 9);
+        });
+        if (!signals.length && retryCount > 0) {
+          setTimeout(function() { attempt(retryCount - 1); }, 2000);
+          return;
+        }
+        if (!signals.length) {
+          list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">액션 시그널 없음</div>';
+          return;
+        }
+        var dotColor = {'P1':'#c0392b','P2':'#e67e22','P3':'#27ae60'};
+        list.innerHTML = signals.map(s => {
+          var dc = dotColor[s.priority] || '#888';
+          var bl = s.priority === 'P1' ? 'border-left:2px solid #c0392b;' : '';
+          return '<div style="padding:11px 16px;border-bottom:1px solid #1a1a1a;' + bl + '">' +
+            '<div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:3px;display:flex;align-items:center;gap:5px;">' +
+            '<span style="width:5px;height:5px;border-radius:50%;background:' + dc + ';display:inline-block;flex-shrink:0;"></span>' +
+            s.priority + ' · ' + s.timing + '</div>' +
+            '<div style="font-size:11px;font-weight:500;color:#ffffff;line-height:1.3;margin-bottom:3px;">' + escHtml(s.action) + '</div>' +
+            '<div style="font-size:10px;color:#aaa;line-height:1.4;margin-bottom:3px;">' + escHtml(s.reason) + '</div>' +
+            '<div style="font-size:9px;color:#888;">→ ' + escHtml(s.who) + '</div>' +
+            (function() {
+              var actionBtn = '';
+              if (s.action_type === 'REASSIGN') {
+                actionBtn = '<button class="ai-action-btn reassign" onclick="openRedmineModal()">✏️ Redmine 수정</button>';
+              } else if (s.action_type === 'ESCALATE') {
+                actionBtn = '<button class="ai-action-btn escalate" onclick="openEscalateModal()">📄 보고서 생성</button>';
+              } else if (s.action_type === 'MONITOR') {
+                actionBtn = '<button class="ai-action-btn monitor" onclick="openMonitorModal()">🔔 알림 설정</button>';
+              }
+              return actionBtn;
+            })() +
+            '</div>';
+        }).join('');
+        document.getElementById('ai-cmd-timestamp').textContent =
+          'LAST ANALYZED · ' + new Date().toTimeString().slice(0,5) + ' KST';
+      })
+      .catch(() => {
+        if (retryCount > 0) {
+          setTimeout(function() { attempt(retryCount - 1); }, 2000);
+        } else {
+          list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#c0392b;">분석 실패 — 재시도</div>';
+        }
+      });
+  }
+
+  attempt(4); // 최대 4회 재시도 (2초 간격)
+}
+
 // Boot
 // ============================================================
+document.addEventListener('click', function(e) {
+  var panel = document.getElementById('ai-cmd-panel');
+  var toggle = document.getElementById('ai-cmd-toggle');
+  if (!panel || !toggle) return;
+  var redmineModal = document.getElementById('redmine-modal');
+  var escalateModal = document.getElementById('escalate-modal');
+  var monitorModal = document.getElementById('monitor-modal');
+  var anyModalOpen =
+    (redmineModal && redmineModal.style.display === 'flex') ||
+    (escalateModal && escalateModal.style.display === 'flex') ||
+    (monitorModal && monitorModal.style.display === 'flex');
+  if (!anyModalOpen &&
+      panel.classList.contains('open') &&
+      !panel.contains(e.target) &&
+      !toggle.contains(e.target)) {
+    panel.classList.remove('open');
+  }
+});
+
 document.addEventListener('DOMContentLoaded', init);
 </script>
 <script>
@@ -3766,6 +4298,164 @@ document.addEventListener('DOMContentLoaded', init);
     document.getElementById('filterDateDisplay').textContent = this.value.replace(/-/g, '.');
   });
 </script>
+<div id="ai-cmd-panel">
+  <div style="padding:20px 16px;border-bottom:1px solid #222;">
+    <div style="display:inline-block;background:#1a5276;padding:4px 10px;">
+      <span style="font-size:11px;font-weight:700;color:#ffffff;letter-spacing:.08em;text-transform:uppercase;">✦ VANTIX AI COMMAND PANEL</span>
+    </div>
+  </div>
+  <div id="ai-cmd-list" style="flex:1;overflow-y:auto;">
+    <div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">프로젝트를 선택하면<br>액션 시그널이 표시됩니다.</div>
+  </div>
+  <div style="padding:10px 16px;border-top:1px solid #1e1e1e;">
+    <div style="font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#555;" id="ai-cmd-timestamp">LAST ANALYZED —</div>
+    <button onclick="loadActionSignals()" style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#888;padding:5px 10px;border:1px solid #2a2a2a;cursor:pointer;display:inline-block;margin-top:4px;background:none;position:relative;z-index:999;">↻ RE-ANALYZE</button>
+  </div>
+</div>
+<div id="ai-cmd-toggle" onclick="toggleAiPanel()">✦ AI</div>
+<div id="escalate-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#1a1a1a;width:300px;border:1px solid #333;">
+    <div style="padding:14px 16px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.05em;text-transform:uppercase;">📄 보고서 생성</div>
+      <button onclick="closeEscalateModal()" style="background:none;border:none;color:#666;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    <div style="padding:14px 16px;">
+      <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:8px;">포함 내용</div>
+      <div style="font-size:10px;color:#aaa;line-height:1.9;">
+        ✦ AI 시그널 요약 (P1 우선)<br>
+        ✦ 현재 리스크 지수 및 추이<br>
+        ✦ 마감초과 이슈 목록<br>
+        ✦ 담당자별 부하 현황
+      </div>
+      <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-top:12px;margin-bottom:8px;">발송 방식</div>
+      <select id="escalate-type" style="width:100%;background:#222;border:1px solid #333;color:#fff;padding:7px 10px;font-size:11px;font-family:inherit;">
+        <option value="pdf">PDF 다운로드</option>
+        <option value="email">이메일 발송</option>
+      </select>
+    </div>
+    <div style="padding:10px 16px;border-top:1px solid #222;display:flex;gap:8px;justify-content:flex-end;">
+      <button onclick="closeEscalateModal()" style="background:none;border:1px solid #333;color:#888;padding:6px 14px;font-size:10px;cursor:pointer;font-family:inherit;">취소</button>
+      <button onclick="applyEscalate()" style="background:#fff;border:none;color:#111;padding:6px 18px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600;">생성</button>
+    </div>
+  </div>
+</div>
+<div id="redmine-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#1a1a1a;width:300px;border:1px solid #333;">
+    <div style="padding:14px 16px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.05em;text-transform:uppercase;">✏️ REDMINE 수정</div>
+      <button onclick="closeRedmineModal()" style="background:none;border:none;color:#666;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    <div style="display:flex;border-bottom:1px solid #222;">
+      <div id="rm-step1-tab" style="flex:1;padding:8px;text-align:center;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#fff;border-bottom:2px solid #1a5276;cursor:pointer;">01 이슈 선택</div>
+      <div id="rm-step2-tab" style="flex:1;padding:8px;text-align:center;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#555;border-bottom:2px solid transparent;cursor:pointer;">02 변경 항목</div>
+      <div id="rm-step3-tab" style="flex:1;padding:8px;text-align:center;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#555;border-bottom:2px solid transparent;cursor:pointer;">03 확인</div>
+    </div>
+    <div id="rm-step1" style="padding:14px 16px;min-height:200px;">
+      <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:8px;">변경할 이슈 선택</div>
+      <div id="rm-issue-list" style="max-height:220px;overflow-y:auto;">
+        <div style="font-size:11px;color:#555;text-align:center;padding:20px;">이슈 로딩 중...</div>
+      </div>
+    </div>
+    <div id="rm-step2" style="padding:14px 16px;min-height:200px;display:none;">
+      <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:10px;">변경 항목 선택</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+        <div class="rm-field-tab active" onclick="rmSelectField(this,'assignee')" style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;cursor:pointer;border:1px solid #1a5276;color:#fff;background:#1a5276;">담당자</div>
+        <div class="rm-field-tab" onclick="rmSelectField(this,'due')" style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;cursor:pointer;border:1px solid #333;color:#666;background:transparent;">마감일</div>
+        <div class="rm-field-tab" onclick="rmSelectField(this,'version')" style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;cursor:pointer;border:1px solid #333;color:#666;background:transparent;">버전</div>
+        <div class="rm-field-tab" onclick="rmSelectField(this,'priority')" style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;cursor:pointer;border:1px solid #333;color:#666;background:transparent;">우선순위</div>
+        <div class="rm-field-tab" onclick="rmSelectField(this,'status')" style="font-size:9px;letter-spacing:.08em;text-transform:uppercase;padding:5px 8px;cursor:pointer;border:1px solid #333;color:#666;background:transparent;">상태</div>
+      </div>
+      <div id="rm-field-assignee">
+        <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:6px;">변경할 담당자</div>
+        <select id="rm-assignee-val" style="width:100%;background:#222;border:1px solid #333;color:#fff;padding:7px 10px;font-size:11px;font-family:inherit;">
+          <option value="">담당자 선택...</option>
+        </select>
+      </div>
+      <div id="rm-field-due" style="display:none;">
+        <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:6px;">변경할 마감일</div>
+        <input type="date" id="rm-due-val" style="width:100%;background:#222;border:1px solid #333;color:#fff;padding:7px 10px;font-size:11px;font-family:inherit;">
+      </div>
+      <div id="rm-field-version" style="display:none;">
+        <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:6px;">변경할 버전</div>
+        <select id="rm-version-val" style="width:100%;background:#222;border:1px solid #333;color:#fff;padding:7px 10px;font-size:11px;font-family:inherit;">
+          <option value="">버전 선택...</option>
+        </select>
+      </div>
+      <div id="rm-field-priority" style="display:none;">
+        <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:6px;">변경할 우선순위</div>
+        <select id="rm-priority-val" style="width:100%;background:#222;border:1px solid #333;color:#fff;padding:7px 10px;font-size:11px;font-family:inherit;">
+          <option value="">우선순위 선택...</option>
+          <option value="7">Immediate</option>
+          <option value="6">Urgent</option>
+          <option value="5">High</option>
+          <option value="4">Normal</option>
+          <option value="3">Low</option>
+        </select>
+      </div>
+      <div id="rm-field-status" style="display:none;">
+        <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:6px;">변경할 상태</div>
+        <select id="rm-status-val" style="width:100%;background:#222;border:1px solid #333;color:#fff;padding:7px 10px;font-size:11px;font-family:inherit;">
+          <option value="">상태 선택...</option>
+        </select>
+      </div>
+    </div>
+    <div id="rm-step3" style="padding:14px 16px;min-height:200px;display:none;">
+      <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:8px;">적용 내용 확인</div>
+      <div id="rm-confirm-list"></div>
+    </div>
+    <div style="padding:10px 16px;border-top:1px solid #222;display:flex;justify-content:space-between;align-items:center;">
+      <button onclick="closeRedmineModal()" style="background:none;border:1px solid #333;color:#888;padding:6px 14px;font-size:10px;cursor:pointer;font-family:inherit;">취소</button>
+      <div style="display:flex;gap:6px;">
+        <button id="rm-btn-prev" onclick="rmPrevStep()" style="display:none;background:none;border:1px solid #333;color:#888;padding:6px 14px;font-size:10px;cursor:pointer;font-family:inherit;">← 이전</button>
+        <button id="rm-btn-next" onclick="rmNextStep()" style="background:#1a5276;border:none;color:#fff;padding:6px 18px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600;">다음 →</button>
+        <button id="rm-btn-apply" onclick="rmApply()" style="display:none;background:#27ae60;border:none;color:#fff;padding:6px 18px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600;">Redmine 적용</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="monitor-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#1a1a1a;width:300px;border:1px solid #333;">
+    <div style="padding:14px 16px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.05em;text-transform:uppercase;">🔔 알림 설정</div>
+      <button onclick="closeMonitorModal()" style="background:none;border:none;color:#666;cursor:pointer;font-size:14px;">✕</button>
+    </div>
+    <div style="padding:14px 16px;">
+      <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:8px;">알림 조건</div>
+      <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="monitor-overdue" checked style="accent-color:#1a5276;">
+          <span style="font-size:11px;color:#ccc;">마감 초과 이슈 발생 시</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="monitor-urgent" checked style="accent-color:#1a5276;">
+          <span style="font-size:11px;color:#ccc;">마감 D-7 이내 이슈 발생 시</span>
+        </label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="monitor-critical" style="accent-color:#1a5276;">
+          <span style="font-size:11px;color:#ccc;">리스크 레벨 Critical 진입 시</span>
+        </label>
+      </div>
+      <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:8px;">발송 시간</div>
+      <select id="monitor-time" style="width:100%;background:#222;border:1px solid #333;color:#fff;padding:7px 10px;font-size:11px;font-family:inherit;margin-bottom:12px;">
+        <option value="9">매일 오전 09:00</option>
+        <option value="8">매일 오전 08:00</option>
+        <option value="18">매일 오후 06:00</option>
+      </select>
+      <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:6px;">수신 대상</div>
+      <div style="font-size:10px;color:#aaa;padding:8px;background:#0d0d0d;border-left:2px solid #1a5276;line-height:1.7;">
+        ✦ 마감초과 담당자 → 개인별 발송<br>
+        ✦ 이메일은 Redmine 계정 정보 사용
+      </div>
+    </div>
+    <div style="padding:10px 16px;border-top:1px solid #222;display:flex;gap:8px;justify-content:space-between;align-items:center;">
+      <div id="monitor-status-text" style="font-size:9px;color:#555;letter-spacing:.08em;text-transform:uppercase;"></div>
+      <div style="display:flex;gap:6px;">
+        <button onclick="closeMonitorModal()" style="background:none;border:1px solid #333;color:#888;padding:6px 14px;font-size:10px;cursor:pointer;font-family:inherit;">취소</button>
+        <button onclick="applyMonitor()" style="background:#27ae60;border:none;color:#fff;padding:6px 18px;font-size:10px;cursor:pointer;font-family:inherit;font-weight:600;">알림 ON</button>
+      </div>
+    </div>
+  </div>
+</div>
 </body>
 </html>"""
 
@@ -3809,6 +4499,45 @@ async def api_data(project_id: str = "", updated_after: str = "2026-03-01", forc
     print(f"  Redmine fetch: {key}")
     data = build_dashboard_data(project_id, updated_after)
     set_cache(project_id, updated_after, data)
+
+    import threading as _threading
+    def _bg_generate_signals(pid):
+        try:
+            cache_k = f"action-signals|{pid}"
+            if _get_ai_cache(cache_k):
+                return
+            risks = data.get("project_risk", [])[:5]
+            if not risks:
+                return
+            risk_lines = "\n".join([
+                f"- {r['name']}: score={min(round(r['risk_score']*100/60),100)}, "
+                f"level={r['risk_level']}, overdue={r.get('issues_overdue_count',0)}, "
+                f"urgent={r.get('issues_urgent_count',0)}"
+                for r in risks
+            ])
+            prompt = (
+                "아래 프로젝트 리스크 데이터를 분석해서 JSON 배열만 반환해줘. 설명 없이 JSON만.\n"
+                "반드시 3~5개 액션을 생성해야 해.\n"
+                "각 항목 형식: {\"project\": \"프로젝트명\", \"priority\": \"P1\"|\"P2\"|\"P3\", "
+                "\"timing\": \"IMMEDIATE\"|\"THIS WEEK\"|\"NEXT SPRINT\", "
+                "\"action\": \"구체적 액션 한 줄(한국어, ~가 필요합니다 또는 ~을 권장합니다 형태)\", "
+                "\"reason\": \"원인 한 줄(한국어, 데이터 근거 포함)\", "
+                "\"who\": \"담당자 역할\"}\n"
+                f"리스크 데이터:\n{risk_lines}\n"
+                "JSON 배열만, 마크다운 코드블록 없이, 반드시 3개 이상"
+            )
+            import re as _re
+            raw = _call_claude(prompt, max_tokens=800)
+            match = _re.search(r'\[.*\]', raw, _re.DOTALL)
+            signals = json.loads(match.group()) if match else []
+            if signals:
+                _set_ai_cache(cache_k, json.dumps(signals, ensure_ascii=False))
+                print(f"  action-signals 프리생성 완료: {pid}")
+        except Exception as e:
+            print(f"  action-signals 프리생성 실패 {pid}: {e}")
+
+    _threading.Thread(target=_bg_generate_signals, args=(project_id,), daemon=True).start()
+
     return {**data, "cached": False, "cache_age": None}
 
 
@@ -3853,7 +4582,22 @@ async def api_risk_history(project_id: str = "", weeks: int = 12):
     except (FileNotFoundError, json.JSONDecodeError):
         return {"history": []}
 
-    key = f"project_{project_id}" if project_id else "all"
+    if not project_id:
+        key = "all"
+    else:
+        all_keys = list(history.keys())
+        proj_keys = [k for k in all_keys if k.startswith("project_")]
+        direct_key = f"project_{project_id}"
+        if direct_key in history:
+            key = direct_key
+        else:
+            try:
+                dashboard = build_dashboard_data(project_id, "2020-01-01")
+                pname = dashboard.get("project_name", "")
+                name_key = f"project_{pname}"
+                key = name_key if name_key in history else "all"
+            except Exception:
+                key = "all"
     records = history.get(key, [])[-weeks:]
 
     result = []
@@ -3945,6 +4689,94 @@ async def api_update_issue(issue_id: int, request: Request):
         return {"ok": False, "error": str(e)}
 
 
+@app.post("/api/action/redmine-update")
+async def api_redmine_update(payload: dict):
+    issue_ids = payload.get("issue_ids", [])
+    field = payload.get("field", "")
+    value = payload.get("value", "")
+
+    field_map = {
+        "assignee": "assigned_to_id",
+        "due": "due_date",
+        "version": "fixed_version_id",
+        "priority": "priority_id",
+        "status": "status_id",
+    }
+    rm_field = field_map.get(field)
+    if not rm_field:
+        return {"error": "invalid field", "success": [], "failed": []}
+
+    if field == "assignee":
+        users = fetch("/users.json?limit=100").get("users", [])
+        matched = next((u for u in users if u.get("login") == value or
+                       (u.get("firstname","") + " " + u.get("lastname","")).strip() == value), None)
+        if matched:
+            value = str(matched["id"])
+
+    success, failed = [], []
+    for issue_id in issue_ids:
+        body = {"issue": {rm_field: value}}
+        url = BASE_URL.rstrip("/") + f"/issues/{issue_id}.json"
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(body).encode(),
+            headers={"X-Redmine-API-Key": API_KEY, "Content-Type": "application/json"},
+            method="PUT"
+        )
+        try:
+            with urllib.request.urlopen(req, timeout=10, context=SSL_CONTEXT) as resp:
+                success.append(issue_id)
+        except Exception:
+            failed.append(issue_id)
+
+    return {"success": success, "failed": failed}
+
+
+@app.post("/api/action/monitor")
+async def api_action_monitor(request: Request):
+    body = await request.json()
+    project_id = body.get("project_id", "")
+    # 프론트가 { project_id, config: {overdue, urgent, critical, hour} } 구조로 전송
+    cfg = body.get("config", {})
+    config = {
+        "overdue":  cfg.get("overdue", False),
+        "urgent":   cfg.get("urgent", False),
+        "critical": cfg.get("critical", False),
+        "hour":     cfg.get("hour", "9"),
+        "notify_email": cfg.get("notify_email", ""),
+    }
+
+    monitor_path = os.path.join(os.path.dirname(__file__), "monitor_config.json")
+    try:
+        with open(monitor_path, "r", encoding="utf-8") as f:
+            all_cfg = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        all_cfg = {}
+
+    all_cfg[project_id] = config
+
+    # Redmine API로 본인 이메일 자동 조회
+    email = get_current_user_email()
+    if email:
+        all_cfg[project_id]["notify_email"] = email
+
+    with open(monitor_path, "w", encoding="utf-8") as f:
+        json.dump(all_cfg, f, ensure_ascii=False, indent=2)
+
+    return {"ok": True, "notify_email": all_cfg[project_id]["notify_email"]}
+
+
+@app.get("/api/action/monitor")
+async def api_get_monitor(project_id: str = ""):
+    monitor_path = os.path.join(os.path.dirname(__file__), "monitor_config.json")
+    try:
+        with open(monitor_path, "r", encoding="utf-8") as f:
+            all_cfg = json.load(f)
+    except (FileNotFoundError, json.JSONDecodeError):
+        all_cfg = {}
+    return all_cfg.get(project_id, {})
+
+
 @app.get("/api/report/preview")
 async def api_report_preview(project_id: str = "", updated_after: str = "2026-03-01"):
     from fastapi.responses import HTMLResponse
@@ -3995,6 +4827,108 @@ async def api_ai_risk_comment(
         return {"comment": comment}
     except Exception as e:
         return {"error": str(e)}
+
+
+@app.get("/api/ai/action-signals")
+async def api_ai_action_signals(
+    project_id: str = "",
+    updated_after: str = "2026-01-01"
+):
+    cache_k = f"action-signals|{project_id}"
+    cached = _get_ai_cache(cache_k)
+    if cached:
+        parsed = json.loads(cached)
+        if parsed:
+            return {"signals": parsed}
+
+    # _cache에서 project_id 매칭되는 항목 찾기 (updated_after 무관)
+    dashboard = None
+    for k, entry in list(_cache.items()):
+        if k.split("|")[0] == project_id:
+            age = (datetime.now() - entry["fetched_at"]).total_seconds()
+            if age < CACHE_TTL_SECONDS:
+                dashboard = entry["data"]
+                break
+    if not dashboard:
+        # 직접 빌드 후 캐시 저장
+        dashboard = build_dashboard_data(project_id, DEFAULT_UPDATED_AFTER)
+        set_cache(project_id, DEFAULT_UPDATED_AFTER, dashboard)
+
+    risks = dashboard.get("project_risk", [])[:5]
+    if not risks:
+        return {"signals": []}
+
+    # 담당자 편중도 계산
+    users_data = dashboard.get("users_data", {})
+    assignee_counts = {u: len(v["issues"]) for u, v in users_data.items() if v["issues"]}
+    total_issues = sum(assignee_counts.values()) or 1
+    top_assignee = max(assignee_counts, key=assignee_counts.get) if assignee_counts else None
+    top_count = assignee_counts.get(top_assignee, 0)
+    top_pct = round(top_count / total_issues * 100)
+
+    # 전주 대비 리스크 변화
+    try:
+        import json as _json
+        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+            hist = _json.load(f)
+        proj_key = f"project_{project_id}" if project_id else "all"
+        proj_hist = hist.get(proj_key, hist.get("all", []))
+        if len(proj_hist) >= 2:
+            delta = round(proj_hist[-1]["score"] - proj_hist[-2]["score"], 1)
+            delta_str = f"+{delta}" if delta > 0 else str(delta)
+        else:
+            delta_str = "데이터 부족"
+    except:
+        delta_str = "알 수 없음"
+
+    risk_lines = "\n".join([
+        f"- {r['name']}: score={min(round(r['risk_score']*100/60),100)}, "
+        f"level={r['risk_level']}, overdue={r.get('issues_overdue_count',0)}, "
+        f"urgent={r.get('issues_urgent_count',0)}"
+        for r in risks
+    ])
+
+    context_lines = (
+        f"담당자 최대 집중도: {top_assignee if top_assignee else '없음'} "
+        f"({top_count}건/{total_issues}건, {top_pct}%)\n"
+        f"전주 대비 리스크 변화: {delta_str}점"
+    )
+
+    prompt = (
+        "아래 프로젝트 리스크 데이터를 분석해서 JSON 배열만 반환해줘. 설명 없이 JSON만.\n"
+        "반드시 3~5개 액션을 생성해야 해.\n"
+        "각 항목 형식:\n"
+        "{\"priority\": \"P1\"|\"P2\"|\"P3\", "
+        "\"timing\": \"IMMEDIATE\"|\"THIS WEEK\"|\"NEXT SPRINT\", "
+        "\"action_type\": \"REASSIGN\"|\"ESCALATE\"|\"SCHEDULE\"|\"MONITOR\", "
+        "\"action\": \"구체적 처방 한 줄(한국어, 반드시 구체적 수치나 대상 명시, '~를 추천합니다' 또는 '~를 제안합니다' 형태)\", "
+        "\"reason\": \"원인 한 줄(한국어, 데이터 근거 포함)\", "
+        "\"who\": \"담당자 역할\"}\n"
+        f"리스크 데이터:\n{risk_lines}\n"
+        f"컨텍스트:\n{context_lines}\n"
+        "우선순위 기준:\n"
+        "P1/IMMEDIATE: overdue > 0 이거나 담당자 집중도 70% 이상이거나 전주 대비 +20점 이상\n"
+        "P2/THIS WEEK: HIGH 리스크이거나 urgent > 0이거나 전주 대비 +10점 이상\n"
+        "P3/NEXT SPRINT: MEDIUM 이하, 예방 조치\n"
+        "액션 생성 순서:\n"
+        "1. 담당자 업무 편중 해소 (집중도 70% 이상이면 반드시 REASSIGN 포함)\n"
+        "2. 마감 초과 이슈 즉각 조치\n"
+        "3. 마감 임박 이슈 대응\n"
+        "4. 리스크 점수 급등 원인 분석\n"
+        "5. 다음 스프린트 예방 조치\n"
+        "JSON 배열만, 마크다운 코드블록 없이, 반드시 3개 이상"
+    )
+
+    try:
+        raw = _call_claude(prompt, max_tokens=800)
+        import re as _re
+        match = _re.search(r'\[.*\]', raw, _re.DOTALL)
+        signals = json.loads(match.group()) if match else []
+        if signals:
+            _set_ai_cache(cache_k, json.dumps(signals, ensure_ascii=False))
+        return {"signals": signals}
+    except Exception as e:
+        return {"error": str(e), "signals": []}
 
 
 @app.get("/api/ai/report-summary")
@@ -4162,6 +5096,27 @@ def warmup_cache():
         except Exception as e:
             print(f"  캐시 워밍 실패 ({label}): {e}")
     print("  캐시 워밍 전체 완료 — 첫 방문자 즉시 응답 가능")
+
+
+def _preload_all_projects():
+    import time
+    time.sleep(5)  # 서버 완전 기동 후 실행
+    try:
+        projects = get_projects()
+        for p in projects:
+            pid = str(p.get("id", ""))
+            if not pid:
+                continue
+            try:
+                data = build_dashboard_data(pid, DEFAULT_UPDATED_AFTER)
+                set_cache(pid, DEFAULT_UPDATED_AFTER, data)
+                print(f"  프리로드 완료: {pid}")
+            except Exception as e:
+                print(f"  프리로드 실패 {pid}: {e}")
+    except Exception as e:
+        print(f"  프리로드 전체 실패: {e}")
+
+threading.Thread(target=_preload_all_projects, daemon=True).start()
 
 
 if __name__ == "__main__":
