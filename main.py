@@ -14,12 +14,33 @@ import urllib.parse
 import urllib.request
 from collections import defaultdict
 from datetime import date, datetime, timedelta
-from fastapi import FastAPI, Request
-from fastapi.responses import HTMLResponse
+from fastapi import FastAPI, HTTPException, Request, Depends
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 import uvicorn
 
 # ==================== 서버 설정 ====================
 from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE
+import uuid as _uuid
+
+# ── 세션 스토어 (메모리, 베타용) ──────────────────────────────
+_sessions: dict = {}          # token → {url, key, created}
+SESSION_TTL = 86400           # 24h
+
+def _get_session(token: str) -> dict | None:
+    s = _sessions.get(token)
+    if not s:
+        return None
+    if time.time() - s["created"] > SESSION_TTL:
+        del _sessions[token]
+        return None
+    return s
+
+def _require_session(request: Request) -> dict:
+    token = request.cookies.get("vx_session") or request.headers.get("X-VX-Session")
+    s = _get_session(token or "")
+    if not s:
+        raise HTTPException(status_code=401, detail="session_expired")
+    return s
 from app.reporter import build_report_data, render_html_report, send_report_email
 from app.constants import PROGRESS_SET, RESOLVED_SET, CLOSED_SET, HOLD_SET, DEPT_NORMALIZE, dept_name, short_name
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -339,11 +360,12 @@ def get_current_user_email():
     except:
         return ""
 
-def fetch(path, params=None, retries=2):
-    url = BASE_URL.rstrip("/") + path
+def fetch(path, params=None, retries=2, redmine_url=None, api_key=None):
+    _url = (redmine_url or BASE_URL).rstrip("/") + path
+    _key = api_key or API_KEY
     if params:
-        url += "?" + urllib.parse.urlencode(params)
-    req = urllib.request.Request(url, headers={"X-Redmine-API-Key": API_KEY})
+        _url += "?" + urllib.parse.urlencode(params)
+    req = urllib.request.Request(_url, headers={"X-Redmine-API-Key": _key})
     for attempt in range(retries):
         try:
             with urllib.request.urlopen(req, timeout=30, context=SSL_CONTEXT) as resp:
@@ -357,14 +379,14 @@ def fetch(path, params=None, retries=2):
     return {}
 
 
-def fetch_all(path, key, base_params=None):
+def fetch_all(path, key, base_params=None, redmine_url=None, api_key=None):
     """첫 페이지로 total_count 파악 후 나머지 페이지를 병렬로 fetch"""
     from concurrent.futures import ThreadPoolExecutor, as_completed
     limit = 100
 
     # 1) 첫 페이지 fetch → total_count 확인
     first_params = {**(base_params or {}), "limit": limit, "offset": 0}
-    first_data = fetch(path, first_params)
+    first_data = fetch(path, first_params, redmine_url=redmine_url, api_key=api_key)
     items = list(first_data.get(key, []))
     total = first_data.get("total_count", len(items))
 
@@ -377,7 +399,7 @@ def fetch_all(path, key, base_params=None):
 
     def fetch_page(offset):
         params = {**(base_params or {}), "limit": limit, "offset": offset}
-        data = fetch(path, params)
+        data = fetch(path, params, redmine_url=redmine_url, api_key=api_key)
         return data.get(key, [])
 
     # 3) 병렬 실행 (max_workers=5)
@@ -408,22 +430,22 @@ def days_diff(due_date_str):
         return None
 
 
-def get_projects():
-    data = fetch("/projects.json", {"limit": 100})
+def get_projects(redmine_url=None, api_key=None):
+    data = fetch("/projects.json", {"limit": 100}, redmine_url=redmine_url, api_key=api_key)
     return data.get("projects", [])
 
 
-def get_issues(project_id="", updated_after="2026-03-01"):
+def get_issues(project_id="", updated_after="2026-03-01", redmine_url=None, api_key=None):
     params = {"status_id": "*"}
     if project_id:
         params["project_id"] = project_id
     if updated_after:
         params["updated_on"] = f">={updated_after}T00:00:00Z"
-    return fetch_all("/issues.json", "issues", params)
+    return fetch_all("/issues.json", "issues", params, redmine_url=redmine_url, api_key=api_key)
 
 
-def build_dashboard_data(project_id="", updated_after="2026-03-01"):
-    issues = get_issues(project_id, updated_after)
+def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=None, api_key=None):
+    issues = get_issues(project_id, updated_after, redmine_url=redmine_url, api_key=api_key)
     users_data = defaultdict(lambda: {"issues": [], "projects": set()})
     for iss in issues:
         if "assigned_to" not in iss:
@@ -602,7 +624,7 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01"):
     }
 
 
-def get_groups(project_id=""):
+def get_groups(project_id="", redmine_url=None, api_key=None):
     """
     프로젝트 멤버십 기반 그룹 목록 + 8주 오버듀 역산
     - 담당자명 접두사(기획_, 서버_ 등)로 그룹 매핑
@@ -614,7 +636,7 @@ def get_groups(project_id=""):
         from datetime import date, timedelta
 
         # 1. 멤버십에서 그룹 목록 추출
-        members = fetch(f"/projects/{project_id}/memberships.json").get("memberships", [])
+        members = fetch(f"/projects/{project_id}/memberships.json", redmine_url=redmine_url, api_key=api_key).get("memberships", [])
         group_map = {}  # group_name -> {id, name, user_count}
         # 1차: 그룹 엔트리로 그룹 목록 확보
         for m in members:
@@ -700,39 +722,39 @@ def get_groups(project_id=""):
         return []
 
 
-def get_versions(project_id=""):
+def get_versions(project_id="", redmine_url=None, api_key=None):
     if not project_id:
-        projects = get_projects()
+        projects = get_projects(redmine_url=redmine_url, api_key=api_key)
         versions = []
         for p in projects:
-            data = fetch(f"/projects/{p['identifier']}/versions.json")
+            data = fetch(f"/projects/{p['identifier']}/versions.json", redmine_url=redmine_url, api_key=api_key)
             for v in data.get("versions", []):
                 v["project_name"] = p["name"]
                 versions.append(v)
         return versions
     else:
-        data = fetch(f"/projects/{project_id}/versions.json")
+        data = fetch(f"/projects/{project_id}/versions.json", redmine_url=redmine_url, api_key=api_key)
         versions = data.get("versions", [])
         for v in versions:
             v["project_name"] = project_id
         return versions
 
 
-def get_version_issues(version_id):
+def get_version_issues(version_id, redmine_url=None, api_key=None):
     return fetch_all("/issues.json", "issues", {
         "status_id": "*",
         "fixed_version_id": version_id,
-    })
+    }, redmine_url=redmine_url, api_key=api_key)
 
 
-def build_version_data(project_id=""):
+def build_version_data(project_id="", redmine_url=None, api_key=None):
     from concurrent.futures import ThreadPoolExecutor, as_completed
-    versions = get_versions(project_id)
+    versions = get_versions(project_id, redmine_url=redmine_url, api_key=api_key)
     today_str = date.today().strftime("%Y-%m-%d")
     active_versions = [v for v in versions if v.get("status") != "closed"]
 
     def fetch_version(v):
-        issues_raw = get_version_issues(v["id"])
+        issues_raw = get_version_issues(v["id"], redmine_url=redmine_url, api_key=api_key)
         issues = []
         for iss in issues_raw:
             assignee = iss.get("assigned_to", {}).get("name", "") if "assigned_to" in iss else ""
@@ -805,25 +827,29 @@ def build_version_data(project_id=""):
 # ==================== HTML PAGE ====================
 
 @app.get("/", response_class=HTMLResponse)
-async def root():
+async def root(request: Request):
     from config import DEFAULT_UPDATED_AFTER, DEFAULT_PROJECT_ID
+    token = request.cookies.get("vx_session")
+    s = _get_session(token or "")
+    if not s:
+        return RedirectResponse(url="/connect")
     template_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
     with open(template_path, "r", encoding="utf-8") as f:
         html = f.read()
-    html = html.replace("__REDMINE_BASE_URL__", BASE_URL.rstrip("/"))
-    html = html.replace("__REDMINE_API_KEY__", API_KEY or "")
+    html = html.replace("__REDMINE_BASE_URL__", s["url"])
+    html = html.replace("__REDMINE_API_KEY__", s["key"])
     html = html.replace("__DEFAULT_UPDATED_AFTER__", DEFAULT_UPDATED_AFTER)
     html = html.replace("__DEFAULT_PROJECT_ID__", DEFAULT_PROJECT_ID or "")
     return HTMLResponse(content=html)
 
 @app.get("/api/projects")
-async def api_projects():
+async def api_projects(request: Request, s: dict = Depends(_require_session)):
     projects = get_projects()
     return [{"identifier": p["identifier"], "name": p["name"]} for p in projects]
 
 
 @app.get("/api/data")
-async def api_data(project_id: str = "", updated_after: str = "2026-03-01", force: bool = False):
+async def api_data(request: Request, project_id: str = "", updated_after: str = "2026-03-01", force: bool = False, s: dict = Depends(_require_session)):
     key = cache_key(project_id, updated_after)
     _auto_refresh_params[key] = {"project_id": project_id, "updated_after": updated_after}
     if not force:
@@ -833,7 +859,7 @@ async def api_data(project_id: str = "", updated_after: str = "2026-03-01", forc
             print(f"  캐시 히트: {key} ({age})")
             return {**cached, "cached": True, "cache_age": age}
     print(f"  Redmine fetch: {key}")
-    data = build_dashboard_data(project_id, updated_after)
+    data = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
     set_cache(project_id, updated_after, data)
 
     import threading as _threading
@@ -878,15 +904,15 @@ async def api_data(project_id: str = "", updated_after: str = "2026-03-01", forc
 
 
 @app.get("/api/groups")
-async def api_groups(project_id: str = ""):
+async def api_groups(request: Request, project_id: str = "", s: dict = Depends(_require_session)):
     if not project_id:
         return {"groups": []}
-    groups = get_groups(project_id)
+    groups = get_groups(project_id, redmine_url=s["url"], api_key=s["key"])
     return {"groups": groups}
 
 
 @app.get("/api/versions")
-async def api_versions(project_id: str = "", force: bool = False):
+async def api_versions(request: Request, project_id: str = "", force: bool = False, s: dict = Depends(_require_session)):
     vkey = f"versions|{project_id}"
     if not force:
         entry = _cache.get(vkey)
@@ -894,20 +920,20 @@ async def api_versions(project_id: str = "", force: bool = False):
             age = (datetime.now() - entry["fetched_at"]).total_seconds()
             if age < CACHE_TTL_SECONDS:
                 return entry["data"]
-    data = build_version_data(project_id)
+    data = build_version_data(project_id, redmine_url=s["url"], api_key=s["key"])
     if data:  # 빈 결과는 캐시하지 않음
         _cache[vkey] = {"data": data, "fetched_at": datetime.now()}
     return data
 
 
 @app.get("/api/cache/clear")
-async def clear_cache():
+async def clear_cache(s: dict = Depends(_require_session)):
     _cache.clear()
     return {"ok": True, "message": "캐시 초기화 완료"}
 
 
 @app.get("/api/risk-history")
-async def api_risk_history(project_id: str = "", weeks: int = 12):
+async def api_risk_history(project_id: str = "", weeks: int = 12, s: dict = Depends(_require_session)):
     """
     저장된 스냅샷에서 최근 N주 반환.
     스냅샷 없으면 빈 배열 반환 (역산 제거).
@@ -957,10 +983,45 @@ async def visitors(request: Request):
     return {"count": len(active)}
 
 
+@app.get("/connect", response_class=HTMLResponse)
+async def connect_page(request: Request):
+    token = request.cookies.get("vx_session")
+    if _get_session(token or ""):
+        return RedirectResponse(url="/")
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "connect.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        html = f.read()
+    return HTMLResponse(content=html)
+
+@app.post("/api/connect")
+async def api_connect(request: Request):
+    """베타 온보딩: Redmine URL + API Key 검증 후 세션 발급"""
+    body = await request.json()
+    rm_url = (body.get("url") or "").strip().rstrip("/")
+    rm_key = (body.get("api_key") or "").strip()
+    if not rm_url or not rm_key:
+        raise HTTPException(status_code=400, detail="url과 api_key 필수")
+
+    # Redmine 연결 검증
+    try:
+        test_url = rm_url + "/users/current.json"
+        req = urllib.request.Request(test_url, headers={"X-Redmine-API-Key": rm_key})
+        with urllib.request.urlopen(req, timeout=10, context=SSL_CONTEXT) as resp:
+            user_data = json.loads(resp.read().decode())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Redmine 연결 실패: {str(e)}")
+
+    token = str(_uuid.uuid4())
+    _sessions[token] = {"url": rm_url, "key": rm_key, "created": time.time()}
+    response = JSONResponse({"ok": True, "user": user_data.get("user", {}).get("login", "")})
+    response.set_cookie("vx_session", token, httponly=True, samesite="lax", max_age=SESSION_TTL)
+    return response
+
 @app.get("/api/issue/{issue_id}")
-def api_get_issue(issue_id: int):
+def api_get_issue(issue_id: int, request: Request):
     from concurrent.futures import ThreadPoolExecutor
-    issue_data = fetch(f"/issues/{issue_id}.json", {"include": "journals"})
+    s = _require_session(request)
+    issue_data = fetch(f"/issues/{issue_id}.json", {"include": "journals"}, redmine_url=s["url"], api_key=s["key"])
     issue = issue_data.get("issue", {})
     pid = issue.get("project", {}).get("identifier") or str(issue.get("project", {}).get("id", ""))
 
@@ -995,7 +1056,7 @@ def api_get_issue(issue_id: int):
 
 
 @app.put("/api/issue/{issue_id}")
-async def api_update_issue(issue_id: int, request: Request):
+async def api_update_issue(issue_id: int, request: Request, s: dict = Depends(_require_session)):
     body = await request.json()
     payload = {"issue": {}}
     if "status_id"        in body: payload["issue"]["status_id"]         = body["status_id"]
@@ -1005,11 +1066,11 @@ async def api_update_issue(issue_id: int, request: Request):
     if "notes"            in body and body["notes"].strip():
         payload["issue"]["notes"] = body["notes"]
 
-    url = BASE_URL.rstrip("/") + f"/issues/{issue_id}.json"
+    url = s["url"].rstrip("/") + f"/issues/{issue_id}.json"
     req = urllib.request.Request(
         url,
         data=json.dumps(payload).encode(),
-        headers={"X-Redmine-API-Key": API_KEY, "Content-Type": "application/json"},
+        headers={"X-Redmine-API-Key": s["key"], "Content-Type": "application/json"},
         method="PUT"
     )
     try:
@@ -1020,7 +1081,7 @@ async def api_update_issue(issue_id: int, request: Request):
 
 
 @app.post("/api/action/redmine-update")
-async def api_redmine_update(payload: dict):
+async def api_redmine_update(payload: dict, request: Request, s: dict = Depends(_require_session)):
     issue_ids = payload.get("issue_ids", [])
     field = payload.get("field", "")
     value = payload.get("value", "")
@@ -1037,7 +1098,7 @@ async def api_redmine_update(payload: dict):
         return {"error": "invalid field", "success": [], "failed": []}
 
     if field == "assignee":
-        users = fetch("/users.json?limit=100").get("users", [])
+        users = fetch("/users.json?limit=100", redmine_url=s["url"], api_key=s["key"]).get("users", [])
         matched = next((u for u in users if u.get("login") == value or
                        (u.get("firstname","") + " " + u.get("lastname","")).strip() == value), None)
         if matched:
@@ -1046,11 +1107,11 @@ async def api_redmine_update(payload: dict):
     success, failed = [], []
     for issue_id in issue_ids:
         body = {"issue": {rm_field: value}}
-        url = BASE_URL.rstrip("/") + f"/issues/{issue_id}.json"
+        url = s["url"].rstrip("/") + f"/issues/{issue_id}.json"
         req = urllib.request.Request(
             url,
             data=json.dumps(body).encode(),
-            headers={"X-Redmine-API-Key": API_KEY, "Content-Type": "application/json"},
+            headers={"X-Redmine-API-Key": s["key"], "Content-Type": "application/json"},
             method="PUT"
         )
         try:
@@ -1063,7 +1124,7 @@ async def api_redmine_update(payload: dict):
 
 
 @app.post("/api/action/monitor")
-async def api_action_monitor(request: Request):
+async def api_action_monitor(request: Request, s: dict = Depends(_require_session)):
     body = await request.json()
     project_id = body.get("project_id", "")
     # 프론트가 { project_id, config: {overdue, urgent, critical, hour} } 구조로 전송
@@ -1097,7 +1158,7 @@ async def api_action_monitor(request: Request):
 
 
 @app.get("/api/action/monitor")
-async def api_get_monitor(project_id: str = ""):
+async def api_get_monitor(project_id: str = "", s: dict = Depends(_require_session)):
     monitor_path = os.path.join(os.path.dirname(__file__), "monitor_config.json")
     try:
         with open(monitor_path, "r", encoding="utf-8") as f:
@@ -1108,7 +1169,7 @@ async def api_get_monitor(project_id: str = ""):
 
 
 @app.get("/api/report/preview")
-async def api_report_preview(project_id: str = "", updated_after: str = "2026-03-01"):
+async def api_report_preview(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
     from fastapi.responses import HTMLResponse
     dashboard = get_cache(project_id, updated_after)
     if not dashboard:
@@ -1119,7 +1180,7 @@ async def api_report_preview(project_id: str = "", updated_after: str = "2026-03
 
 
 @app.post("/api/report/send")
-async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01"):
+async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
     dashboard = get_cache(project_id, updated_after)
     if not dashboard:
         dashboard = build_dashboard_data(project_id, updated_after)
@@ -1132,7 +1193,7 @@ async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01
 # ==================== AI 엔드포인트 ====================
 
 @app.get("/api/ai/risk-comment")
-async def api_ai_risk_comment(
+async def api_ai_risk_comment(s: dict = Depends(_require_session),
     name: str = "", score: float = 0,
     overdue: int = 0, urgent: int = 0, open_issues: int = 0,
     top_issues: str = ""
@@ -1160,7 +1221,7 @@ async def api_ai_risk_comment(
 
 
 @app.get("/api/ai/action-signals")
-async def api_ai_action_signals(
+async def api_ai_action_signals(s: dict = Depends(_require_session),
     project_id: str = "",
     updated_after: str = "2026-01-01",
     force: bool = False
@@ -1269,7 +1330,7 @@ async def api_ai_action_signals(
 
 
 @app.get("/api/ai/report-summary")
-async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026-03-01"):
+async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
     cache_k = f"report-summary|{project_id}|{updated_after}"
     cached = _get_ai_cache(cache_k)
     if cached:
@@ -1360,7 +1421,7 @@ async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026
 
 
 @app.get("/api/ai/delay-prediction")
-async def api_ai_delay_prediction(
+async def api_ai_delay_prediction(s: dict = Depends(_require_session),
     project_id: str = "", updated_after: str = "2026-03-01", project_name: str = ""
 ):
     cache_k = f"delay-pred|{project_id}|{project_name}"

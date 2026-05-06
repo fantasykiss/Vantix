@@ -141,6 +141,25 @@ body {
   font-size: 18px; font-weight: 600;
   letter-spacing: 0.02em; color: var(--text); line-height: 1;
 }
+.navbar-icon-btn { position: relative; padding: 6px 8px !important; }
+.navbar-icon-btn::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  background: #111111;
+  color: #ffffff;
+  padding: 3px 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 999;
+}
+.navbar-icon-btn:hover::after { opacity: 1; }
 .navbar-tagline {
   font-size: 9px; letter-spacing: 0.2em;
   text-transform: uppercase; color: var(--red); margin-top: 4px; font-weight: 400;
@@ -987,20 +1006,17 @@ body {
   </div>
 
   <div class="navbar-actions">
-    <button class="btn btn-ghost" onclick="forceRefresh()" style="display:inline-flex;align-items:center;gap:5px;" title="강제 갱신">
-      <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1 0 1-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 2v3h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <span class="btn-text-mobile">강제 갱신</span>
+    <button class="btn btn-ghost navbar-icon-btn" onclick="forceRefresh()" data-label-ko="강제 갱신" data-label-en="Force Refresh" title="강제 갱신">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1 0 1-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 2v3h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-    <button class="btn btn-ghost" onclick="loadData()" style="display:inline-flex;align-items:center;gap:5px;" title="새로 고침">
-      <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 2a5 5 0 1 1 0 10A5 5 0 0 1 7 2z" stroke="currentColor" stroke-width="1.1"/><path d="M7 5v2.5l1.5 1.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
-      <span class="btn-text-mobile">새로 고침</span>
+    <button class="btn btn-ghost navbar-icon-btn" onclick="loadData()" data-label-ko="새로 고침" data-label-en="Refresh" title="새로 고침">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2a5 5 0 1 1 0 10A5 5 0 0 1 7 2z" stroke="currentColor" stroke-width="1.1"/><path d="M7 5v2.5l1.5 1.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
     </button>
     <div class="navbar-divider"></div>
-    <button class="btn btn-primary-outline" onclick="openReport()" style="display:inline-flex;align-items:center;gap:5px;">
-      <svg width="12" height="12" viewBox="0 0 14 14" fill="none"><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
-      <span class="btn-text-mobile">리포트</span>
+    <button class="btn btn-primary-outline navbar-icon-btn" onclick="openReport()" data-label-ko="리포트" data-label-en="Report" title="리포트">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
     </button>
-    <button class="btn-icon" onclick="openSettingsModal()" title="설정">
+    <button class="btn-icon navbar-icon-btn" onclick="openSettingsModal()" title="설정">
       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
         <circle cx="12" cy="12" r="3"/>
         <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
@@ -2498,9 +2514,7 @@ function toggleAiPanel() {
   var opening = !p.classList.contains('open');
   p.classList.toggle('open');
   if (opening) {
-    var list = document.getElementById('ai-cmd-list');
-    var hasData = list && list.querySelector('.ai-signal-item, div[style*="border-bottom"]');
-    if (!hasData) loadActionSignals();
+    loadActionSignals();
     setTimeout(function() {
       document.addEventListener('click', _aiPanelOutsideClick);
     }, 0);

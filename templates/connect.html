@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>VANTIX — Connect Redmine</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;700&display=swap" rel="stylesheet">
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: #fbf9f8; font-family: 'DM Mono', monospace; }
+.page { min-height: 100vh; display: flex; flex-direction: column; }
+.topbar { background: #fbf9f8; border-bottom: 1px solid #e4e2e2; padding: 0 40px; height: 52px; display: flex; align-items: center; justify-content: space-between; flex-shrink: 0; }
+.logo { font-size: 13px; letter-spacing: 0.18em; color: #111; font-weight: 700; }
+.logo-sub { font-size: 8px; letter-spacing: 0.2em; color: #999; margin-top: 1px; }
+.topbar-right { font-size: 9px; letter-spacing: 0.12em; color: #aaa; }
+.body { flex: 1; display: flex; }
+.left-panel { width: 240px; background: #f5f3f3; border-right: 1px solid #e4e2e2; padding: 40px 32px; display: flex; flex-direction: column; justify-content: space-between; flex-shrink: 0; }
+.left-step-label { font-size: 8px; letter-spacing: 0.2em; color: #aaa; margin-bottom: 20px; }
+.left-step { display: flex; align-items: flex-start; gap: 12px; margin-bottom: 20px; }
+.step-dot { width: 18px; height: 18px; background: #111; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
+.step-dot.empty { background: transparent; border: 1px solid #ccc; }
+.step-dot span { font-size: 8px; color: #fff; }
+.step-dot.empty span { color: #ccc; }
+.step-name { font-size: 11px; color: #111; letter-spacing: 0.04em; margin-bottom: 2px; }
+.step-name.muted { color: #bbb; }
+.step-desc { font-size: 9px; color: #999; line-height: 1.5; }
+.left-bottom { font-size: 9px; color: #bbb; letter-spacing: 0.06em; line-height: 1.8; }
+.main { flex: 1; padding: 48px 56px; max-width: 560px; }
+.main-label { font-size: 9px; letter-spacing: 0.2em; color: #aaa; margin-bottom: 8px; }
+.main-title { font-size: 28px; letter-spacing: -0.02em; color: #111; font-weight: 700; margin-bottom: 6px; line-height: 1.1; }
+.main-sub { font-size: 11px; color: #888; letter-spacing: 0.04em; margin-bottom: 36px; line-height: 1.6; }
+.field-group { margin-bottom: 24px; }
+.field-label { font-size: 9px; letter-spacing: 0.15em; color: #555; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+.field-hint { font-size: 9px; color: #B40023; letter-spacing: 0.06em; cursor: pointer; text-decoration: underline; }
+.field-input { width: 100%; background: transparent; border: none; border-bottom: 1.5px solid #ccc; padding: 8px 0; font-size: 13px; font-family: 'DM Mono', monospace; color: #111; outline: none; letter-spacing: 0.02em; transition: border-color 0.15s; }
+.field-input:focus { border-bottom-color: #111; }
+.field-input::placeholder { color: #ccc; }
+.field-example { font-size: 9px; color: #bbb; margin-top: 5px; letter-spacing: 0.04em; }
+.connect-btn { background: #111; color: #fff; border: none; padding: 14px 32px; font-size: 11px; letter-spacing: 0.15em; font-family: 'DM Mono', monospace; cursor: pointer; width: 100%; margin-top: 8px; }
+.connect-btn:hover { background: #1b1b1b; }
+.connect-btn:disabled { background: #888; cursor: not-allowed; }
+.error-msg { font-size: 10px; color: #B40023; margin-top: 10px; letter-spacing: 0.04em; display: none; padding: 8px 12px; background: #fdecea; }
+.divider { border: none; border-top: 0.5px solid #e4e2e2; margin: 28px 0; }
+.guide-row { display: flex; gap: 24px; }
+.guide-item { flex: 1; }
+.guide-num { font-size: 18px; color: #e4e2e2; font-weight: 700; margin-bottom: 4px; }
+.guide-text { font-size: 10px; color: #999; line-height: 1.6; }
+.status-bar { background: #111; color: #fff; padding: 8px 40px; font-size: 9px; letter-spacing: 0.12em; display: flex; justify-content: space-between; flex-shrink: 0; }
+.status-dot { display: inline-block; width: 6px; height: 6px; background: #555; margin-right: 6px; vertical-align: middle; }
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="topbar">
+    <div>
+      <div class="logo">VANTIX</div>
+      <div class="logo-sub">PRECISION AUTHORITY</div>
+    </div>
+    <div class="topbar-right">BETA V0.9 — CONNECT YOUR REDMINE</div>
+  </div>
+  <div class="body">
+    <div class="left-panel">
+      <div>
+        <div class="left-step-label">SETUP PROCESS</div>
+        <div class="left-step">
+          <div class="step-dot"><span>1</span></div>
+          <div>
+            <div class="step-name">CONNECT</div>
+            <div class="step-desc">Redmine URL + API Key 입력</div>
+          </div>
+        </div>
+        <div class="left-step">
+          <div class="step-dot empty"><span>2</span></div>
+          <div>
+            <div class="step-name muted">DASHBOARD</div>
+            <div class="step-desc">프로젝트 리스크 분석 시작</div>
+          </div>
+        </div>
+      </div>
+      <div class="left-bottom">
+        VANTIX BETA<br>
+        REDMINE RISK INTELLIGENCE<br>
+        © 2026 VANTIX
+      </div>
+    </div>
+    <div class="main">
+      <div class="main-label">STEP 01 / REDMINE CONNECTION</div>
+      <div class="main-title">CONNECT<br>REDMINE</div>
+      <div class="main-sub">Redmine 인스턴스 URL과 API Key를 입력하세요.<br>데이터는 서버에 저장되지 않습니다.</div>
+      <div class="field-group">
+        <div class="field-label">REDMINE URL</div>
+        <input id="inp-url" class="field-input" type="text" placeholder="https://redmine.yourcompany.com" autocomplete="off" />
+        <div class="field-example">예시: http://localhost:3000 또는 https://pm.studio.com</div>
+      </div>
+      <div class="field-group">
+        <div class="field-label">
+          API ACCESS KEY
+          <span class="field-hint" onclick="document.getElementById('guide-section').scrollIntoView({behavior:'smooth'})">발급 방법 →</span>
+        </div>
+        <input id="inp-key" class="field-input" type="password" placeholder="API Key 입력" autocomplete="off" />
+        <div class="field-example">내 계정 → API 액세스 키 → 표시</div>
+      </div>
+      <button class="connect-btn" id="connect-btn" onclick="doConnect()">CONNECT TO REDMINE</button>
+      <div class="error-msg" id="error-msg"></div>
+      <hr class="divider">
+      <div class="guide-row" id="guide-section">
+        <div class="guide-item">
+          <div class="guide-num">01</div>
+          <div class="guide-text">Redmine 우측 상단 프로필 → 내 계정 클릭</div>
+        </div>
+        <div class="guide-item">
+          <div class="guide-num">02</div>
+          <div class="guide-text">우측 하단 API 액세스 키 → 표시 클릭</div>
+        </div>
+        <div class="guide-item">
+          <div class="guide-num">03</div>
+          <div class="guide-text">키 복사 후 위 입력란에 붙여넣기</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="status-bar">
+    <span><span class="status-dot"></span>SYSTEM ONLINE — BETA ACCESS</span>
+    <span>VANTIX CORE V0.9</span>
+  </div>
+</div>
+<script>
+async function doConnect() {
+  const url = document.getElementById('inp-url').value.trim();
+  const key = document.getElementById('inp-key').value.trim();
+  const btn = document.getElementById('connect-btn');
+  const err = document.getElementById('error-msg');
+  if (!url || !key) {
+    showError('URL과 API Key를 모두 입력해주세요.');
+    return;
+  }
+  btn.disabled = true;
+  btn.textContent = 'CONNECTING...';
+  err.style.display = 'none';
+  try {
+    const res = await fetch('/api/connect', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({url, api_key: key})
+    });
+    const data = await res.json();
+    if (res.ok && data.ok) {
+      btn.textContent = 'CONNECTED — LOADING DASHBOARD...';
+      window.location.href = '/';
+    } else {
+      showError(data.detail || '연결에 실패했습니다. URL과 API Key를 확인해주세요.');
+      btn.disabled = false;
+      btn.textContent = 'CONNECT TO REDMINE';
+    }
+  } catch (e) {
+    showError('서버 연결 오류가 발생했습니다.');
+    btn.disabled = false;
+    btn.textContent = 'CONNECT TO REDMINE';
+  }
+}
+function showError(msg) {
+  const err = document.getElementById('error-msg');
+  err.textContent = msg;
+  err.style.display = 'block';
+}
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter') doConnect();
+});
+</script>
+</body>
+</html>
