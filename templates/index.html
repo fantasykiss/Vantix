@@ -2065,13 +2065,7 @@ function closeModalOnOverlay(e){if(e.target===document.getElementById('issueModa
 // ============================================================
 function openSettingsModal(){document.getElementById('settingsModal').classList.add('open');}
 function closeSettingsModal(e){if(e&&e.target===document.getElementById('settingsModal'))return;document.getElementById('settingsModal').classList.remove('open');}
-function saveSettings(){
-  var url=document.getElementById('settingsUrl').value.trim();
-  var key=document.getElementById('settingsApiKey').value.trim();
-  if(!url||!key){alert('URL과 API Key를 모두 입력해주세요.');return;}
-  localStorage.setItem('redmine_url',url);localStorage.setItem('redmine_apikey',key);
-  REDMINE_BASE=url;closeSettingsModal();loadData();
-}
+
 
 // ============================================================
 // Risk Chart
