@@ -24,7 +24,26 @@ import uuid as _uuid
 
 # ── 세션 스토어 (메모리, 베타용) ──────────────────────────────
 _sessions: dict = {}          # token → {url, key, created}
-SESSION_TTL = 86400           # 24h
+SESSION_TTL = 86400 * 30      # 30일
+_SESSION_FILE = os.path.join(os.path.dirname(__file__), "sessions.json")
+
+def _load_sessions():
+    global _sessions
+    try:
+        if os.path.exists(_SESSION_FILE):
+            with open(_SESSION_FILE, "r") as f:
+                data = json.load(f)
+            now = time.time()
+            _sessions = {k: v for k, v in data.items() if now - v["created"] < SESSION_TTL}
+    except Exception:
+        _sessions = {}
+
+def _save_sessions():
+    try:
+        with open(_SESSION_FILE, "w") as f:
+            json.dump(_sessions, f)
+    except Exception:
+        pass
 
 def _get_session(token: str) -> dict | None:
     s = _sessions.get(token)
@@ -32,6 +51,7 @@ def _get_session(token: str) -> dict | None:
         return None
     if time.time() - s["created"] > SESSION_TTL:
         del _sessions[token]
+        _save_sessions()
         return None
     return s
 
@@ -41,6 +61,8 @@ def _require_session(request: Request) -> dict:
     if not s:
         raise HTTPException(status_code=401, detail="session_expired")
     return s
+
+_load_sessions()
 from app.reporter import build_report_data, render_html_report, send_report_email
 from app.constants import PROGRESS_SET, RESOLVED_SET, CLOSED_SET, HOLD_SET, DEPT_NORMALIZE, dept_name, short_name
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -290,30 +312,25 @@ def save_risk_snapshot():
     history["all"] = history["all"][-52:]  # 최대 52주 보관
 
     # 캐시 키에서 project_id → project_name 역매핑 구성
+    # 캐시 키(identifier)→project_name 역매핑 구성
     pid_to_name = {}
     for cache_key, entry in _cache.items():
-        pid_part = cache_key.split("|")[0]
-        d = entry.get("data", {})
-        if isinstance(d, list):
+        identifier = cache_key.split("|")[0]
+        if not identifier:
             continue
-        pr_list = d.get("project_risk", [])
-        for pr in pr_list:
-            pname = pr.get("name", "")
-            if pname and pid_part:
-                pid_to_name.setdefault(pname, pid_part)
+        d = entry.get("data", {})
+        if isinstance(d, dict):
+            pname = d.get("project_name", "")
+            if pname:
+                pid_to_name[pname] = identifier
 
-    # 프로젝트별 스냅샷 (키: project_{숫자ID})
+    # 프로젝트별 스냅샷 (키: project_{identifier})
     for p in projects:
         pname = p.get("name", "")
         if not pname:
             continue
-        pid = pid_to_name.get(pname, "")
-        key = f"project_{pid}" if pid else f"project_{pname}"
-
-        # 기존 이름 기반 키 마이그레이션
-        old_key = f"project_{pname}"
-        if key != old_key and old_key in history and key not in history:
-            history[key] = history.pop(old_key)
+        identifier = pid_to_name.get(pname, pname)
+        key = f"project_{identifier}"
 
         history.setdefault(key, [])
         score = round(p["risk_score"], 1)
@@ -953,13 +970,18 @@ async def api_risk_history(project_id: str = "", weeks: int = 12, s: dict = Depe
         if direct_key in history:
             key = direct_key
         else:
-            try:
-                dashboard = build_dashboard_data(project_id, "2020-01-01")
-                pname = dashboard.get("project_name", "")
-                name_key = f"project_{pname}"
-                key = name_key if name_key in history else "all"
-            except Exception:
-                key = "all"
+            # identifier 기반 부분 매칭 시도 (예: nd_project → project_nd_project)
+            matched = [k for k in history if project_id in k]
+            if matched:
+                key = matched[0]
+            else:
+                try:
+                    dashboard = build_dashboard_data(project_id, "2020-01-01")
+                    pname = dashboard.get("project_name", "")
+                    name_key = f"project_{pname}"
+                    key = name_key if name_key in history else "all"
+                except Exception:
+                    key = "all"
     records = history.get(key, [])[-weeks:]
 
     result = []
@@ -1013,9 +1035,43 @@ async def api_connect(request: Request):
 
     token = str(_uuid.uuid4())
     _sessions[token] = {"url": rm_url, "key": rm_key, "created": time.time()}
+    _save_sessions()
     response = JSONResponse({"ok": True, "user": user_data.get("user", {}).get("login", "")})
     response.set_cookie("vx_session", token, httponly=True, samesite="lax", max_age=SESSION_TTL)
     return response
+
+@app.post("/api/disconnect")
+async def api_disconnect(request: Request):
+    """세션 종료 + 쿠키 만료"""
+    token = request.cookies.get("vx_session")
+    if token and token in _sessions:
+        del _sessions[token]
+        _save_sessions()
+    response = JSONResponse({"ok": True})
+    response.delete_cookie("vx_session")
+    return response
+
+@app.post("/api/update-connection")
+async def api_update_connection(request: Request):
+    """설정에서 연결 정보 변경 — 기존 세션 토큰 재사용"""
+    token = request.cookies.get("vx_session")
+    if not token or not _get_session(token):
+        raise HTTPException(status_code=401, detail="session_expired")
+    body = await request.json()
+    rm_url = (body.get("url") or "").strip().rstrip("/")
+    rm_key = (body.get("api_key") or "").strip()
+    if not rm_url or not rm_key:
+        raise HTTPException(status_code=400, detail="url과 api_key 필수")
+    try:
+        test_url = rm_url + "/users/current.json"
+        req = urllib.request.Request(test_url, headers={"X-Redmine-API-Key": rm_key})
+        with urllib.request.urlopen(req, timeout=10, context=SSL_CONTEXT) as resp:
+            user_data = json.loads(resp.read().decode())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Redmine 연결 실패: {str(e)}")
+    _sessions[token] = {"url": rm_url, "key": rm_key, "created": time.time()}
+    _save_sessions()
+    return JSONResponse({"ok": True, "user": user_data.get("user", {}).get("login", "")})
 
 @app.get("/api/issue/{issue_id}")
 def api_get_issue(issue_id: int, request: Request):

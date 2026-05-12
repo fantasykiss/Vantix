@@ -6,3 +6,4 @@ main_backup_*.py
 .claude/
 아트작업/
 risk_history.json
+sessions.json

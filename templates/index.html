@@ -62,6 +62,7 @@ body {
   min-height: 100vh;
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -929,6 +930,8 @@ body {
   font-size: 9px;
   letter-spacing: .1em;
   writing-mode: vertical-rl;
+  max-width: 100vw;
+  box-sizing: border-box;
 }
 @media (min-width: 1400px) {
   #ai-cmd-panel { width: 360px; }
@@ -1319,16 +1322,15 @@ body {
       </div>
     </div>
     <div class="settings-footer">
-      <div style="font-size:11px;color:#999;line-height:1.8;margin-bottom:14px;padding:10px 12px;background:#f7f7f7;border-left:2px solid #ddd;">
-        💡 API 키 확인 →<br>Redmine 접속 › <b>내 계정</b> › 우측 하단 <b>API 액세스 키</b> › <b>표시</b> 클릭
+      <div style="height:56px;display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:0 14px;background:#f7f7f7;border-left:2px solid #ddd;">
+        <span style="font-size:13px;">💡</span>
+        <span style="font-size:11px;color:#999;line-height:1.5;">API 키 확인 → 내 계정 › 우측 하단 <b style="color:#666;">API 액세스 키</b> › 표시</span>
       </div>
-      <button class="btn btn-black" onclick="saveSettings()" style="width:100%;justify-content:center;">SAVE</button>
-      <div style="margin-top:12px;background:#0047A0;padding:10px 14px;">
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:4px;">
-          <svg width="12" height="12" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="8" rx="1.5" stroke="#fff" stroke-width="1.2"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
-          <span style="font-size:11px;font-weight:700;color:#fff;letter-spacing:0.08em;">보안 안내</span>
-        </div>
-        <div style="font-size:11px;color:#fff;opacity:0.85;">입력된 정보는 Vantix 서버로 전송되지 않으며, 로컬 브라우저에만 저장됩니다.</div>
+      <button class="btn btn-black" onclick="saveSettings()" style="width:100%;height:28px;justify-content:center;margin-bottom:8px;">SAVE</button>
+      <button onclick="disconnectRedmine()" style="width:100%;height:28px;background:none;border:1px solid #B40023;color:#B40023;font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;margin-bottom:8px;">DISCONNECT</button>
+      <div style="height:56px;display:flex;align-items:center;gap:10px;background:#0047A0;padding:0 14px;">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><rect x="3" y="7" width="10" height="8" rx="1.5" stroke="#fff" stroke-width="1.2"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span style="font-size:11px;color:#fff;opacity:0.9;line-height:1.5;"><b style="opacity:1;">보안 안내</b> — 입력된 정보는 Vantix 서버로 전송되지 않으며, 로컬 브라우저에만 저장됩니다.</span>
       </div>
     </div>
   </div>
@@ -2137,7 +2139,7 @@ async function openReport(){
 async function forceRefresh(){try{await fetch('/api/cache/clear');await loadData();}catch(e){console.error('forceRefresh error:',e);}}
 
 function onProjectChange(){
-  currentProjectId=document.getElementById('projectSelect').value;loadData();
+  currentProjectId=document.getElementById('projectSelect').value;loadData();loadRiskHistory();
 }
 function onDateChange(){
   var val=document.getElementById('filterDateInput').value;
@@ -2178,6 +2180,14 @@ function openSettingsModal() {
   document.getElementById('settingsModal').classList.add('open');
 }
 
+function disconnectRedmine() {
+  if (!confirm('Redmine 연결을 끊고 로그아웃하시겠습니까?')) return;
+  fetch('/api/disconnect', {method: 'POST'})
+    .finally(function() {
+      window.location.href = '/connect';
+    });
+}
+
 function closeSettingsModal(e) {
   if (e) e.stopPropagation();
   document.getElementById('settingsModal').classList.remove('open');
@@ -2192,12 +2202,25 @@ function saveSettings() {
   var url = document.getElementById('settingsUrl').value.trim();
   var key = document.getElementById('settingsApiKey').value.trim();
   if (!url || !key) return;
-  localStorage.setItem('redmine_url', url);
-  localStorage.setItem('redmine_apikey', key);
-  document.getElementById('settingsModal').classList.remove('open');
-  document.getElementById('noConnOverlay').classList.remove('visible');
-  loadProjects();
-  loadData();
+  var btn = document.querySelector('#settingsModal .btn-black');
+  btn.textContent = 'SAVING...';
+  btn.disabled = true;
+  fetch('/api/update-connection', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({url: url, api_key: key})
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || 'error'); });
+    return r.json();
+  }).then(function() {
+    document.getElementById('settingsModal').classList.remove('open');
+    document.getElementById('noConnOverlay').classList.remove('visible');
+    window.location.reload();
+  }).catch(function(err) {
+    btn.textContent = 'SAVE';
+    btn.disabled = false;
+    alert('연결 실패: ' + err.message);
+  });
 }
 
 // ============================================================
@@ -2725,6 +2748,11 @@ function loadActionSignals(forceRefresh = false) {
     <option value="pdf">PDF 다운로드</option>
     <option value="email">이메일 발송</option>
   </select>
+</div>
+</div>
+</div>
+<div id="site-footer" style="height:28px;border-top:1px solid #e4e2e2;display:flex;align-items:center;justify-content:center;background:#fbf9f8;margin-top:24px;">
+  <span style="font-size:9px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:#555;">© 2026 VANTIX · AI RISK INTELLIGENCE FOR REDMINE</span>
 </div>
 </body>
 </html>
