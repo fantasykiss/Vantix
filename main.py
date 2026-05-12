@@ -1037,7 +1037,7 @@ async def api_connect(request: Request):
     _sessions[token] = {"url": rm_url, "key": rm_key, "created": time.time()}
     _save_sessions()
     response = JSONResponse({"ok": True, "user": user_data.get("user", {}).get("login", "")})
-    response.set_cookie("vx_session", token, httponly=True, samesite="lax", max_age=SESSION_TTL)
+    response.set_cookie("vx_session", token, httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
     return response
 
 @app.post("/api/disconnect")
