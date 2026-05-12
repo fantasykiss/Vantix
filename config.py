@@ -8,8 +8,8 @@ except ImportError:
 
 from dataclasses import dataclass
 
-BASE_URL          = os.getenv("BASE_URL", "http://localhost:3000")
-API_KEY           = os.getenv("API_KEY",  "")
+BASE_URL          = os.getenv("REDMINE_URL", os.getenv("BASE_URL", "http://localhost:3000"))
+API_KEY           = os.getenv("REDMINE_API_KEY", os.getenv("API_KEY", ""))
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 
 @dataclass
