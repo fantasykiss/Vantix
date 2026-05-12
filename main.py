@@ -392,7 +392,7 @@ def fetch(path, params=None, retries=2, redmine_url=None, api_key=None):
                 print(f"  재시도 ({attempt+1}/{retries-1}): offset {params.get('offset','?') if params else '?'}")
                 time.sleep(1)
             else:
-                print(f"  요청 실패: {url}\n     {e}")
+                print(f"  요청 실패: {_url}\n     {e}")
     return {}
 
 
