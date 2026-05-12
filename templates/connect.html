@@ -1088,6 +1088,7 @@
       .then(data => {
         if (data.ok) {
           btn.textContent = 'CONNECTED — LOADING DASHBOARD...';
+          if (data.token) localStorage.setItem('vx_token', data.token);
           window.location.href = '/';
         } else {
           btn.disabled = false;

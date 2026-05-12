@@ -1384,6 +1384,17 @@ body {
 </div>
 
 <script>
+const _origFetch = window.fetch;
+window.fetch = function(url, opts = {}) {
+  const token = localStorage.getItem('vx_token');
+  if (token) {
+    opts.headers = opts.headers || {};
+    opts.headers['X-VX-Session'] = token;
+  }
+  return _origFetch(url, opts);
+};
+</script>
+<script>
 // ============================================================
 // State
 // ============================================================
