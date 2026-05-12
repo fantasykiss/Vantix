@@ -1028,7 +1028,7 @@ async def api_connect(request: Request):
     try:
         test_url = rm_url + "/users/current.json"
         req = urllib.request.Request(test_url, headers={"X-Redmine-API-Key": rm_key})
-        with urllib.request.urlopen(req, timeout=10, context=SSL_CONTEXT) as resp:
+        with urllib.request.urlopen(req, timeout=30, context=SSL_CONTEXT) as resp:
             user_data = json.loads(resp.read().decode())
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Redmine 연결 실패: {str(e)}")
@@ -1065,7 +1065,7 @@ async def api_update_connection(request: Request):
     try:
         test_url = rm_url + "/users/current.json"
         req = urllib.request.Request(test_url, headers={"X-Redmine-API-Key": rm_key})
-        with urllib.request.urlopen(req, timeout=10, context=SSL_CONTEXT) as resp:
+        with urllib.request.urlopen(req, timeout=30, context=SSL_CONTEXT) as resp:
             user_data = json.loads(resp.read().decode())
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Redmine 연결 실패: {str(e)}")
