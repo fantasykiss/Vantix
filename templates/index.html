@@ -1490,9 +1490,6 @@ function getDept(uname) { return ''; }
 // Init
 // ============================================================
 async function init() {
-  var savedUrl = localStorage.getItem('redmine_url');
-  var savedKey = localStorage.getItem('redmine_apikey');
-  if (!savedUrl||!savedKey) { openSettingsModal(); return; }
   await loadProjects();
   await loadData();
 }
