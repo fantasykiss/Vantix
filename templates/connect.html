@@ -25,14 +25,16 @@
       --r-pill: 999px;
       --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 
-      /* Glass tokens — thin liquid (iOS 26) */
-      --glass-bg: rgba(255,255,255,0.18);
-      --glass-bg-heavy: rgba(255,255,255,0.28);
-      --glass-border: rgba(255,255,255,0.55);
-      --glass-border-subtle: rgba(255,255,255,0.30);
+      /* Glass tokens — liquid glass (iOS 26) */
+      --glass-bg: rgba(255,255,255,0.10);
+      --glass-bg-heavy: rgba(255,255,255,0.16);
+      --glass-border: rgba(255,255,255,0.70);
+      --glass-border-subtle: rgba(255,255,255,0.35);
       --glass-shadow: 0 1px 2px rgba(15,40,70,0.04), 0 10px 30px rgba(15,40,70,0.07);
       --glass-shadow-lg: 0 2px 6px rgba(15,40,70,0.06), 0 28px 60px rgba(15,40,70,0.10);
-      --glass-inset: inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.18);
+      --glass-inset: inset 0 1.5px 0 rgba(255,255,255,0.95), inset 0 -1px 0 rgba(255,255,255,0.12), inset 1px 0 0 rgba(255,255,255,0.25), inset -1px 0 0 rgba(255,255,255,0.10);
+      --glass-rim: 0 0 0 1px rgba(255,255,255,0.18), 0 0 0 0.5px rgba(15,40,70,0.06);
+      --glass-refract: drop-shadow(0 1px 2px rgba(255,255,255,0.6)) drop-shadow(0 -1px 1px rgba(15,40,70,0.08));
 
       /* Text */
       --text: #0f2a3d;
@@ -105,21 +107,21 @@
       will-change: transform;
     }
 
-    /* ── GLASS MIXIN-STYLE CLASSES — thin liquid ── */
+    /* ── GLASS MIXIN-STYLE CLASSES — liquid glass (iOS 26) ── */
     .glass {
       background: var(--glass-bg);
-      backdrop-filter: blur(8px) saturate(180%);
-      -webkit-backdrop-filter: blur(8px) saturate(180%);
+      backdrop-filter: blur(20px) saturate(220%) brightness(1.06);
+      -webkit-backdrop-filter: blur(20px) saturate(220%) brightness(1.06);
       border: 1px solid var(--glass-border);
-      box-shadow: var(--glass-shadow), var(--glass-inset);
+      box-shadow: var(--glass-shadow), var(--glass-inset), var(--glass-rim);
     }
 
     .glass-heavy {
       background: var(--glass-bg-heavy);
-      backdrop-filter: blur(10px) saturate(200%);
-      -webkit-backdrop-filter: blur(10px) saturate(200%);
+      backdrop-filter: blur(32px) saturate(240%) brightness(1.08);
+      -webkit-backdrop-filter: blur(32px) saturate(240%) brightness(1.08);
       border: 1px solid var(--glass-border);
-      box-shadow: var(--glass-shadow-lg), var(--glass-inset);
+      box-shadow: var(--glass-shadow-lg), var(--glass-inset), var(--glass-rim);
     }
 
     /* ── NAV ── */
