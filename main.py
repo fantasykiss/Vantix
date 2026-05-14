@@ -496,7 +496,16 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
             continue
         uname = iss["assigned_to"]["name"]
         if not users_data[uname]["group"]:
-            users_data[uname]["group"] = user_group_map.get(uname, dept_name(uname))
+            users_data[uname]["group"] = user_group_map.get(uname, "")
+        if not users_data[uname].get("short_name"):
+            # short_name: 언더스코어 기준 실제 이름 추출
+            # "방효민 기획_" → "방효민" / "기획_ 방효민" → "방효민" / "test5" → "test5"
+            if "_" in uname:
+                parts = uname.replace("_", " ").split()
+                group = user_group_map.get(uname, "")
+                users_data[uname]["short_name"] = " ".join(p for p in parts if p != group and p != group.rstrip("_")) or uname
+            else:
+                users_data[uname]["short_name"] = uname
         users_data[uname]["issues"].append({
             "id":         iss["id"],
             "subject":    iss["subject"],
@@ -663,7 +672,7 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
         "pending_server":   pending_server,
         "pending_client":   pending_client,
         "project_risk":     project_risk_list,
-        "users_data":       {k: {"issues": v["issues"], "projects": list(v["projects"]), "group": v.get("group", "")} for k, v in users_data.items()},
+        "users_data":       {k: {"issues": v["issues"], "projects": list(v["projects"]), "group": v.get("group", ""), "short_name": v.get("short_name", k)} for k, v in users_data.items()},
         "imminent_count":   len(imminent_issues),
         "imminent_issues":  imminent_issues,
         "trend_7days":      trend_7days,

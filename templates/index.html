@@ -1691,7 +1691,7 @@ function renderRiskMembers(allData){
     if(overdueIssues.length===0)continue;
     var overdueRatio=open.length>0?Math.round(overdueIssues.length/open.length*100):0;
     var level=overdueRatio>=60?'critical':overdueRatio>=30?'high':'medium';
-    rows.push({uname:uname,shortN:getShortName(uname),dept:ud.group||getDept(uname),open:open.length,overdue:overdueIssues.length,overdueRatio:overdueRatio,level:level});
+    rows.push({uname:uname,shortN:ud.short_name||getShortName(uname),dept:ud.group||getDept(uname),open:open.length,overdue:overdueIssues.length,overdueRatio:overdueRatio,level:level});
   }
   rows.sort(function(a,b){return b.overdueRatio-a.overdueRatio||b.open-a.open;});
   var top3=rows.slice(0,3);
@@ -1721,7 +1721,7 @@ function renderAssigneeCard(){
     var total=issues.length;
     var open=issues.filter(function(i){return!CLOSED_SET_JS.has(i.status);}).length;
     var overdue=issues.filter(function(i){return i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status);}).length;
-    rows.push({name:getShortName(uname),group:(usersData[uname]&&usersData[uname].group)||getDept(uname),total:total,open:open,overdue:overdue});
+    rows.push({name:(usersData[uname]&&usersData[uname].short_name)||getShortName(uname),group:(usersData[uname]&&usersData[uname].group)||getDept(uname),total:total,open:open,overdue:overdue});
   }
   renderAssigneeRows(rows);
 }
@@ -1895,7 +1895,7 @@ function getTabIssues(){
   var issues=[];
   for(var uname in usersData){
     (usersData[uname].issues||[]).forEach(function(i){
-      issues.push(Object.assign({},i,{_uname:uname,_dept:(usersData[uname]&&usersData[uname].group)||getDept(uname),_short:getShortName(uname),_elapsed:i.due_date?dday(i.due_date):null}));
+      issues.push(Object.assign({},i,{_uname:uname,_dept:(usersData[uname]&&usersData[uname].group)||getDept(uname),_short:(usersData[uname]&&usersData[uname].short_name)||getShortName(uname),_elapsed:i.due_date?dday(i.due_date):null}));
     });
   }
   if(currentTab==='overdue') issues=issues.filter(function(i){return i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status);});
