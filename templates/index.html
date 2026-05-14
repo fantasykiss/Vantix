@@ -1484,7 +1484,6 @@ function escHtml(str) {
 // Name helpers (adjust to your actual data shape)
 // ============================================================
 function getShortName(uname) { return (uname||'').split(' ')[0]||uname; }
-function getDept(uname) { return ''; }
 
 // ============================================================
 // Init
@@ -1722,7 +1721,7 @@ function renderAssigneeCard(){
     var total=issues.length;
     var open=issues.filter(function(i){return!CLOSED_SET_JS.has(i.status);}).length;
     var overdue=issues.filter(function(i){return i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status);}).length;
-    rows.push({name:getShortName(uname),group:getDept(uname),total:total,open:open,overdue:overdue});
+    rows.push({name:getShortName(uname),group:(usersData[uname]&&usersData[uname].group)||getDept(uname),total:total,open:open,overdue:overdue});
   }
   renderAssigneeRows(rows);
 }
@@ -1755,7 +1754,7 @@ function renderOverdueCard(){
     (ud.issues||[]).forEach(function(i){
       if(i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status)){
         var d=dday(i.due_date);
-        overdues.push(Object.assign({},i,{assigneeShort:getShortName(uname),dept:getDept(uname),elapsed:d}));
+        overdues.push(Object.assign({},i,{assigneeShort:getShortName(uname),dept:(usersData[uname]&&usersData[uname].group)||getDept(uname),elapsed:d}));
       }
     });
   }
@@ -1896,7 +1895,7 @@ function getTabIssues(){
   var issues=[];
   for(var uname in usersData){
     (usersData[uname].issues||[]).forEach(function(i){
-      issues.push(Object.assign({},i,{_uname:uname,_dept:getDept(uname),_short:getShortName(uname),_elapsed:i.due_date?dday(i.due_date):null}));
+      issues.push(Object.assign({},i,{_uname:uname,_dept:(usersData[uname]&&usersData[uname].group)||getDept(uname),_short:getShortName(uname),_elapsed:i.due_date?dday(i.due_date):null}));
     });
   }
   if(currentTab==='overdue') issues=issues.filter(function(i){return i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status);});
