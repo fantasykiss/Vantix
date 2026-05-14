@@ -1,4 +1,5 @@
 import os
+from datetime import date, timedelta
 
 try:
     from dotenv import load_dotenv
@@ -38,4 +39,5 @@ REPORT_HOUR   = int(os.getenv("REPORT_HOUR",   "9"))
 REPORT_MINUTE = int(os.getenv("REPORT_MINUTE", "0"))
 
 DEFAULT_PROJECT_ID    = os.getenv("DEFAULT_PROJECT_ID",    "ds_project")
-DEFAULT_UPDATED_AFTER = os.getenv("DEFAULT_UPDATED_AFTER", "2026-03-01")
+DEFAULT_UPDATED_AFTER = os.getenv("DEFAULT_UPDATED_AFTER",
+    (date.today() - timedelta(days=30)).strftime("%Y-%m-%d"))

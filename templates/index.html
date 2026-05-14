@@ -171,6 +171,12 @@ body {
   gap: var(--sp-4); flex: 1; padding: 0 var(--sp-5);
 }
 .navbar-filter-item { display: flex; flex-direction: column; gap: 2px; }
+.since-dd-item{padding:9px 14px;font-size:11px;letter-spacing:0.05em;color:#111;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid #f0f0f0;}
+.since-dd-item:last-child{border-bottom:none;}
+.since-dd-item:hover{background:#f5f3f3;}
+.since-dd-item.active{background:#111111;color:#ffffff;}
+.since-dd-item.active span{color:#888;}
+.since-dd-item span{font-size:9px;color:#aaa;letter-spacing:0.08em;}
 .navbar-filter-label {
   font-size: 8px; letter-spacing: 0.18em;
   text-transform: uppercase; color: #aaa; font-family: var(--dm);
@@ -991,11 +997,23 @@ body {
       </div>
     </div>
     <div class="navbar-divider"></div>
-    <div class="navbar-filter-item">
+    <div class="navbar-filter-item" style="position:relative;" id="since-wrap">
       <div class="navbar-filter-label">Since</div>
-      <div class="navbar-filter-value">
-        <input type="date" id="filterDateInput" value="2026-03-01" onchange="onDateChange()" style="opacity:0;position:absolute;width:0;height:0;">
-        <span id="filterDateDisplay" onclick="document.getElementById('filterDateInput').showPicker()" style="cursor:pointer;">2026-03-01</span>
+      <div class="navbar-filter-value" onclick="toggleSinceDD()" style="cursor:pointer;display:flex;align-items:center;gap:4px;">
+        <span id="filterDateDisplay">2026-03-01</span>
+        <span style="font-size:8px;color:#aaa;" id="since-chevron">▾</span>
+      </div>
+      <div id="since-dd" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #e4e2e2;width:180px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,0.10);">
+        <div class="since-dd-item" onclick="pickSince(this,30)">1개월<span>30 DAYS</span></div>
+        <div class="since-dd-item active" onclick="pickSince(this,90)">3개월<span>90 DAYS</span></div>
+        <div class="since-dd-item" onclick="pickSince(this,180)">6개월<span>180 DAYS</span></div>
+        <div class="since-dd-item" onclick="pickSince(this,365)">1년<span>365 DAYS</span></div>
+        <div class="since-dd-item" onclick="pickSince(this,730)">2년<span>730 DAYS</span></div>
+        <div style="height:1px;background:#e4e2e2;"></div>
+        <div class="since-dd-item" id="since-custom-btn" onclick="toggleSinceCustom()">직접 입력<span>CUSTOM</span></div>
+        <div id="since-custom-row" style="display:none;padding:8px 12px;background:#f5f3f3;">
+          <input type="date" id="filterDateInput" style="width:100%;border:1px solid #e4e2e2;padding:5px 8px;font-size:11px;font-family:inherit;outline:none;" onchange="pickSinceCustom(this.value)">
+        </div>
       </div>
     </div>
     <div class="navbar-divider"></div>
@@ -1400,7 +1418,7 @@ window.fetch = function(url, opts = {}) {
 // ============================================================
 var allData = null;
 var currentProjectId = localStorage.getItem('vantix_last_project') || '';
-var currentUpdatedAfter = '__DEFAULT_UPDATED_AFTER__';
+var currentUpdatedAfter = localStorage.getItem('vantix_since') || '__DEFAULT_UPDATED_AFTER__';
 var currentTab = 'imminent';
 var currentModalIssueId = null;
 var aiSummaryText = '';
@@ -2145,9 +2163,50 @@ function onProjectChange(){
   localStorage.setItem('vantix_last_project', currentProjectId);
   loadData();loadRiskHistory();
 }
+
+document.addEventListener('click',function(e){
+  if(!e.target.closest('#since-wrap'))closeSinceDD();
+});
 function onDateChange(){
   var val=document.getElementById('filterDateInput').value;
   if(val){currentUpdatedAfter=val;document.getElementById('filterDateDisplay').textContent=val;loadData();}
+}
+
+function daysAgoDate(n){var d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);}
+function toggleSinceDD(){
+  var dd=document.getElementById('since-dd');
+  var open=dd.style.display==='none';
+  dd.style.display=open?'block':'none';
+  document.getElementById('since-chevron').style.transform=open?'rotate(180deg)':'';
+}
+function closeSinceDD(){
+  document.getElementById('since-dd').style.display='none';
+  document.getElementById('since-chevron').style.transform='';
+}
+function pickSince(el,days){
+  document.querySelectorAll('.since-dd-item').forEach(function(i){i.classList.remove('active');});
+  el.classList.add('active');
+  var val=daysAgoDate(days);
+  currentUpdatedAfter=val;
+  document.getElementById('filterDateDisplay').textContent=val;
+  localStorage.setItem('vantix_since',val);
+  document.getElementById('since-custom-row').style.display='none';
+  closeSinceDD();
+  loadData();loadRiskHistory();
+}
+function toggleSinceCustom(){
+  var cr=document.getElementById('since-custom-row');
+  cr.style.display=cr.style.display==='none'?'block':'none';
+  document.querySelectorAll('.since-dd-item').forEach(function(i){i.classList.remove('active');});
+  document.getElementById('since-custom-btn').classList.add('active');
+}
+function pickSinceCustom(val){
+  if(!val)return;
+  currentUpdatedAfter=val;
+  document.getElementById('filterDateDisplay').textContent=val;
+  localStorage.setItem('vantix_since',val);
+  closeSinceDD();
+  loadData();loadRiskHistory();
 }
 function clearAiFocus(){document.getElementById('ai-focus-banner').style.display='none';}
 
