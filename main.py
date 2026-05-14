@@ -695,18 +695,16 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
 
         # 3. 담당자명 접두사로 그룹 매핑 (기획_홍길동 → 기획)
         def extract_group(assignee_name):
-            if not assignee_name:
+            if not assignee_name or "_" not in assignee_name:
                 return None
-            # 1. 언더스코어 있으면 접두사로 매칭 (기획_홍길동 → 기획)
-            if "_" in assignee_name:
-                prefix = assignee_name.split("_")[0].strip()
-                if prefix in group_map:
-                    return prefix
-            # 2. 언더스코어 없으면 담당자명 전체를 그룹명과 직접 비교 (방효민 → 기획)
-            # group_map의 각 그룹 멤버 목록에서 찾기
-            for gname, ginfo in group_map.items():
-                if assignee_name.strip() in ginfo.get("members", []):
-                    return gname
+            # 접두사 매칭: "기획_ TEST1" → "기획"
+            prefix = assignee_name.split("_")[0].strip()
+            if prefix in group_map:
+                return prefix
+            # 접미사 매칭: "방효민 기획_" → "기획" (잘못된 형식 방어)
+            last_prefix = assignee_name.rsplit("_", 1)[0].split()[-1].strip()
+            if last_prefix in group_map:
+                return last_prefix
             return None
 
         # 4. 8주 역산 계산
