@@ -674,7 +674,7 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
             return []
 
         # 2. 이슈 전체 로드
-        issues = get_issues(project_id, updated_after="2024-01-01")
+        issues = get_issues(project_id, updated_after="2024-01-01", redmine_url=redmine_url, api_key=api_key)
 
         # 3. 담당자명 접두사로 그룹 매핑 (기획_홍길동 → 기획)
         def extract_group(assignee_name):
