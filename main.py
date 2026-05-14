@@ -469,31 +469,24 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
     if project_id:
         try:
             memberships = fetch(f"/projects/{project_id}/memberships.json", redmine_url=redmine_url, api_key=api_key).get("memberships", [])
-            # role_id 기반 그룹↔유저 매핑
-            # 그룹 엔트리: {"group": {"name": "기획"}, "roles": [{"id": 4}]}
-            # 유저 엔트리: {"user": {...}, "roles": [{"id": 4, "inherited": true}]}
-            # role_id가 같으면 같은 그룹 소속 → 유저명 형식 완전 무관
-
-            # 1단계: role_id → group_name 매핑 테이블 생성
-            role_to_group = {}  # {role_id: group_name}
+            # 순서 기반 그룹↔유저 매핑
+            # Redmine API는 그룹 엔트리 바로 다음에 해당 그룹 소속 유저들을 반환
+            # inherited=true 유저는 직전에 나온 그룹에 소속
+            current_group = None
             for m in memberships:
                 grp = m.get("group")
                 if grp:
-                    for r in m.get("roles", []):
-                        role_to_group[r["id"]] = grp["name"]
-
-            # 2단계: 유저의 inherited role_id로 그룹 매핑
-            for m in memberships:
+                    current_group = grp["name"]
+                    continue
                 user = m.get("user")
-                if not user:
+                if not user or not current_group:
                     continue
                 uname = user.get("name", "")
                 if not uname:
                     continue
-                for r in m.get("roles", []):
-                    if r.get("inherited") and r["id"] in role_to_group:
-                        user_group_map[uname] = role_to_group[r["id"]]
-                        break
+                inherited = any(r.get("inherited") for r in m.get("roles", []))
+                if inherited:
+                    user_group_map[uname] = current_group
         except Exception:
             pass
 
