@@ -1349,14 +1349,33 @@
       e.preventDefault();
       const url = document.getElementById('connect-url').value.trim();
       const key = document.getElementById('connect-key').value.trim();
-      try {
-        const list = JSON.parse(localStorage.getItem('vantix_connect') || '[]');
-        list.push({ url, ts: Date.now() });
-        localStorage.setItem('vantix_connect', JSON.stringify(list));
-      } catch(_) {}
-      e.target.querySelector('.connect-btn').style.display = 'none';
-      e.target.querySelector('.connect-secure').style.display = 'none';
-      document.getElementById('connect-success').classList.add('show');
+      const btn = e.target.querySelector('.connect-btn');
+      if (!url || !key) return;
+      btn.disabled = true;
+      btn.textContent = 'CONNECTING...';
+      fetch('/api/connect', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({url, api_key: key})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.ok) {
+          btn.textContent = 'CONNECTED — LOADING DASHBOARD...';
+          if (data.token) localStorage.setItem('vx_token', data.token);
+          window.location.href = '/';
+        } else {
+          btn.disabled = false;
+          btn.style.opacity = '1';
+          btn.textContent = 'CONNECT TO REDMINE';
+          alert(data.detail || '연결 실패. URL과 API Key를 확인해주세요.');
+        }
+      })
+      .catch(() => {
+        btn.disabled = false;
+        btn.textContent = 'CONNECT TO REDMINE';
+        alert('서버 연결 오류가 발생했습니다.');
+      });
     }
 
     function saveEmail(email) {
