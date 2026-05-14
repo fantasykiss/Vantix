@@ -1122,6 +1122,9 @@ async def api_update_connection(request: Request):
     body = await request.json()
     rm_url = (body.get("url") or "").strip().rstrip("/")
     rm_key = (body.get("api_key") or "").strip()
+    existing = _get_session(token)
+    if not rm_key and existing:
+        rm_key = existing.get("key", "")
     if not rm_url or not rm_key:
         raise HTTPException(status_code=400, detail="url과 api_key 필수")
     try:

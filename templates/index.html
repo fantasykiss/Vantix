@@ -2183,7 +2183,7 @@ function openSettingsModal() {
   var urlEl = document.getElementById('settingsUrl');
   var keyEl = document.getElementById('settingsApiKey');
   if (urlEl && window._currentRedmineUrl) urlEl.value = window._currentRedmineUrl;
-  if (keyEl) keyEl.value = '';  // 키는 보안상 비워둠 — 변경 시에만 입력
+  if (keyEl) keyEl.value = '••••••••••••••••••••••••••••••••••••••••';
   document.getElementById('settingsModal').classList.add('open');
 }
 
@@ -2209,16 +2209,8 @@ function saveSettings() {
   var url = document.getElementById('settingsUrl').value.trim();
   var key = document.getElementById('settingsApiKey').value.trim();
   if (!url) return;
-  if (!key) {
-    // 키 미입력 시 URL만 변경 — 기존 키는 서버 세션에서 유지
-    // URL이 바뀌지 않았으면 그냥 모달 닫기
-    if (url === window._currentRedmineUrl) {
-      document.getElementById('settingsModal').classList.remove('open');
-      return;
-    }
-    alert('API Key를 입력해주세요.');
-    return;
-  }
+  var isDummyKey = /^[•\*]+$/.test(key);
+  if (isDummyKey) key = '';  // 더미값이면 빈값으로 → 서버에서 기존 키 유지
   var btn = document.querySelector('#settingsModal .btn-black');
   btn.textContent = 'SAVING...';
   btn.disabled = true;
