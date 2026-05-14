@@ -1,1442 +1,2828 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Vantix — AI Risk Intelligence</title>
-  <template id="__bundler_thumbnail" data-bg-color="#e8f4f8">
-    <svg viewBox="0 0 1200 800" xmlns="http://www.w3.org/2000/svg">
-      <rect width="1200" height="800" fill="#e8f4f8"/>
-      <circle cx="200" cy="200" r="180" fill="#7dd3c0" opacity="0.4"/>
-      <circle cx="1000" cy="600" r="220" fill="#5dade2" opacity="0.35"/>
-      <text x="600" y="380" font-family="sans-serif" font-size="120" font-weight="800" fill="#1c1c1e" text-anchor="middle" letter-spacing="-4">Vantix</text>
-      <text x="600" y="440" font-family="sans-serif" font-size="22" font-weight="500" fill="#007AFF" text-anchor="middle" letter-spacing="6">AI PROJECT RISK INTELLIGENCE</text>
-    </svg>
-  </template>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-    :root {
-      --r: 20px;
-      --r-lg: 28px;
-      --r-pill: 999px;
-      --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-
-      /* Glass tokens — thin liquid (iOS 26) */
-      --glass-bg: rgba(255,255,255,0.18);
-      --glass-bg-heavy: rgba(255,255,255,0.28);
-      --glass-border: rgba(255,255,255,0.55);
-      --glass-border-subtle: rgba(255,255,255,0.30);
-      --glass-shadow: 0 1px 2px rgba(15,40,70,0.04), 0 10px 30px rgba(15,40,70,0.07);
-      --glass-shadow-lg: 0 2px 6px rgba(15,40,70,0.06), 0 28px 60px rgba(15,40,70,0.10);
-      --glass-inset: inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.18);
-
-      /* Text */
-      --text: #0f2a3d;
-      --text-secondary: rgba(15,42,61,0.62);
-      --text-tertiary: rgba(15,42,61,0.35);
-
-      /* Accent — cool summer */
-      --accent: #007AFF;
-      --accent-light: rgba(0,122,255,0.10);
-      --aqua: #5ac8d6;
-      --mint: #7dd3c0;
-      --soft-blue: #4a90e2;
-
-      /* Motion — cinematic easing */
-      --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
-      --ease-cf: cubic-bezier(0.22, 1, 0.36, 1);
-    }
-
-    html { scroll-behavior: smooth; }
-
-    body {
-      font-family: var(--sans);
-      color: var(--text);
-      min-height: 100vh;
-      overflow-x: hidden;
-      -webkit-font-smoothing: antialiased;
-    }
-
-    /* ── GRADIENT MESH BACKGROUND — summer cool ── */
-    .bg {
-      position: fixed;
-      inset: 0;
-      z-index: -1;
-      background: linear-gradient(180deg, #e9f6fa 0%, #dff1f5 40%, #e6f4f1 100%);
-      overflow: hidden;
-    }
-
-    .orb {
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(70px);
-      opacity: 0.55;
-      animation: float linear infinite;
-      will-change: transform;
-    }
-    .orb-1 { width: 820px; height: 820px; background: radial-gradient(circle, #a7e0e8, #cdf0f4); top: -260px; left: -160px; animation-duration: 38s; }
-    .orb-2 { width: 720px; height: 720px; background: radial-gradient(circle, #bcd9f5, #d8e8fb); top: 18%; right: -200px; animation-duration: 46s; animation-direction: reverse; }
-    .orb-3 { width: 600px; height: 600px; background: radial-gradient(circle, #b8e8d8, #d6f1e4); bottom: 14%; left: 18%; animation-duration: 34s; }
-    .orb-4 { width: 480px; height: 480px; background: radial-gradient(circle, #c8e8f8, #e2f1fb); bottom: -120px; right: 8%; animation-duration: 42s; animation-direction: reverse; }
-    .orb-5 { width: 380px; height: 380px; background: radial-gradient(circle, #ade1d0, #d2efe3); top: 55%; left: 45%; animation-duration: 50s; }
-    .orb-6 { width: 340px; height: 340px; background: radial-gradient(circle, #c2def2, #def0fa); top: 8%; left: 38%; animation-duration: 30s; animation-direction: reverse; }
-
-    @keyframes float {
-      0%   { transform: translate(0, 0) scale(1); }
-      33%  { transform: translate(50px, -40px) scale(1.05); }
-      66%  { transform: translate(-30px, 50px) scale(0.97); }
-      100% { transform: translate(0, 0) scale(1); }
-    }
-
-    /* mouse-parallax orb (.bg-mouse) tracked by JS */
-    .bg-mouse {
-      position: fixed;
-      width: 600px; height: 600px;
-      border-radius: 50%;
-      background: radial-gradient(circle, rgba(125,211,192,0.55), transparent 65%);
-      filter: blur(80px);
-      top: 0; left: 0;
-      pointer-events: none;
-      z-index: -1;
-      will-change: transform;
-    }
-
-    /* ── GLASS MIXIN-STYLE CLASSES — thin liquid ── */
-    .glass {
-      background: var(--glass-bg);
-      backdrop-filter: blur(8px) saturate(180%);
-      -webkit-backdrop-filter: blur(8px) saturate(180%);
-      border: 1px solid var(--glass-border);
-      box-shadow: var(--glass-shadow), var(--glass-inset);
-    }
-
-    .glass-heavy {
-      background: var(--glass-bg-heavy);
-      backdrop-filter: blur(10px) saturate(200%);
-      -webkit-backdrop-filter: blur(10px) saturate(200%);
-      border: 1px solid var(--glass-border);
-      box-shadow: var(--glass-shadow-lg), var(--glass-inset);
-    }
-
-    /* ── NAV ── */
-    nav {
-      position: fixed;
-      top: 16px;
-      left: 50%;
-      transform: translateX(-50%);
-      z-index: 100;
-      width: calc(100% - 48px);
-      max-width: 1100px;
-      border-radius: var(--r-pill);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 12px 20px 12px 24px;
-    }
-
-    .nav-logo {
-      font-size: 16px;
-      font-weight: 700;
-      letter-spacing: -0.01em;
-      color: var(--text);
-    }
-    .nav-logo span { color: #007AFF; }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-    }
-
-    .nav-link {
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--text-secondary);
-      text-decoration: none;
-      padding: 6px 14px;
-      border-radius: var(--r-pill);
-      transition: background 0.15s, color 0.15s;
-    }
-    .nav-link:hover { background: rgba(0,0,0,0.06); color: var(--text); }
-
-    .nav-btn {
-      font-size: 14px;
-      font-weight: 600;
-      color: #fff;
-      background: var(--text);
-      border: none;
-      padding: 8px 18px;
-      border-radius: var(--r-pill);
-      cursor: pointer;
-      text-decoration: none;
-      transition: opacity 0.15s;
-    }
-    .nav-btn:hover { opacity: 0.8; }
-
-    /* ── HERO ── */
-    #hero {
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      text-align: center;
-      padding: 120px 24px 80px;
-    }
-
-    .hero-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--accent);
-      padding: 5px 14px;
-      border-radius: var(--r-pill);
-      background: var(--accent-light);
-      border: 1px solid rgba(0,122,255,0.2);
-      margin-bottom: 28px;
-      letter-spacing: 0.01em;
-    }
-    .hero-badge::before {
-      content: '';
-      width: 6px; height: 6px;
-      border-radius: 50%;
-      background: var(--accent);
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-      0%, 100% { opacity: 1; transform: scale(1); }
-      50% { opacity: 0.5; transform: scale(0.85); }
-    }
-
-    h1 {
-      font-size: clamp(44px, 7.5vw, 96px);
-      font-weight: 700;
-      line-height: 1.05;
-      letter-spacing: -0.03em;
-      color: var(--text);
-      max-width: 14ch;
-      margin-bottom: 24px;
-      text-wrap: balance;
-    }
-
-    h1 .gradient-text {
-      background: linear-gradient(135deg, #007AFF 0%, #5ac8d6 50%, #7dd3c0 100%);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
-    }
-
-    .hero-sub {
-      font-size: clamp(16px, 1.8vw, 20px);
-      font-weight: 400;
-      line-height: 1.6;
-      color: var(--text-secondary);
-      max-width: 500px;
-      margin-bottom: 48px;
-      text-wrap: pretty;
-    }
-
-    /* Glass CTA Card */
-    .cta-card {
-      border-radius: var(--r-lg);
-      padding: 28px 32px;
-      max-width: 420px;
-      width: 100%;
-    }
-
-    .cta-card p {
-      font-size: 13px;
-      color: var(--text-secondary);
-      margin-bottom: 16px;
-      text-align: left;
-    }
-
-    .input-row {
-      display: flex;
-      gap: 8px;
-      align-items: stretch;
-    }
-
-    .glass-input {
-      flex: 1;
-      background: rgba(255,255,255,0.6);
-      border: 1px solid var(--glass-border);
-      border-radius: var(--r-pill);
-      padding: 12px 18px;
-      font-family: var(--sans);
-      font-size: 15px;
-      color: var(--text);
-      outline: none;
-      backdrop-filter: blur(8px);
-      transition: border-color 0.15s, box-shadow 0.15s;
-    }
-    .glass-input::placeholder { color: var(--text-tertiary); }
-    .glass-input:focus {
-      border-color: rgba(0,122,255,0.5);
-      box-shadow: 0 0 0 3px rgba(0,122,255,0.12);
-    }
-
-    .cta-btn {
-      background: var(--text);
-      color: #fff;
-      border: none;
-      border-radius: var(--r-pill);
-      padding: 12px 22px;
-      font-family: var(--sans);
-      font-size: 14px;
-      font-weight: 600;
-      cursor: pointer;
-      white-space: nowrap;
-      transition: opacity 0.15s;
-    }
-    .cta-btn:hover { opacity: 0.82; }
-
-    .cta-note {
-      text-align: center !important;
-      margin-top: 12px !important;
-      margin-bottom: 0 !important;
-      font-size: 11px !important;
-    }
-
-    .success-inline {
-      display: none;
-      text-align: center;
-      padding: 12px 0 4px;
-      font-size: 14px;
-      font-weight: 500;
-      color: var(--accent);
-    }
-    .success-inline.show { display: block; }
-
-    /* ── FEATURES ── */
-    #features {
-      padding: 80px 24px 100px;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    .section-eyebrow {
-      text-align: center;
-      font-size: 12px;
-      font-weight: 600;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 12px;
-    }
-
-    .section-title {
-      text-align: center;
-      font-size: clamp(28px, 3.5vw, 44px);
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      line-height: 1.1;
-      margin-bottom: 56px;
-      color: var(--text);
-    }
-
-    .features-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-
-    .feature-card {
-      border-radius: var(--r-lg);
-      padding: 32px 28px;
-      transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .feature-card:hover {
-      transform: translateY(-3px);
-      box-shadow: var(--glass-shadow-lg), var(--glass-inset);
-    }
-
-    .feature-icon {
-      width: 44px;
-      height: 44px;
-      border-radius: 12px;
-      margin-bottom: 20px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .icon-blue  { background: linear-gradient(135deg, #007AFF, #5856D6); }
-    .icon-purple { background: linear-gradient(135deg, #5856D6, #AF52DE); }
-    .icon-green  { background: linear-gradient(135deg, #34C759, #30D158); }
-    .icon-aqua   { background: linear-gradient(135deg, #007AFF 0%, #5ac8d6 60%, #7dd3c0 100%); }
-
-    .feature-icon svg { width: 22px; height: 22px; }
-
-    .feature-title {
-      font-size: 17px;
-      font-weight: 600;
-      letter-spacing: -0.01em;
-      margin-bottom: 8px;
-      color: var(--text);
-    }
-
-    .feature-body {
-      font-size: 14px;
-      font-weight: 400;
-      line-height: 1.65;
-      color: var(--text-secondary);
-    }
-
-    /* ── TESTIMONIALS ── */
-    #testimonials {
-      padding: 40px 24px 100px;
-      max-width: 1100px;
-      margin: 0 auto;
-    }
-
-    .testimonials-grid {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-    }
-
-    .tcard {
-      border-radius: var(--r-lg);
-      padding: 28px 24px;
-    }
-
-    .tcard-quote {
-      font-size: 15px;
-      font-weight: 400;
-      line-height: 1.65;
-      color: var(--text);
-      margin-bottom: 24px;
-      text-wrap: pretty;
-    }
-
-    .tcard-quote::before {
-      content: '\201C';
-      font-size: 32px;
-      font-weight: 700;
-      color: var(--accent);
-      line-height: 1;
-      display: block;
-      margin-bottom: 10px;
-    }
-
-    .tcard-author {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-
-    .author-avatar {
-      width: 36px;
-      height: 36px;
-      border-radius: 50%;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 13px;
-      font-weight: 700;
-      color: #fff;
-      flex-shrink: 0;
-    }
-    .av-blue   { background: linear-gradient(135deg, #007AFF, #5856D6); }
-    .av-purple { background: linear-gradient(135deg, #AF52DE, #FF2D55); }
-    .av-teal   { background: linear-gradient(135deg, #34C759, #007AFF); }
-
-    .author-info { line-height: 1.3; }
-    .author-name { font-size: 13px; font-weight: 600; color: var(--text); }
-    .author-role { font-size: 12px; color: var(--text-secondary); }
-
-    /* ── FOOTER CTA ── */
-    #footer-cta {
-      padding: 80px 24px 100px;
-      max-width: 720px;
-      margin: 0 auto;
-    }
-
-    /* ── Connect Section (Minimal) ── */
-    .connect-header {
-      text-align: center;
-      margin-bottom: 40px;
-    }
-    .connect-header .section-eyebrow {
-      margin-bottom: 12px;
-    }
-    .connect-header .section-title {
-      margin-bottom: 16px;
-    }
-    .connect-lead-center {
-      font-size: 15px;
-      color: var(--text-secondary);
-      line-height: 1.7;
-      max-width: 520px;
-      margin: 0 auto;
-      text-wrap: pretty;
-    }
-    .connect-card-slim {
-      border-radius: var(--r-lg);
-      padding: 36px 36px 28px;
-      margin-bottom: 24px;
-    }
-    .connect-steps-strip {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 12px;
-    }
-    .step-pill {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      padding: 14px 16px;
-      background: rgba(255,255,255,0.18);
-      backdrop-filter: blur(8px) saturate(180%);
-      -webkit-backdrop-filter: blur(8px) saturate(180%);
-      border: 1px solid var(--glass-border);
-      border-radius: 14px;
-      box-shadow: var(--glass-shadow);
-    }
-    .step-pill .step-num {
-      width: 28px; height: 28px;
-      border-radius: 8px;
-      font-size: 11px;
-    }
-    .step-pill-text {
-      font-size: 12px;
-      color: var(--text-secondary);
-      line-height: 1.5;
-      letter-spacing: -0.005em;
-    }
-    .step-pill-text strong { color: var(--text); font-weight: 600; }
-
-    .footer-card {
-      border-radius: 32px;
-      padding: 56px 48px;
-    }
-
-    /* Connect Redmine card overrides */
-    .connect-card { padding: 48px; text-align: left; }
-    .connect-grid {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr;
-      gap: 32px;
-      align-items: stretch;
-    }
-    .connect-eyebrow {
-      display: inline-block;
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.22em;
-      color: var(--accent);
-      padding: 6px 14px;
-      background: var(--accent-light);
-      border: 1px solid rgba(0,122,255,0.18);
-      border-radius: 999px;
-      margin-bottom: 20px;
-      backdrop-filter: blur(8px) saturate(140%);
-      -webkit-backdrop-filter: blur(8px) saturate(140%);
-      font-family: 'DM Sans', monospace;
-    }
-    .connect-card h2 {
-      font-size: clamp(36px, 5vw, 56px);
-      font-weight: 800;
-      letter-spacing: -0.035em;
-      line-height: 1;
-      margin-bottom: 20px;
-      color: var(--text);
-    }
-    .connect-lead {
-      font-size: 15px;
-      color: var(--text-secondary);
-      line-height: 1.65;
-      margin-bottom: 32px;
-      max-width: 100%;
-    }
-    .connect-form { display: flex; flex-direction: column; gap: 20px; }
-    .connect-field { display: flex; flex-direction: column; }
-    .connect-label-row {
-      display: flex; justify-content: space-between; align-items: baseline;
-      margin-bottom: 8px;
-    }
-    .connect-label {
-      font-size: 11px; font-weight: 700;
-      letter-spacing: 0.18em;
-      color: var(--text);
-    }
-    .connect-hint-tag {
-      font-size: 10px; letter-spacing: 0.15em;
-      color: var(--text-tertiary);
-    }
-    .connect-howto {
-      font-size: 11px; font-weight: 600;
-      color: var(--accent); text-decoration: none;
-      border-bottom: 1px solid var(--accent);
-      padding-bottom: 1px;
-    }
-    .connect-input-wrap {
-      display: flex; align-items: center;
-      gap: 12px;
-      background: rgba(255,255,255,0.28);
-      backdrop-filter: blur(8px) saturate(180%);
-      -webkit-backdrop-filter: blur(8px) saturate(180%);
-      border: 1px solid rgba(255,255,255,0.55);
-      border-radius: 16px;
-      padding: 14px 18px;
-      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
-      transition: border-color 0.2s, box-shadow 0.2s;
-    }
-    .connect-input-wrap:focus-within {
-      border-color: rgba(0,122,255,0.55);
-      box-shadow: 0 0 0 4px rgba(0,122,255,0.12), inset 0 1px 2px rgba(0,0,0,0.04);
-    }
-    .connect-input-icon { font-size: 14px; color: var(--text-tertiary); }
-    .connect-input {
-      flex: 1; border: none; background: transparent; outline: none;
-      font-family: var(--sans); font-size: 15px; color: var(--text);
-    }
-    .connect-input.mono { font-family: 'SF Mono', 'DM Mono', ui-monospace, monospace; font-size: 14px; }
-    .connect-input::placeholder { color: var(--text-tertiary); }
-    .connect-help {
-      font-size: 11px; color: var(--text-tertiary);
-      margin-top: 6px; padding-left: 4px;
-      font-family: 'SF Mono', ui-monospace, monospace;
-    }
-    .connect-btn {
-      width: 100%;
-      padding: 18px 0;
-      background: linear-gradient(135deg, var(--accent) 0%, #4ba8ff 100%);
-      color: #fff; border: none; cursor: pointer;
-      font-family: var(--sans);
-      font-size: 12px; font-weight: 700; letter-spacing: 0.22em;
-      border-radius: 16px;
-      box-shadow: 0 10px 28px rgba(0,122,255,0.30), inset 0 1px 0 rgba(255,255,255,0.25);
-      display: flex; align-items: center; justify-content: center; gap: 14px;
-      margin-top: 8px;
-      transition: transform 0.15s, box-shadow 0.2s;
-    }
-    .connect-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 32px rgba(0,122,255,0.38), inset 0 1px 0 rgba(255,255,255,0.3); }
-    .connect-btn-arrow { font-size: 16px; }
-    .connect-secure {
-      display: flex; align-items: center; gap: 6px; justify-content: center;
-      font-size: 10px; color: var(--text-tertiary);
-      letter-spacing: 0.15em;
-      font-family: 'SF Mono', ui-monospace, monospace;
-      margin-top: 4px;
-    }
-    .connect-secure .dot { width: 5px; height: 5px; border-radius: 50%; background: #34c759; }
-
-    .connect-right {
-      background: var(--glass-bg);
-      backdrop-filter: blur(12px) saturate(150%);
-      -webkit-backdrop-filter: blur(12px) saturate(150%);
-      border: 1px solid var(--glass-border);
-      border-radius: 24px;
-      padding: 32px 28px;
-      color: var(--text);
-      display: flex; flex-direction: column;
-      box-shadow: var(--glass-shadow), var(--glass-inset);
-    }
-    .connect-aside-tag {
-      align-self: flex-start;
-      font-size: 10px;
-      letter-spacing: 0.18em;
-      color: var(--accent);
-      background: var(--accent-light);
-      border: 1px solid rgba(0,122,255,0.2);
-      padding: 5px 12px;
-      border-radius: 999px;
-      margin-bottom: 18px;
-      font-family: 'SF Mono', ui-monospace, monospace;
-    }
-    .connect-aside-title {
-      font-size: 22px; font-weight: 700;
-      line-height: 1.3; letter-spacing: -0.02em;
-      margin-bottom: 24px;
-    }
-    .connect-steps {
-      list-style: none; padding: 0; margin: 0 0 auto;
-      display: flex; flex-direction: column;
-    }
-    .connect-steps li {
-      display: flex; gap: 14px; align-items: flex-start;
-      padding-bottom: 14px; margin-bottom: 14px;
-      border-bottom: 1px solid rgba(60,60,67,0.08);
-    }
-    .connect-steps li:last-child { border-bottom: none; }
-    .step-num {\n      width: 36px; height: 36px; flex-shrink: 0;\n      border-radius: 10px;\n      background: linear-gradient(135deg, #007AFF 0%, #5ac8d6 60%, #7dd3c0 100%);\n      border: none;\n      color: #fff;\n      display: flex; align-items: center; justify-content: center;\n      font-size: 12px; font-weight: 700;\n      font-family: 'SF Mono', ui-monospace, monospace;\n      box-shadow: 0 4px 12px rgba(0,122,255,0.22);\n    }\n    .step-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; padding-top: 8px; }
-    .connect-aside-foot {
-      margin-top: 24px;
-      padding-top: 18px;
-      border-top: 1px solid rgba(60,60,67,0.08);
-      font-size: 11px; color: var(--text-secondary);
-      letter-spacing: 0.05em;
-      line-height: 1.6;
-    }
-    .connect-aside-foot strong { color: var(--accent); font-weight: 600; }
-
-    .footer-card h2 {
-      font-size: clamp(28px, 4vw, 44px);
-      font-weight: 700;
-      letter-spacing: -0.025em;
-      line-height: 1.1;
-      margin-bottom: 16px;
-    }
-
-    .footer-card p {
-      font-size: 16px;
-      color: var(--text-secondary);
-      line-height: 1.6;
-      margin-bottom: 36px;
-      max-width: 360px;
-      margin-left: auto;
-      margin-right: auto;
-    }
-
-    .footer-form {
-      display: flex;
-      gap: 8px;
-      max-width: 400px;
-      margin: 0 auto 12px;
-    }
-
-    .footer-note {
-      font-size: 12px;
-      color: var(--text-tertiary);
-    }
-
-    /* ── BOTTOM BAR ── */
-    footer {
-      padding: 20px 48px 32px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-    }
-
-    .footer-logo {
-      font-size: 14px;
-      font-weight: 700;
-      color: var(--text);
-      letter-spacing: -0.01em;
-    }
-    .footer-logo span { color: var(--accent); }
-
-    .footer-meta {
-      font-size: 12px;
-      color: var(--text-tertiary);
-    }
-
-    /* ── TWEAKS ── */
-    #tweaks-panel {
-      display: none;
-      position: fixed;
-      bottom: 24px;
-      right: 24px;
-      border-radius: var(--r-lg);
-      padding: 24px;
-      z-index: 9999;
-      width: 260px;
-    }
-    #tweaks-panel.open { display: block; }
-    .tweak-t { font-size: 11px; font-weight: 600; letter-spacing: 0.05em; text-transform: uppercase; margin-bottom: 16px; color: var(--text); }
-    .tweak-r { margin-bottom: 14px; }
-    .tweak-l { font-size: 11px; font-weight: 500; color: var(--text-secondary); margin-bottom: 5px; }
-    .tweak-s { font-family: var(--sans); font-size: 13px; width: 100%; border: 1px solid var(--glass-border); border-radius: 8px; padding: 6px 10px; background: rgba(255,255,255,0.6); color: var(--text); outline: none; cursor: pointer; }
-
-    /* ── MOBILE NAV MENU ── */
-    .nav-menu-btn {
-      display: none;
-      background: none;
-      border: none;
-      cursor: pointer;
-      padding: 8px;
-      flex-direction: column;
-      gap: 5px;
-    }
-    .nav-menu-btn span {
-      display: block;
-      width: 22px;
-      height: 1.5px;
-      background: var(--text);
-      transition: transform 0.2s, opacity 0.2s;
-    }
-    .nav-menu-btn.open span:nth-child(1) { transform: translateY(6.5px) rotate(45deg); }
-    .nav-menu-btn.open span:nth-child(2) { opacity: 0; }
-    .nav-menu-btn.open span:nth-child(3) { transform: translateY(-6.5px) rotate(-45deg); }
-
-    .mobile-menu-v3 {
-      display: none;
-      position: fixed;
-      top: 70px;
-      left: 16px; right: 16px;
-      border-radius: var(--r-lg);
-      z-index: 99;
-      padding: 8px;
-      flex-direction: column;
-    }
-    .mobile-menu-v3.open { display: flex; }
-    .mobile-menu-v3 a {
-      display: block;
-      padding: 14px 16px;
-      font-size: 16px;
-      font-weight: 500;
-      color: var(--text);
-      text-decoration: none;
-      border-radius: 12px;
-      transition: background 0.15s;
-    }
-    .mobile-menu-v3 a:active { background: rgba(0,0,0,0.06); }
-
-    @media (max-width: 768px) {
-      nav {
-        top: 12px;
-        width: calc(100% - 24px);
-        padding: 10px 16px;
-      }
-      .nav-links { display: none; }
-      .nav-menu-btn { display: flex; }
-
-      #hero {
-        padding: 100px 20px 64px;
-        min-height: 100svh;
-      }
-      h1 { font-size: clamp(36px, 10vw, 52px); }
-      .hero-sub { font-size: 15px; margin-bottom: 36px; }
-      .hero-badge { font-size: 11px; }
-
-      .cta-card { padding: 20px; }
-      .input-row { flex-direction: column; gap: 10px; }
-      .glass-input { font-size: 16px; padding: 14px 18px; min-height: 48px; }
-      .cta-btn { min-height: 48px; padding: 14px 22px; }
-
-      #features { padding: 56px 20px 64px; }
-      .section-title { margin-bottom: 32px; }
-      .features-grid { grid-template-columns: 1fr; gap: 12px; }
-      .feature-card { padding: 24px 20px; }
-
-      #testimonials { padding: 16px 20px 64px; }
-      .testimonials-grid { grid-template-columns: 1fr; gap: 12px; }
-      .tcard { padding: 24px 20px; }
-
-      #footer-cta { padding: 56px 20px 64px; }
-      .footer-card { padding: 32px 20px; border-radius: 24px; }
-      .footer-form { flex-direction: column; gap: 10px; }
-      .connect-card-slim { padding: 24px 20px; }
-      .connect-steps-strip { grid-template-columns: 1fr; gap: 8px; }
-      .connect-header .section-title { font-size: 30px; }
-
-      footer { flex-direction: column; gap: 8px; text-align: center; padding: 20px; }
-
-      #tweaks-panel {
-        width: calc(100% - 32px);
-        left: 16px;
-        right: 16px;
-        bottom: 16px;
-      }
-    }
-
-    @media (max-width: 390px) {
-      h1 { font-size: 34px; }
-    }
-
-    /* ── SCROLL REVEAL — cinematic ── */
-    [data-reveal] {
-      opacity: 0;
-      transform: translateY(40px);
-      transition: opacity 1.1s var(--ease-expo), transform 1.1s var(--ease-expo);
-      will-change: opacity, transform;
-    }
-    [data-reveal="fade"] { transform: none; }
-    [data-reveal="scale"] { transform: scale(0.94) translateY(30px); }
-    [data-reveal="tilt"]  { transform: perspective(1000px) rotateX(10deg) translateY(40px); transform-origin: center bottom; }
-
-    [data-reveal].in {
-      opacity: 1;
-      transform: none;
-    }
-
-    [data-stagger] > * {
-      opacity: 0;
-      transform: translateY(32px);
-      transition: opacity 1s var(--ease-expo), transform 1s var(--ease-expo);
-    }
-    [data-stagger].in > * { opacity: 1; transform: none; }
-    [data-stagger].in > *:nth-child(1) { transition-delay: 0.05s; }
-    [data-stagger].in > *:nth-child(2) { transition-delay: 0.18s; }
-    [data-stagger].in > *:nth-child(3) { transition-delay: 0.31s; }
-    [data-stagger].in > *:nth-child(4) { transition-delay: 0.44s; }
-    [data-stagger].in > *:nth-child(5) { transition-delay: 0.57s; }
-    [data-stagger].in > *:nth-child(6) { transition-delay: 0.70s; }
-
-    /* Hero parallax & initial reveal */
-    #hero .hero-badge,
-    #hero h1,
-    #hero .hero-sub {
-      opacity: 0;
-      transform: translateY(28px);
-      animation: heroIn 1.4s var(--ease-expo) forwards;
-    }
-    #hero .hero-badge { animation-delay: 0.15s; }
-    #hero h1          { animation-delay: 0.35s; }
-    #hero .hero-sub   { animation-delay: 0.6s; }
-    @keyframes heroIn { to { opacity: 1; transform: none; } }
-
-    /* ── NUMBERS SECTION ── */
-    #numbers {
-      padding: 80px 24px 100px;
-      max-width: 1180px;
-      margin: 0 auto;
-    }
-    .numbers-head {
-      text-align: center;
-      margin-bottom: 56px;
-    }
-    .numbers-head .section-eyebrow {
-      margin-bottom: 16px;
-    }
-    .numbers-head h2 {
-      font-size: clamp(32px, 4.2vw, 52px);
-      font-weight: 700;
-      letter-spacing: -0.03em;
-      line-height: 1.1;
-      max-width: 760px;
-      margin: 0 auto;
-      text-wrap: balance;
-    }
-    .numbers-head h2 .nh-accent {
-      background: linear-gradient(135deg, #007AFF 0%, #5ac8d6 60%, #7dd3c0 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .numbers-grid {
-      display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 16px;
-    }
-    .num-card {
-      padding: 32px 28px 28px;
-      border-radius: var(--r-lg);
-      position: relative;
-      overflow: hidden;
-      isolation: isolate;
-    }
-    .num-card::after {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 50%;
-      background: linear-gradient(180deg, rgba(255,255,255,0.35), transparent);
-      pointer-events: none;
-      z-index: -1;
-    }
-    .num-card .num-label {
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-      color: var(--accent);
-      margin-bottom: 14px;
-      font-family: 'SF Mono', ui-monospace, monospace;
-    }
-    .num-card .num-big {
-      font-size: clamp(48px, 5.5vw, 76px);
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 1;
-      background: linear-gradient(135deg, #007AFF 0%, #5ac8d6 100%);
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-      display: inline-flex;
-      align-items: baseline;
-    }
-    .num-card .num-unit {
-      font-size: 0.42em;
-      font-weight: 700;
-      margin-left: 4px;
-      background: inherit;
-      -webkit-background-clip: text;
-      background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-    .num-card .num-desc {
-      font-size: 14px;
-      color: var(--text-secondary);
-      line-height: 1.55;
-      margin-top: 16px;
-      letter-spacing: -0.005em;
-    }
-    .num-card .num-base {
-      font-size: 10px;
-      letter-spacing: 0.15em;
-      text-transform: uppercase;
-      color: var(--text-tertiary);
-      margin-top: 14px;
-      font-family: 'SF Mono', ui-monospace, monospace;
-    }
-    @media (max-width: 900px) {
-      .numbers-grid { grid-template-columns: repeat(2, 1fr); }
-    }
-    @media (max-width: 520px) {
-      #numbers { padding: 56px 20px 64px; }
-      .numbers-grid { grid-template-columns: 1fr; gap: 12px; }
-      .num-card { padding: 24px 22px; }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-      [data-reveal], [data-stagger] > * { opacity: 1; transform: none; transition: none; }
-      #hero .hero-badge, #hero h1, #hero .hero-sub { opacity: 1; transform: none; animation: none; }
-      .orb, .bg-mouse { animation: none; transition: none; }
-    }
-  </style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://api.fontshare.com/v2/css?f[]=clash-display@600&display=swap" rel="stylesheet">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vantix — Project Risk Intelligence</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSJ3aGl0ZSIvPjx0ZXh0IHg9IjE2IiB5PSIyNCIgZm9udC1mYW1pbHk9IkFyaWFsLHNhbnMtc2VyaWYiIGZvbnQtc2l6ZT0iMjIiIGZvbnQtd2VpZ2h0PSJib2xkIiBmaWxsPSIjY2MwMDAwIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5WPC90ZXh0Pjwvc3ZnPg==">
+
+<style>
+/* ══════════════════════════════════════════════════════════════
+   MODULAR GRID SYSTEM
+   Columns : 12  |  Gutter : 32px  |  Margin : 48px
+   Baseline : 8px vertical rhythm
+   Breakpoints : desktop 1200+  tablet 768–1199  mobile <768
+   ══════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Grid tokens ── */
+  --g-cols   : 12;
+  --g-gap    : 32px;   /* column gutter */
+  --g-margin : 48px;   /* page edge margin */
+  --g-base   : 8px;    /* baseline unit */
+
+  /* ── Spacing scale (8px × n) ── */
+  --sp-1 : 8px;
+  --sp-2 : 16px;
+  --sp-3 : 24px;
+  --sp-4 : 32px;
+  --sp-5 : 40px;
+  --sp-6 : 48px;
+
+  /* ── Typography ── */
+  --sans   : 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --dm     : 'DM Sans', sans-serif;
+
+  /* ── Colour palette ── */
+  --bg         : #faf9f7;
+  --bg-muted   : #f5f3f3;
+  --bg-white   : #ffffff;
+  --bg-dark    : #111111;
+  --border     : #e8e6e2;
+  --border-mid : rgba(207,196,197,0.35);
+  --text       : #111111;
+  --text-muted : #999999;
+  --text-dim   : #bbbbbb;
+  --red        : #c0392b;
+  --amber      : #b7770d;
+  --blue       : #0047A0;
+  --green      : #16a34a;
+}
+
+/* ── Reset ── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--sans);
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  font-size: 13px;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GRID PRIMITIVES
+   ══════════════════════════════════════════════════════════════ */
+
+/* Full-bleed strip grid — gap:0, no page margins
+   Used for KPI cards that span edge-to-edge with border separators */
+.g-strip {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 0;
+}
+
+/* Content grid — 32px gap + page margins
+   Used for content sections (AI panel, cards, etc.) */
+.g-content {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  column-gap: var(--g-gap);
+  padding-left: var(--g-margin);
+  padding-right: var(--g-margin);
+}
+
+/* Simple padded container — no grid, just margins */
+.g-padded {
+  padding-left: var(--g-margin);
+  padding-right: var(--g-margin);
+}
+
+/* ── Column spans (desktop default) ── */
+.gc-2  { grid-column: span 2;  }
+.gc-3  { grid-column: span 3;  }
+.gc-4  { grid-column: span 4;  }
+.gc-5  { grid-column: span 5;  }
+.gc-6  { grid-column: span 6;  }
+.gc-7  { grid-column: span 7;  }
+.gc-8  { grid-column: span 8;  }
+.gc-9  { grid-column: span 9;  }
+.gc-10 { grid-column: span 10; }
+.gc-12 { grid-column: span 12; }
+
+/* ── Vertical rhythm helpers ── */
+.mt-2 { margin-top:    var(--sp-2); }
+.mt-3 { margin-top:    var(--sp-3); }
+.mt-4 { margin-top:    var(--sp-4); }
+.mb-2 { margin-bottom: var(--sp-2); }
+.mb-3 { margin-bottom: var(--sp-3); }
+.mb-4 { margin-bottom: var(--sp-4); }
+.py-4 { padding-top:   var(--sp-4); padding-bottom: var(--sp-4); }
+.py-3 { padding-top:   var(--sp-3); padding-bottom: var(--sp-3); }
+.pt-4 { padding-top:   var(--sp-4); }
+.pb-4 { padding-bottom:var(--sp-4); }
+
+/* ══════════════════════════════════════════════════════════════
+   NAVBAR
+   Height: 72px (9 × 8px baseline)
+   ══════════════════════════════════════════════════════════════ */
+.navbar {
+  height: 72px;
+  background: rgba(255,255,255,0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid var(--border-mid);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--g-margin);
+  position: sticky;
+  top: 0;
+  z-index: 200;
+}
+
+.navbar-brand { display: flex; flex-direction: column; justify-content: center; flex-shrink: 0; }
+.navbar-logo {
+  font-family: 'Clash Display', var(--dm);
+  font-size: 18px; font-weight: 600;
+  letter-spacing: 0.02em; color: var(--text); line-height: 1;
+}
+.navbar-icon-btn { position: relative; padding: 6px 8px !important; }
+.navbar-icon-btn::after {
+  content: attr(title);
+  position: absolute;
+  bottom: -28px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  letter-spacing: 0.05em;
+  background: #111111;
+  color: #ffffff;
+  padding: 3px 8px;
+  white-space: nowrap;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s;
+  z-index: 999;
+}
+.navbar-icon-btn:hover::after { opacity: 1; }
+.navbar-tagline {
+  font-size: 9px; letter-spacing: 0.2em;
+  text-transform: uppercase; color: var(--red); margin-top: 4px; font-weight: 400;
+}
+
+.navbar-center {
+  display: flex; align-items: center;
+  gap: var(--sp-4); flex: 1; padding: 0 var(--sp-5);
+}
+.navbar-filter-item { display: flex; flex-direction: column; gap: 2px; }
+.since-dd-item{padding:9px 14px;font-size:11px;letter-spacing:0.05em;color:#111;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid #f0f0f0;}
+.since-dd-item:last-child{border-bottom:none;}
+.since-dd-item:hover{background:#f5f3f3;}
+.since-dd-item.active{background:#111111;color:#ffffff;}
+.since-dd-item.active span{color:#888;}
+.since-dd-item span{font-size:9px;color:#aaa;letter-spacing:0.08em;}
+.navbar-filter-label {
+  font-size: 8px; letter-spacing: 0.18em;
+  text-transform: uppercase; color: #aaa; font-family: var(--dm);
+}
+.navbar-filter-value {
+  font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text); font-weight: 500;
+  border-bottom: 1.5px solid var(--text); padding-bottom: 3px; font-family: var(--dm);
+}
+.navbar-filter-value select,
+.navbar-filter-value input[type="date"] {
+  font-family: var(--dm); font-size: 11px; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--text); font-weight: 500;
+  background: transparent; border: none; outline: none; cursor: pointer;
+  padding: 0; appearance: none; -webkit-appearance: none;
+}
+.navbar-filter-value select {
+  padding-right: 14px;
+  background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23666' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 0 center;
+}
+.navbar-divider { width: 1px; height: 28px; background: rgba(207,196,197,0.4); flex-shrink: 0; }
+.navbar-live { display: flex; flex-direction: column; gap: 2px; }
+.navbar-live-val {
+  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
+  color: #555; display: flex; align-items: center; gap: 5px;
+  font-family: var(--dm); white-space: nowrap; min-width: 120px;
+}
+.navbar-actions { display: flex; align-items: center; gap: var(--sp-1); flex-shrink: 0; }
+
+/* ── Buttons ── */
+.btn {
+  font-family: var(--sans); font-size: 10px;
+  text-transform: uppercase; letter-spacing: 0.18em;
+  padding: 6px 14px; border-radius: 0; cursor: pointer;
+  font-weight: 300; transition: all 0.1s;
+}
+.btn-ghost {
+  background: transparent; border: 1px solid var(--border);
+  color: #555; display: inline-flex; align-items: center; gap: 5px;
+}
+.btn-ghost:hover { border-color: var(--text); color: var(--text); }
+.btn-black { background: var(--text); color: #fff; border: 1px solid var(--text); }
+.btn-black:hover { background: #333; border-color: #333; }
+.btn-primary-outline {
+  background: transparent; border: 1.5px solid var(--text); color: var(--text);
+  font-weight: 700; letter-spacing: 0.18em;
+}
+.btn-primary-outline:hover { background: var(--text); color: #fff; }
+.btn-icon {
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 8px; height: 32px; cursor: pointer;
+  background: transparent; border: none; opacity: 0.55; transition: opacity 0.15s;
+}
+.btn-icon:hover { opacity: 1; }
+.btn-icon img { height: 18px; width: 18px; object-fit: contain; }
+
+/* ══════════════════════════════════════════════════════════════
+   SECTION DIVIDER
+   ══════════════════════════════════════════════════════════════ */
+.section-border { border-bottom: 1px solid var(--border); }
+
+/* ══════════════════════════════════════════════════════════════
+   KPI STRIP  (g-strip · 4 cols · full-bleed)
+   Each sum-card spans 3 of 12 columns
+   ══════════════════════════════════════════════════════════════ */
+.sum-card {
+  padding: var(--sp-4) var(--sp-5);  /* 32px top/bottom, 40px left/right */
+  border-right: 1px solid var(--border);
+  position: relative;
+  background: var(--bg-white);
+}
+.sum-card:last-child { border-right: none; }
+.sum-card.bg-muted  { background: var(--bg-muted); }
+.sum-card.bg-dark2  { background: #e4e2e2; }
+.sum-card.clickable { cursor: pointer; }
+.sum-card.clickable:hover { background: #f7f5f2; }
+
+.sum-label {
+  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted);
+  margin-bottom: var(--sp-2); font-family: var(--dm);
+}
+.sum-value {
+  font-size: 52px; font-weight: 800; letter-spacing: -0.02em;
+  line-height: 1; color: var(--text);
+}
+.sum-value.amber { color: var(--amber); }
+.sum-value.red   { color: var(--red); }
+.sum-value.blue  { color: var(--blue); }
+.sum-spark { margin-top: var(--sp-2); display: flex; flex-direction: column; gap: 4px; }
+.sum-delta { font-size: 11px; color: var(--text-muted); }
+.sum-delta.up   { color: #8b1a1a; }
+.sum-delta.down { color: var(--green); }
+.sum-hint { font-size: 9px; color: var(--text-dim); letter-spacing: 0.08em; }
+
+/* ── Risk score card (wide, left of strip) ── */
+.risk-score-card {
+  padding: var(--sp-4) var(--sp-5);
+  background: var(--bg-white);
+  border-right: 1px solid var(--border);
+}
+#risk-score-display {
+  font-family: var(--dm); font-weight: 800; font-size: 90px;
+  line-height: 1; letter-spacing: -2px; transition: color 0.4s ease;
+}
+.risk-sub { font-size: 10px; color: #aaa; margin-top: 6px; letter-spacing: 0.5px; }
+
+/* ── Risk trend card (right of strip) ── */
+.trend-card {
+  background: var(--bg-muted);
+  border-right: none;
+  padding: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   AI CHART (inside trend card)
+   ══════════════════════════════════════════════════════════════ */
+.ai-chart-card {
+  background: transparent; border: none;
+  padding: var(--sp-3) var(--sp-4);
+}
+.ai-chart-header {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-bottom: 4px;
+}
+.ai-chart-title {
+  font-family: var(--dm); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase; color: var(--text);
+}
+.ai-chart-header-right { display: flex; align-items: center; gap: 12px; }
+.ai-legend { display: flex; gap: 12px; align-items: center; }
+.ai-legend-item {
+  display: flex; align-items: center; gap: 5px;
+  font-family: var(--dm); font-size: 10px; font-weight: 500; color: #666;
+}
+.ai-legend-dot { width: 20px; height: 2px; border-radius: 1px; flex-shrink: 0; }
+.ai-gear-btn {
+  background: none; border: none; cursor: pointer; color: #bbb;
+  font-size: 13px; padding: 2px 4px; line-height: 1;
+}
+.ai-gear-btn:hover { background: #f5f3f0; color: #666; }
+.ai-gear-btn.active { color: #333; background: #f0eeeb; }
+.ai-settings-panel {
+  display: none; position: absolute; top: 44px; right: 20px;
+  background: #fff; border: 0.5px solid #e0ddd8; border-radius: 8px;
+  padding: 14px 16px; z-index: 10; width: 220px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+}
+.ai-settings-panel.open { display: block; }
+.ai-settings-label {
+  font-family: var(--dm); font-size: 10px; font-weight: 600; color: #999;
+  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+}
+.ai-settings-row { margin-bottom: 12px; }
+.ai-settings-row label {
+  font-family: var(--dm); font-size: 11px; color: #555;
+  display: block; margin-bottom: 6px;
+}
+.ai-dow-btns { display: flex; gap: 4px; }
+.ai-dow-btn {
+  flex: 1; padding: 5px 2px; font-family: var(--dm); font-size: 10px;
+  font-weight: 500; border: 0.5px solid #e0ddd8; border-radius: 4px;
+  background: #fff; color: #666; cursor: pointer; text-align: center;
+}
+.ai-dow-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
+.ai-settings-apply {
+  width: 100%; padding: 8px; font-family: var(--dm); font-size: 10px;
+  font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
+  background: var(--text); color: #fff; border: none; border-radius: 4px;
+  cursor: pointer; margin-top: 4px;
+}
+.ai-chart-sub { font-family: var(--dm); font-size: 10px; color: #aaa; margin-bottom: 12px; }
+.ai-chart-area { position: relative; height: 220px; }
+.ai-gridlines {
+  position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+  display: flex; flex-direction: column; justify-content: space-between;
+  pointer-events: none;
+}
+.ai-gridline { width: 100%; border-top: 1px solid #f0eeeb; }
+.ai-bars {
+  position: absolute; bottom: 0; left: 0; right: 0; height: 100%;
+  display: flex; align-items: flex-end; gap: 20px;
+  border-bottom: 1px solid var(--border);
+}
+.ai-bar-group {
+  display: flex; flex-direction: column; align-items: center;
+  flex: 1; height: 100%; justify-content: flex-end;
+}
+.ai-bar { width: 100%; border-radius: 2px 2px 0 0; min-height: 3px; }
+.ai-bar.low      { background: #ccc; }
+.ai-bar.normal   { background: #333; }
+.ai-bar.critical { background: var(--red); }
+.ai-bar-labels { display: flex; gap: 10px; margin-top: 6px; }
+.ai-bar-label {
+  flex: 1; text-align: center; font-family: var(--dm);
+  font-size: 10px; color: #aaa;
+}
+.risk-chart-empty {
+  display: flex; align-items: center; justify-content: center;
+  height: 100%; width: 100%; color: #999;
+  font-family: 'DM Mono', monospace; font-size: 9px;
+  letter-spacing: 0.1em; text-transform: uppercase;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   AI ANALYSIS SECTION  (g-content · 8+4 cols)
+   ══════════════════════════════════════════════════════════════ */
+.risk-members-section { background: var(--bg-white); border: 0.5px solid var(--border); }
+.risk-members-header {
+  display: flex; justify-content: space-between; align-items: flex-end;
+  padding: var(--sp-2) var(--sp-3) var(--sp-2);
+  border-bottom: 1px solid rgba(0,0,0,0.1);
+}
+.risk-members-label {
+  font-size: 10px; font-weight: 500; letter-spacing: 0.2em;
+  text-transform: uppercase; color: rgba(0,0,0,0.4); margin-bottom: 2px;
+}
+.risk-members-title {
+  font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
+  text-transform: uppercase; color: #000;
+}
+.risk-member-row {
+  display: block; border-bottom: 1px solid rgba(0,0,0,0.06);
+  cursor: pointer; transition: background 0.15s;
+}
+.risk-member-row:last-child { border-bottom: none; }
+.risk-member-row:hover { background: var(--bg-muted); }
+.risk-member-row.selected { background: var(--bg-muted); outline: 1px solid rgba(0,0,0,0.15); }
+.risk-member-top { display: flex; align-items: center; gap: 10px; padding: 11px var(--sp-3); }
+.risk-member-name-block { flex: 0 0 20%; min-width: 0; }
+.risk-member-bar-section { display: flex; flex-direction: column; gap: 5px; flex: 0 0 55%; min-width: 0; }
+.risk-member-bar-row { display: flex; align-items: center; gap: 6px; }
+.risk-member-bar-lbl {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; color: rgba(0,0,0,0.35); width: 28px; flex-shrink: 0;
+}
+.risk-member-bar-track { height: 3px; background: #f0f0f0; flex: 1; min-width: 0; max-width: 600px; overflow: hidden; }
+.risk-member-bar-fill { height: 100%; transition: width 0.4s ease; }
+.risk-member-bar-val { font-size: 11px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
+.risk-member-avatar {
+  width: 30px; height: 30px; border-radius: 0; display: flex;
+  align-items: center; justify-content: center; font-size: 11px;
+  font-weight: 700; flex-shrink: 0; margin-right: 12px;
+}
+.risk-member-name {
+  font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
+  text-transform: uppercase; color: #000;
+}
+.risk-member-dept { font-size: 10px; color: rgba(0,0,0,0.4); margin-top: 1px; }
+.risk-member-badge {
+  font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 0;
+  letter-spacing: 0.08em; text-transform: uppercase; align-self: center;
+}
+
+/* ── AI dark card ── */
+.ai-card-dark {
+  background: var(--bg-dark); border: none;
+  padding: var(--sp-3);
+  display: flex; flex-direction: column; justify-content: space-between;
+}
+.ai-label-mono {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.2em;
+  text-transform: uppercase; color: #fff; background: #1a5276;
+  padding: 4px 10px; display: inline-block; margin-bottom: var(--sp-2);
+}
+.ai-card-headline {
+  font-family: var(--dm); font-size: 18px; font-weight: 700;
+  color: #fff; line-height: 1.25; letter-spacing: -0.02em;
+  margin-bottom: var(--sp-2);
+  display: -webkit-box; -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical; overflow: hidden;
+}
+.ai-card-body-text {
+  font-family: var(--dm); font-size: 11px; color: #888;
+  line-height: 1.6; margin-bottom: var(--sp-3); flex: 1;
+}
+.ai-refresh-btn {
+  background: #fff; color: var(--text); border: none; border-radius: 0;
+  padding: 10px 16px; font-family: var(--dm); font-size: 10px;
+  font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
+  cursor: pointer; width: 100%; margin-top: auto;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   CARD PANELS  (g-content · 6+6 cols)
+   ══════════════════════════════════════════════════════════════ */
+.card-panel {
+  background: var(--bg-white);
+  border: 0.5px solid var(--border);
+  min-height: 320px;
+  display: flex; flex-direction: column;
+  overflow: hidden;
+}
+.card-panel.bg-muted { background: var(--bg-muted); }
+.card-header {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-2);
+  border-bottom: 1px solid var(--border); flex-shrink: 0;
+}
+.card-header span:first-child {
+  font-size: 12px; text-transform: uppercase;
+  letter-spacing: 0.05em; font-weight: 700; color: var(--text);
+}
+.card-header-sub { font-size: 10px; color: var(--text-dim); font-weight: 400; letter-spacing: 0.5px; }
+.card-body {
+  overflow-y: auto; flex: 1; min-height: 0;
+  scrollbar-width: thin; scrollbar-color: #ddd transparent;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   GROUP STATUS ROWS
+   ══════════════════════════════════════════════════════════════ */
+#group-col-header {
+  display: grid;
+  grid-template-columns: 100px 1fr 52px 72px;
+  padding: 7px var(--sp-2);
+  background: var(--bg-muted);
+  border-bottom: 1px solid #e4e2e2;
+  gap: 10px;
+}
+#group-col-header div {
+  font-size: 9px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-dim);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   TIMELINE (VERSION CARD)
+   ══════════════════════════════════════════════════════════════ */
+.tl-body { position: relative; padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3); margin-left: var(--sp-1); }
+.tl-line { display: none; }
+.tl-item { position: relative; margin-bottom: var(--sp-3); cursor: pointer; padding-left: var(--sp-2); }
+.tl-content { transition: transform 150ms linear; transform-origin: left center; }
+.tl-item:hover .tl-content { transform: scale(1.03); }
+.tl-item:hover .tl-passive { background: var(--bg-muted); }
+.tl-item:hover .tl-active-card { background: #eae8e7; }
+.tl-passive { display: flex; justify-content: space-between; align-items: flex-start; padding: 4px 0; transition: background 150ms; }
+.tl-dot {
+  position: absolute; left: -20px; top: 6px; width: 12px; height: 12px;
+  border-radius: 50%; background: var(--bg-muted); border: 1.5px solid #ccc;
+  transform: translateX(-50%); display: flex; align-items: center; justify-content: center; z-index: 1;
+}
+.tl-dot::before {
+  content: ''; position: absolute; left: 50%; transform: translateX(-50%);
+  width: 1px; background: #ddd; top: calc(100% + 6px);
+  height: calc(var(--tl-item-h, 60px) - 18px);
+}
+.tl-item:last-child .tl-dot::before { display: none; }
+.tl-dot::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #ccc; }
+.tl-dot.active { border-color: var(--text); background: var(--bg-muted); }
+.tl-dot.active::after { background: var(--text); }
+.tl-dot.done { border-color: #ccc; background: var(--bg-muted); }
+.tl-dot.done::after { background: #ccc; }
+.tl-passive-name { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.tl-passive-name.done { color: #ccc; text-decoration: line-through; }
+.tl-passive-name.upcoming { color: var(--text-dim); }
+.tl-passive-sub { font-size: 9px; color: #ccc; margin-top: 2px; }
+.tl-passive-dday { font-size: 10px; white-space: nowrap; margin-left: 10px; }
+.tl-active-card { background: #e4e2e2; border-left: 3px solid var(--text); padding: 10px 12px; }
+.tl-active-card.overdue { background: #e4e2e2; border-left-color: var(--red); }
+.tl-active-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.tl-active-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text); }
+.tl-active-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 6px; }
+.tl-active-badge.overdue { background: #000; color: #fff; }
+.tl-active-badge.imminent { background: var(--red); color: #fff; }
+.tl-active-desc { font-size: 10px; color: #888; line-height: 1.6; }
+.tl-active-dday { font-size: 11px; font-weight: 700; margin-top: 6px; }
+.tl-active-dday.red { color: var(--red); }
+.tl-passive-dday { font-size: 10px; white-space: nowrap; margin-left: 10px; }
+
+/* ══════════════════════════════════════════════════════════════
+   ISSUE ROWS (cards 01/02)
+   ══════════════════════════════════════════════════════════════ */
+.ci-row { padding: 10px var(--sp-2); border-bottom: 0.5px solid rgba(0,0,0,0.06); cursor: pointer; }
+.ci-row:last-child { border-bottom: none; }
+.ci-row:hover { background: rgba(0,0,0,0.02); }
+.ci-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
+.ci-num { font-size: 10px; color: rgba(0,0,0,0.3); font-weight: 400; }
+.ci-sep { font-size: 10px; color: rgba(0,0,0,0.15); }
+.ci-assignee { font-size: 10px; color: rgba(0,0,0,0.45); }
+.ci-group { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.4); }
+.ci-status { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 5px; background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.45); }
+.ci-bottom { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.ci-title { font-size: 11px; font-weight: 700; color: var(--text); flex: 1; line-height: 1.4; }
+.ci-elapsed { font-size: 11px; font-weight: 700; white-space: nowrap; }
+
+/* ══════════════════════════════════════════════════════════════
+   BOTTOM TAB SECTION
+   ══════════════════════════════════════════════════════════════ */
+.tab-bar {
+  border: 1px solid #aaa;
+  display: inline-flex; align-items: center;
+  margin-bottom: 0;
+}
+.tab-item {
+  padding: var(--sp-2) 20px;
+  font-size: 9px; font-weight: 400; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--text-dim);
+  cursor: pointer; white-space: nowrap;
+  display: flex; align-items: center; gap: 6px;
+  border-right: 1px solid var(--border);
+  transition: color 0.15s; user-select: none;
+}
+.tab-item:last-child { border-right: none; }
+.tab-item:hover { color: #555; }
+.tab-item.active { color: var(--text); font-weight: 700; }
+.tab-item[data-tab="imminent"],
+.tab-item[data-tab="overdue"] { font-weight: 700; color: var(--text); }
+.tab-badge { font-size: 9px; font-weight: 600; }
+.tab-badge.red  { color: var(--red); }
+.tab-badge.blue { color: var(--blue); }
+.tab-filters {
+  margin-top: var(--sp-1);
+  border: 1px solid #aaa;
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr 1fr;
+}
+.tab-filter-cell {
+  padding: 10px 14px;
+  border-right: 1px solid #aaa;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.tab-filter-cell:last-child { border-right: none; }
+.tab-filter-label {
+  font-size: 9px; font-weight: 500; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--text-dim);
+}
+.tab-filter-cell input {
+  font-size: 11px; border: none; outline: none;
+  background: transparent; color: var(--text); padding: 0; cursor: pointer; width: 100%;
+}
+.tab-filter-cell select {
+  font-size: 11px; border: none; outline: none;
+  background: transparent url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23111' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 2px center;
+  color: var(--text); padding-right: 14px;
+  -webkit-appearance: none; appearance: none; cursor: pointer; width: 100%;
+}
+.tab-filter-cell input::placeholder { color: var(--text-dim); }
+.tab-content { overflow-x: auto; min-height: 320px; margin-top: var(--sp-2); }
+.tab-table { opacity: 1; transition: opacity 0.2s ease; }
+.tab-table.fading { opacity: 0; }
+.tab-table tbody tr { cursor: pointer; }
+
+/* ══════════════════════════════════════════════════════════════
+   DATA TABLE
+   ══════════════════════════════════════════════════════════════ */
+.data-table { width: 100%; border-collapse: collapse; }
+.data-table thead th {
+  font-size: 9px; text-transform: uppercase; letter-spacing: 0.18em;
+  color: var(--text); font-weight: 700; padding: 10px 12px;
+  text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.data-table tbody tr { border-bottom: 1px solid var(--border); }
+.data-table tbody tr:hover { background: #f7f5f2; }
+.tab-table tbody tr { border-left: 3px solid transparent; }
+.data-table tbody td { font-size: 11px; padding: 13px 12px; vertical-align: middle; }
+.data-table tbody tr:last-child { border-bottom: none; }
+.td-subject { font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
+.td-project { font-size: 10px; color: var(--text-dim); font-weight: 300; }
+.td-group-badge {
+  display: inline-block; font-size: 9px; font-weight: 500;
+  letter-spacing: 0.08em; padding: 2px 6px;
+  border: 0.5px solid #ccc; color: #555; text-transform: uppercase;
+}
+.status-badge {
+  display: inline-block; font-size: 9px; font-weight: 500;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  padding: 3px 8px; border: 1px solid var(--text); color: var(--text);
+}
+.status-badge.progress { background: var(--text); color: #fff; border-color: var(--text); }
+.status-badge.wait { border-color: var(--amber); color: var(--amber); }
+.status-badge.done { border-color: var(--text-dim); color: var(--text-dim); }
+.td-priority { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.08em; }
+.td-priority.high { color: var(--red); font-weight: 500; }
+.dday-wrap { position: relative; display: inline-block; }
+@keyframes dday-blink { 0%,100%{opacity:1} 50%{opacity:0.3} }
+.td-dday { font-size: 16px; font-weight: 700; cursor: default; }
+.td-dday.red { color: var(--red); animation: dday-blink 1.4s ease-in-out infinite; }
+.td-dday.orange { color: var(--amber); }
+.td-dday.orange-overdue { color: var(--amber); animation: dday-blink 1.4s ease-in-out infinite; }
+.td-dday.gray { color: var(--text-dim); }
+.td-dday.closed { color: #000; }
+.dday-tooltip {
+  display: none; position: absolute; right: 0; top: -28px;
+  background: var(--text); color: #fff; font-size: 10px; padding: 4px 8px;
+  white-space: nowrap; pointer-events: none; z-index: 10;
+}
+.dday-wrap:hover .dday-tooltip { display: block; }
+.sort-icon { font-size: 9px; opacity: 0.6; }
+
+/* ══════════════════════════════════════════════════════════════
+   ASSIGNEE ROWS
+   ══════════════════════════════════════════════════════════════ */
+.dept-tag { font-size: 9px; font-weight: 500; white-space: nowrap; letter-spacing: 1px; text-transform: uppercase; }
+.assignee-row { padding: var(--sp-1) var(--sp-2) 7px; border-bottom: 1px solid #f0eeea; }
+.assignee-row:last-child { border-bottom: none; }
+.assignee-row-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
+.assignee-row-name { font-size: 11px; font-weight: 700; color: var(--text); }
+.assignee-row-name span { font-weight: 300; color: var(--text-dim); }
+.assignee-row-counts { font-size: 11px; color: var(--text); font-weight: 700; }
+.assignee-bar-track { height: 2px; background: #f0eeea; width: 100%; position: relative; margin-bottom: 4px; }
+.assignee-bar-fill { height: 2px; position: absolute; top: 0; left: 0; }
+.assignee-bar-normal   { background: var(--text); }
+.assignee-bar-critical { background: var(--red); }
+.assignee-row-meta { display: flex; justify-content: space-between; }
+.assignee-meta-l { font-size: 10px; color: var(--text-dim); font-weight: 300; letter-spacing: 0.3px; }
+.assignee-meta-l.critical { color: var(--red); font-weight: 400; }
+.assignee-meta-r { font-size: 10px; color: var(--text-dim); font-weight: 300; letter-spacing: 0.3px; }
+.assignee-meta-r.urgent { color: var(--red); font-weight: 400; }
+
+/* ══════════════════════════════════════════════════════════════
+   PAGINATION
+   ══════════════════════════════════════════════════════════════ */
+.pagination {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--sp-2) var(--sp-2);
+  border-top: 0.5px solid var(--border);
+}
+.pg-left { display: flex; align-items: center; gap: 12px; }
+.pg-info { font-size: 9px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: #555; }
+.pg-info span { font-weight: 700 !important; text-transform: uppercase; letter-spacing: 0.15em; }
+.pg-toggle { display: flex; align-items: center; }
+.pg-toggle-btn { font-size: 9px; font-weight: 400; letter-spacing: 0.1em; color: var(--text-dim); cursor: pointer; padding: 0 6px; border-right: 1px solid #ddd; }
+.pg-toggle-btn:last-child { border-right: none; }
+.pg-toggle-btn.active { font-weight: 700; color: var(--text); }
+.pg-toggle-btn:hover { color: var(--text); }
+.pg-controls { display: flex; align-items: center; gap: 2px; }
+.pg-btn { font-size: 9px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; padding: 4px 8px; border: none; background: transparent; color: #555; cursor: pointer; }
+.pg-btn:hover { color: var(--text); }
+.pg-btn:disabled { color: #ccc; cursor: default; }
+.pg-num { font-size: 9px; font-weight: 500; letter-spacing: 0.08em; padding: 4px 8px; color: #555; cursor: pointer; }
+.pg-num:hover { color: var(--text); }
+.pg-num.active { font-weight: 700; color: var(--text); border-bottom: 1.5px solid var(--text); }
+.pg-ellipsis { font-size: 9px; color: var(--text-dim); padding: 4px 2px; }
+
+/* ══════════════════════════════════════════════════════════════
+   LIVE INDICATOR
+   ══════════════════════════════════════════════════════════════ */
+.live-indicator { display: inline-flex; align-items: center; gap: 4px; }
+.live-indicator::before {
+  content: ''; display: inline-block; width: 5px; height: 5px;
+  border-radius: 50%; background: var(--green); animation: livepulse 2s infinite;
+}
+@keyframes livepulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+@keyframes spin { to { transform: rotate(360deg); } }
+.loading-spinner {
+  display: inline-block; width: 12px; height: 12px;
+  border: 1px solid #e0e0e0; border-top-color: var(--text);
+  border-radius: 50%; animation: spin 0.7s linear infinite;
+}
+.loading-row td { text-align: center; padding: 24px; color: var(--text-dim); font-size: 11px; }
+.empty-row td { text-align: center; padding: 24px; color: #ccc; font-size: 11px; letter-spacing: 1px; }
+
+/* ══════════════════════════════════════════════════════════════
+   MODALS
+   ══════════════════════════════════════════════════════════════ */
+.modal-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.3); z-index: 1000;
+  align-items: center; justify-content: center;
+}
+.modal-overlay.open { display: flex; }
+.modal-box {
+  background: #fff; border-radius: 0;
+  width: 520px; max-width: 95vw; max-height: 88vh;
+  overflow-y: auto; border: 1px solid var(--text);
+}
+.modal-header {
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+}
+.modal-title { font-size: 13px; font-weight: 500; color: var(--text); line-height: 1.4; flex: 1; letter-spacing: 0.3px; }
+.modal-close {
+  width: 24px; height: 24px; display: flex; align-items: center; justify-content: center;
+  cursor: pointer; color: #999; font-size: 18px; flex-shrink: 0; border: none; background: none;
+}
+.modal-close:hover { color: var(--text); }
+.modal-body { padding: var(--sp-2) var(--sp-3); }
+.modal-meta { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: var(--sp-2); }
+.modal-meta-item { font-size: 10px; background: #f5f5f5; padding: 3px 8px; color: #555; letter-spacing: 0.3px; }
+.modal-field { margin-bottom: var(--sp-2); }
+.modal-field label {
+  display: block; font-size: 9px; text-transform: uppercase;
+  letter-spacing: 2px; color: #aaa; font-weight: 400; margin-bottom: 5px;
+}
+.modal-field select,
+.modal-field input,
+.modal-field textarea {
+  width: 100%; font-family: var(--sans); font-size: 12px;
+  padding: 7px 10px; border: 1px solid #ddd;
+  border-radius: 0; background: #fff; color: var(--text); outline: none;
+}
+.modal-field select:focus, .modal-field input:focus, .modal-field textarea:focus { border-color: var(--text); }
+.modal-field textarea { resize: vertical; min-height: 70px; }
+.modal-footer {
+  padding: var(--sp-2) var(--sp-3) var(--sp-2);
+  border-top: 1px solid var(--border);
+  display: flex; gap: 8px; justify-content: flex-end; align-items: center;
+}
+.modal-redmine-link { font-size: 10px; color: var(--text-dim); text-decoration: none; margin-right: auto; letter-spacing: 0.3px; }
+.modal-redmine-link:hover { color: var(--text); }
+.journals-list { margin-top: var(--sp-1); }
+.journal-item { padding: 8px 0; border-bottom: 1px solid var(--border); font-size: 11px; }
+.journal-item:last-child { border-bottom: none; }
+.journal-meta { font-size: 10px; color: var(--text-dim); margin-bottom: 4px; }
+.journal-notes { color: #444; line-height: 1.6; white-space: pre-wrap; }
+
+/* Settings Modal */
+.settings-overlay {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.45); z-index: 2000;
+  align-items: center; justify-content: center;
+}
+.settings-overlay.open { display: flex; }
+.settings-box { background: #fff; border: 1px solid var(--text); width: 420px; max-width: 95vw; padding: 0; }
+.settings-header {
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.settings-title { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 3px; color: var(--text); }
+.settings-close { width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #999; font-size: 18px; border: none; background: none; }
+.settings-close:hover { color: var(--text); }
+.settings-body { padding: var(--sp-3); }
+.settings-field { margin-bottom: var(--sp-3); }
+.settings-field label { display: block; font-size: 9px; text-transform: uppercase; letter-spacing: 2.5px; color: #aaa; font-weight: 400; margin-bottom: 6px; }
+.settings-field input {
+  width: 100%; font-family: var(--sans); font-size: 12px;
+  padding: 9px 12px; border: 1px solid #ddd; border-radius: 0;
+  background: #fff; color: var(--text); outline: none; letter-spacing: 0.3px;
+}
+.settings-field input:focus { border-color: var(--text); }
+.settings-footer { padding: 0 var(--sp-3) var(--sp-3); display: flex; flex-direction: column; gap: 0; }
+.no-conn-overlay {
+  display: none; position: fixed; inset: 0; background: var(--bg);
+  z-index: 1500; align-items: center; justify-content: center;
+  flex-direction: column; gap: 16px;
+}
+.no-conn-overlay.visible { display: flex; }
+.no-conn-title { font-size: 13px; font-weight: 400; color: #555; letter-spacing: 1px; }
+
+/* AI focus banner */
+#ai-focus-banner {
+  display: none; background: #0f1e2e; border-bottom: 2px solid #1a5276;
+  padding: 7px var(--sp-2); align-items: center; gap: 8px;
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — TABLET  768–1199px
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 1199px) {
+  :root {
+    --g-margin : 32px;
+    --g-gap    : 24px;
+  }
+
+  /* KPI row: 2+2 layout */
+  .g-strip.kpi-row .gc-3 { grid-column: span 6; }
+
+  /* AI section: 중간 단계 — 아직 나란히 유지 */
+  .g-content.ai-row .gc-8 { grid-column: span 7; }
+  .g-content.ai-row .gc-4 { grid-column: span 5; }
+
+  /* Cards: keep side by side but narrow gutter */
+  .g-content.cards-row .gc-6 { grid-column: span 6; }
+}
+
+@media (max-width: 899px) {
+  /* AI section: 여기서 스택으로 전환 */
+  .g-content.ai-row .gc-8 { grid-column: span 12; }
+  .g-content.ai-row .gc-4 { grid-column: span 12; margin-top: 24px; }
+}
+
+/* ══════════════════════════════════════════════════════════════
+   RESPONSIVE — MOBILE  <768px
+   ══════════════════════════════════════════════════════════════ */
+@media (max-width: 767px) {
+  :root {
+    --g-margin : 16px;
+    --g-gap    : 16px;
+  }
+
+  .navbar { padding: 0 var(--g-margin); }
+  .navbar-tagline { display: none; }
+  .navbar-center { padding: 0 var(--sp-2); gap: var(--sp-2); }
+  .navbar-live { display: none; }
+  .btn-text-mobile { display: none; }
+  .btn.btn-ghost, .btn.btn-black { padding: 5px 8px; min-width: 0; }
+
+  /* All g-strip columns: full width */
+  .g-strip .gc-3,
+  .g-strip .gc-4,
+  .g-strip .gc-8 { grid-column: span 12; border-right: none; border-bottom: 1px solid var(--border); }
+
+  /* Override for KPI: 2×2 grid (each gc-3 → span 6) */
+  .g-strip.kpi-row .gc-3 { grid-column: span 6; border-right: none; }
+  .g-strip.kpi-row .gc-3:nth-child(odd) { border-right: 1px solid var(--border); }
+
+  /* Content grid: all cols full width */
+  .g-content .gc-6,
+  .g-content .gc-8,
+  .g-content .gc-4 { grid-column: span 12; }
+
+  /* Tab filters: 2×2 */
+  .tab-filters { grid-template-columns: 1fr 1fr; }
+  .tab-filter-cell:nth-child(2) { border-right: none; }
+
+  /* Mobile card list */
+  #tab-card-list { display: flex !important; flex-direction: column; gap: 8px; padding: var(--sp-2); background: #f0efed; }
+  .tab-table { display: none !important; }
+  .tab-issue-card {
+    background: #fff !important; border: none !important;
+    border-left: 4px solid #ccc !important; padding: 10px 12px !important; cursor: pointer;
+  }
+  .tab-card-top { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 5px; }
+  .tab-card-id { font-size: 10px; color: var(--text-dim); }
+  .tab-card-title { font-size: 12px; color: var(--text); line-height: 1.5; margin-bottom: 6px; }
+  .tab-card-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .tab-card-date { font-size: 10px; color: var(--text-dim); }
+  .tab-card-status { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 2px; }
+
+  .sum-card { padding: var(--sp-3) var(--sp-3); }
+  #risk-score-display { font-size: 64px; }
+  .sum-value { font-size: 40px; }
+}
+
+/* Always hide tab card list on desktop */
+#tab-card-list { display: none !important; }
+@media (max-width: 767px) { #tab-card-list { display: flex !important; } }
+#ai-cmd-panel {
+  width: 280px;
+  background: #111;
+  color: #fff;
+  position: fixed;
+  right: 0;
+  top: 60px;
+  bottom: 0;
+  z-index: 50;
+  display: none;
+  flex-direction: column;
+}
+#ai-cmd-panel.open {
+  display: flex;
+}
+#ai-cmd-toggle {
+  position: fixed;
+  right: 0;
+  top: 120px;
+  background: #111;
+  color: #fff;
+  width: 32px;
+  padding: 20px 0;
+  cursor: pointer;
+  z-index: 51;
+  text-align: center;
+  font-size: 9px;
+  letter-spacing: .1em;
+  writing-mode: vertical-rl;
+  max-width: 100vw;
+  box-sizing: border-box;
+}
+@media (min-width: 1400px) {
+  #ai-cmd-panel { width: 360px; }
+  #ai-cmd-toggle { width: 36px; }
+}
+@media (min-width: 1800px) {
+  #ai-cmd-panel { width: 420px; }
+  #ai-cmd-toggle { width: 40px; }
+}
+.ai-action-btn {
+  display: inline-block;
+  font-family: var(--dm);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  padding: 6px 14px;
+  border: none;
+  cursor: pointer;
+  margin-top: 10px;
+  border-radius: 0;
+}
+.ai-action-btn.reassign {
+  background: #1a3a5c;
+  color: #fff;
+}
+.ai-action-btn.escalate {
+  background: #2a1a0e;
+  color: #e8a87c;
+}
+.ai-action-btn.monitor {
+  background: #1a2a1a;
+  color: #7cbf7c;
+}
+.ai-action-btn:hover { opacity: .85; }
+.ai-chart-sub {
+</style>
 </head>
 <body>
 
-  <!-- BACKGROUND -->
-  <div class="bg">
-    <div class="orb orb-1"></div>
-    <div class="orb orb-2"></div>
-    <div class="orb orb-3"></div>
-    <div class="orb orb-4"></div>
-    <div class="orb orb-5"></div>
-    <div class="orb orb-6"></div>
-  </div>
-  <div class="bg-mouse" id="bgMouse"></div>
-
-  <!-- NAV -->
-  <nav class="glass">
-    <span class="nav-logo">Vantix<span>.</span></span>
-    <div class="nav-links">
-      <a class="nav-link" href="#features">기능</a>
-      <a class="nav-link" href="#testimonials">후기</a>
-      <a class="nav-btn" href="#footer-cta">시작하기</a>
+<!-- ══ NAVBAR ══════════════════════════════════════════════════ -->
+<nav class="navbar">
+  <a href="/" style="text-decoration:none;color:inherit;">
+    <div class="navbar-brand">
+      <div class="navbar-logo">Vantix</div>
+      <div class="navbar-tagline">AI Project Risk Intelligence</div>
     </div>
-    <button class="nav-menu-btn glass" id="menu-btn-v3" aria-label="메뉴" onclick="toggleMenuV3()">
-      <span></span><span></span><span></span>
+  </a>
+
+  <div class="navbar-center">
+    <div class="navbar-filter-item">
+      <div class="navbar-filter-label">Project</div>
+      <div class="navbar-filter-value">
+        <select id="projectSelect" onchange="onProjectChange()">
+          <option value="">전체 프로젝트</option>
+        </select>
+      </div>
+    </div>
+    <div class="navbar-divider"></div>
+    <div class="navbar-filter-item" style="position:relative;" id="since-wrap">
+      <div class="navbar-filter-label">Since</div>
+      <div class="navbar-filter-value" onclick="toggleSinceDD()" style="cursor:pointer;display:flex;align-items:center;gap:4px;">
+        <span id="filterDateDisplay">2026-03-01</span>
+        <span style="font-size:8px;color:#aaa;" id="since-chevron">▾</span>
+      </div>
+      <div id="since-dd" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #e4e2e2;width:180px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,0.10);">
+        <div class="since-dd-item" onclick="pickSince(this,30)">1개월<span>30 DAYS</span></div>
+        <div class="since-dd-item active" onclick="pickSince(this,90)">3개월<span>90 DAYS</span></div>
+        <div class="since-dd-item" onclick="pickSince(this,180)">6개월<span>180 DAYS</span></div>
+        <div class="since-dd-item" onclick="pickSince(this,365)">1년<span>365 DAYS</span></div>
+        <div class="since-dd-item" onclick="pickSince(this,730)">2년<span>730 DAYS</span></div>
+        <div style="height:1px;background:#e4e2e2;"></div>
+        <div class="since-dd-item" id="since-custom-btn" onclick="toggleSinceCustom()">직접 입력<span>CUSTOM</span></div>
+        <div id="since-custom-row" style="display:none;padding:8px 12px;background:#f5f3f3;">
+          <input type="date" id="filterDateInput" style="width:100%;border:1px solid #e4e2e2;padding:5px 8px;font-size:11px;font-family:inherit;outline:none;" onchange="pickSinceCustom(this.value)">
+        </div>
+      </div>
+    </div>
+    <div class="navbar-divider"></div>
+    <div class="navbar-live">
+      <div class="navbar-filter-label">Status</div>
+      <div class="navbar-live-val">
+        <span style="display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--green);"></span>
+        <span id="cacheAge">—</span>&nbsp;·&nbsp;<span class="live-indicator" style="color:var(--green);font-weight:700;">LIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="navbar-actions">
+    <button class="btn btn-ghost navbar-icon-btn" onclick="forceRefresh()" data-label-ko="강제 갱신" data-label-en="Force Refresh" title="강제 갱신">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1 0 1-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 2v3h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
     </button>
-  </nav>
+    <button class="btn btn-ghost navbar-icon-btn" onclick="loadData()" data-label-ko="새로 고침" data-label-en="Refresh" title="새로 고침">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2a5 5 0 1 1 0 10A5 5 0 0 1 7 2z" stroke="currentColor" stroke-width="1.1"/><path d="M7 5v2.5l1.5 1.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+    </button>
+    <div class="navbar-divider"></div>
+    <button class="btn btn-primary-outline navbar-icon-btn" onclick="openReport()" data-label-ko="리포트" data-label-en="Report" title="리포트">
+      <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+    </button>
+    <button class="btn-icon navbar-icon-btn" onclick="openSettingsModal()" title="설정">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="3"/>
+        <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+      </svg>
+    </button>
+  </div>
+</nav>
 
-  <!-- MOBILE MENU -->
-  <div class="mobile-menu-v3 glass-heavy" id="mobile-menu-v3">
-    <a href="#features" onclick="closeMenuV3()">기능</a>
-    <a href="#testimonials" onclick="closeMenuV3()">후기</a>
-    <a href="#footer-cta" onclick="closeMenuV3()" style="color:var(--accent);font-weight:600;">시작하기 →</a>
+<!-- ══ RISK SCORE + TREND STRIP  (4 + 8 cols) ═══════════════════ -->
+<div class="g-strip section-border" style="margin-bottom:0;">
+
+  <!-- Risk Index — 4/12 cols -->
+  <div class="gc-4 risk-score-card" id="card-risk">
+    <div class="sum-label">CURRENT RISK INDEX / 위험 지수</div>
+    <div style="display:flex;align-items:flex-end;gap:16px;margin-bottom:10px;">
+      <div id="risk-score-wrap" style="position:relative;display:inline-block;cursor:help;">
+        <span id="risk-score-display" style="color:#ccc;">—</span>
+        <div id="risk-tooltip" style="display:none;position:absolute;top:calc(100% + 8px);left:0;background:#111;color:#fff;font-size:11px;line-height:1.8;padding:14px 16px;white-space:nowrap;z-index:999;pointer-events:none;border-top:2px solid var(--red);">
+          <div style="font-weight:700;font-size:10px;letter-spacing:0.12em;color:var(--red);margin-bottom:8px;">RISK SCORE 산정 기준 · /100 환산</div>
+          <div style="display:flex;justify-content:space-between;gap:24px;margin-bottom:4px;"><span style="color:var(--red);">마감 초과 비율 × 60</span><span style="color:#666;font-size:10px;">overdue / total × 60</span></div>
+          <div style="display:flex;justify-content:space-between;gap:24px;margin-bottom:4px;"><span style="color:#fb923c;">마감 임박 비율 × 30</span><span style="color:#666;font-size:10px;">urgent / total × 30</span></div>
+          <div style="display:flex;justify-content:space-between;gap:24px;margin-bottom:10px;"><span style="color:#aaa;">진행 대기 비율 × 10</span><span style="color:#666;font-size:10px;">pending / total × 10</span></div>
+          <div style="height:1px;background:#333;margin-bottom:8px;"></div>
+          <div style="color:#888;font-size:10px;">최대 원점수 60 → 100점 환산 표시</div>
+          <div style="color:#555;font-size:10px;">예) 원점수 30 → 표시 점수 50</div>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:4px;padding-bottom:8px;">
+        <div style="display:flex;align-items:center;gap:6px;">
+          <span id="risk-dot" style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ccc;flex-shrink:0;"></span>
+          <span class="sum-value" id="risk-level-text" style="font-size:13px;color:#ccc;font-weight:700;letter-spacing:0.08em;">—</span>
+        </div>
+      </div>
+    </div>
+    <div style="height:3px;background:#e5e5e5;margin-bottom:6px;">
+      <div id="risk-gauge-fill" style="height:100%;width:0%;background:#ccc;transition:width 0.6s ease;"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;margin-bottom:var(--sp-1);">
+      <span style="font-size:8px;color:var(--green);letter-spacing:0.1em;">LOW</span>
+      <span style="font-size:8px;color:#fb923c;letter-spacing:0.1em;">HIGH</span>
+      <span style="font-size:8px;color:var(--red);letter-spacing:0.1em;">CRITICAL</span>
+    </div>
+    <div class="risk-sub" id="risk-sub">—</div>
+    <div style="height:0.5px;background:#e8e8e8;margin:var(--sp-1) 0;"></div>
+    <div id="risk-ai-comment" style="font-size:11px;color:var(--text);font-weight:600;line-height:1.6;display:flex;gap:5px;align-items:flex-start;">
+      <span style="color:var(--red);flex-shrink:0;">✦</span>
+      <span id="risk-ai-comment-text">분석 중...</span>
+    </div>
+    <div class="sum-hint" style="margin-top:6px;">위험경보 ↓</div>
   </div>
 
-  <!-- HERO -->
-  <section id="hero">
-    <div class="hero-badge">Redmine 전용 AI 리스크 분석</div>
-    <h1>리스크를<br/>누구보다 <span class="gradient-text">먼저</span><br/>감지하세요.</h1>
-    <p class="hero-sub">AI가 이슈 데이터를 실시간으로 읽고,<br/>문제가 생기기 전에 미리 알려드립니다.</p>
-
-    <div class="cta-card glass-heavy" style="border-radius: 30px; border-style: solid; display:none">
-      <p>얼리 액세스 신청 — 선착순 마감</p>
-      <form class="input-row" onsubmit="handleHero(event)">
-        <input class="glass-input" type="email" placeholder="work@company.com" required id="hero-email" />
-        <button class="cta-btn" type="submit">신청하기</button>
-      </form>
-      <p class="cta-note">스팸 없음 · 론칭 시 단 한 번 알림</p>
-      <div class="success-inline" id="hero-success">✓ 등록되었습니다. 감사합니다!</div>
+  <!-- Risk Trend Chart — 8/12 cols -->
+  <div class="gc-8 trend-card">
+    <div class="ai-chart-card" style="position:relative;">
+      <div class="ai-chart-header">
+        <div class="ai-chart-title">RISK SCORE TRENDS / 위험 지수 추이</div>
+        <div class="ai-chart-header-right">
+          <div class="ai-legend">
+            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#ccc;"></div> LOW</div>
+            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#333;"></div> AVG</div>
+            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:var(--red);"></div> CRITICAL</div>
+          </div>
+          <button class="ai-gear-btn" id="riskGearBtn" onclick="toggleRiskSettings()">&#9881;</button>
+        </div>
+      </div>
+      <div class="ai-settings-panel" id="riskSettingsPanel">
+        <div class="ai-settings-label">Chart Settings</div>
+        <div class="ai-settings-row">
+          <label>표시 주수</label>
+          <div class="ai-dow-btns" id="weeksBtns">
+            <div class="ai-dow-btn" onclick="setWeeks(this,4)">4주</div>
+            <div class="ai-dow-btn" onclick="setWeeks(this,8)">8주</div>
+            <div class="ai-dow-btn" onclick="setWeeks(this,12)">12주</div>
+          </div>
+        </div>
+        <button class="ai-settings-apply" onclick="applyRiskSettings()">Apply</button>
+      </div>
+      <div class="ai-chart-sub">Weekly volatility · updated every Friday</div>
+      <div class="ai-chart-area">
+        <div class="ai-gridlines">
+          <div class="ai-gridline"></div><div class="ai-gridline"></div>
+          <div class="ai-gridline"></div><div class="ai-gridline"></div>
+          <div class="ai-gridline"></div>
+        </div>
+        <div class="ai-bars" id="riskChartBars">
+          <div style="padding:20px;text-align:center;font-size:11px;color:#ccc;width:100%;">로딩 중...</div>
+        </div>
+      </div>
+      <div class="ai-bar-labels" id="riskChartLabels"></div>
     </div>
-  </section>
+  </div>
 
-  <!-- NUMBERS — 숨자로 보는 성과 -->
-  <section id="numbers">
-    <div class="numbers-head" data-reveal>
-      <div class="section-eyebrow">숫자로 보는 성과</div>
-      <h2>당신은 Vantix로
-조용한 여름을 보냅니다.</h2>
-    </div>
-    <div class="numbers-grid" data-stagger>
-      <div class="num-card glass">
-        <div class="num-label">RISK DETECTION</div>
-        <div class="num-big"><span class="num-count" data-count-to="40" style="font-weight: 800">40</span><span class="num-unit">%</span></div>
-        <div class="num-desc">AI 분석을 기반으로 프로젝트 리스크를 더 빨리 대응합니다.
 </div>
-        <div class="num-base">FASTER · 기존 대비</div>
-      </div>
-      <div class="num-card glass">
-        <div class="num-label">ON-TIME RATE</div>
-        <div class="num-big"><span class="num-count" data-count-to="80">0</span><span class="num-unit">%</span></div>
-        <div class="num-desc">일정 준수율이 기존 대비<br/>높아집니다.</div>
-        <div class="num-base">INCREASE · 기존 대비</div>
-      </div>
-      <div class="num-card glass">
-        <div class="num-label">RESPONSE SPEED</div>
-        <div class="num-big"><span class="num-count" data-count-to="3.2" data-count-decimals="1">0</span><span class="num-unit">×</span></div>
-        <div class="num-desc">이슈 대응 속도가 사용 전 평균 대비
-3.2배 향상됩니다.</div>
-        <div class="num-base">FASTER · PM 기준</div>
-      </div>
-      <div class="num-card glass">
-        <div class="num-label">REPORT TIME ↓</div>
-        <div class="num-big"><span class="num-count" data-count-to="65">0</span><span class="num-unit">%</span></div>
-        <div class="num-desc">보고서 작성 시간을
-획기적으로 줄여줍니다. (리포트 기능)</div>
-        <div class="num-base">REDUCED · 기존 대비</div>
-      </div>
+
+<!-- ══ KPI ROW  (3 + 3 + 3 + 3 cols) ══════════════════════════ -->
+<div class="g-strip kpi-row section-border mb-4">
+
+  <div class="gc-3 sum-card" id="card-total">
+    <div class="sum-label">Total Issues</div>
+    <div class="sum-value" id="val-total">—</div>
+    <div class="sum-spark">
+      <svg id="spark-total" width="60" height="18" viewBox="0 0 60 18"></svg>
+      <span class="sum-delta" id="delta-total">— No Change</span>
     </div>
-  </section>
+  </div>
 
-  <!-- FEATURES -->
-  <section id="features">
-    <div class="section-eyebrow" data-reveal>핵심 기능</div>
-    <h2 class="section-title" data-reveal>왜 Vantix인가요?</h2>
-    <div class="features-grid" data-stagger>
-      <div class="feature-card glass">
-        <div class="feature-icon icon-blue">
-          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-        </div>
-        <div class="feature-title">Redmine 네이티브 연동</div>
-        <div class="feature-body">별도 마이그레이션 없이 기존 Redmine에 바로 연결됩니다. 설정 시간 10분 이내.</div>
-      </div>
-      <div class="feature-card glass">
-        <div class="feature-icon icon-purple">
-          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><path d="M12 8v4l3 3"/></svg>
-        </div>
-        <div class="feature-title">선제적 리스크 탐지</div>
-        <div class="feature-body">이슈 패턴과 지연 신호를 분석해 문제가 커지기 전에 PM에게 먼저 알립니다.</div>
-      </div>
-      <div class="feature-card glass">
-        <div class="feature-icon icon-green">
-          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-        </div>
-        <div class="feature-title">실시간 대시보드</div>
-        <div class="feature-body">전체 프로젝트 건강도를 한눈에. 리스크 수준별로 우선순위가 자동 정렬됩니다.</div>
-      </div>
+  <div class="gc-3 sum-card bg-muted clickable" id="card-open" onclick="goToTab('assignee')">
+    <div class="sum-label">Open Issues</div>
+    <div class="sum-value amber" id="val-open">—</div>
+    <div class="sum-spark">
+      <svg id="spark-open" width="60" height="18" viewBox="0 0 60 18"></svg>
+      <span class="sum-delta" id="delta-open">—</span>
     </div>
-  </section>
+    <div class="sum-hint">담당자별 현황 ↓</div>
+  </div>
 
-  <!-- TESTIMONIALS -->
-  <section id="testimonials">
-    <div class="section-eyebrow" data-reveal>사용자 후기</div>
-    <h2 class="section-title" style="margin-bottom: 40px;" data-reveal>실제 사용자들의 이야기</h2>
-    <div class="testimonials-grid" data-stagger>
-      <div class="tcard glass">
-        <p class="tcard-quote">리스크를 뒤늦게 보고받는 게 항상 문제였어요. Vantix는 이슈가 커지기 전에 먼저 알려줬습니다.</p>
-        <div class="tcard-author">
-          <div class="author-avatar av-blue">김</div>
-          <div class="author-info">
-            <div class="author-name">김민준</div>
-            <div class="author-role">Senior PM · 판교 핀테크 스타트업</div>
-          </div>
-        </div>
-      </div>
-      <div class="tcard glass">
-        <p class="tcard-quote">Redmine을 오래 써왔는데 이렇게 자연스럽게 붙는 AI 툴은 처음입니다. 팀 전환 비용이 거의 없었어요.</p>
-        <div class="tcard-author">
-          <div class="author-avatar av-purple">이</div>
-          <div class="author-info">
-            <div class="author-name">이서연</div>
-            <div class="author-role">Project Lead · SI 기업</div>
-          </div>
-        </div>
-      </div>
-      <div class="tcard glass">
-        <p class="tcard-quote">대시보드 하나로 전체 프로젝트 건강 상태를 볼 수 있다는 게 가장 큰 장점입니다.</p>
-        <div class="tcard-author">
-          <div class="author-avatar av-teal">박</div>
-          <div class="author-info">
-            <div class="author-name">박지호</div>
-            <div class="author-role">PM · 공공 IT 프로젝트</div>
-          </div>
-        </div>
-      </div>
+  <div class="gc-3 sum-card clickable" id="card-imminent" onclick="goToTab('imminent')">
+    <div class="sum-label">Imminent</div>
+    <div class="sum-value blue" id="val-imminent">—</div>
+    <div class="sum-spark">
+      <span class="sum-delta" id="delta-imminent" style="color:#2980b9;">D-7 이내</span>
     </div>
-  </section>
+    <div class="sum-hint">마감 임박 이슈 ↓</div>
+  </div>
 
-  <!-- FOOTER CTA — Connect Redmine (Minimal) -->
-  <section id="footer-cta">
-
-    <!-- Section header — outside card, like features/numbers -->
-    <div class="connect-header" data-reveal>
-      <div class="feature-icon icon-aqua" style="margin: 0 auto 20px;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-      </div>
-      <div class="section-eyebrow">Redmine 연동</div>
-      <h2 class="section-title">지금 바로 시작하세요.</h2>
-      <p class="connect-lead-center">Redmine URL과 API Key만 입력하면 곧 바로 리스크 분석이 시작됩니다.<br/>데이터는 서버에 저장되지 않습니다.</p>
+  <div class="gc-3 sum-card bg-dark2 clickable" id="card-overdue" onclick="goToTab('overdue')">
+    <div class="sum-label">Overdue</div>
+    <div class="sum-value red" id="val-overdue">—</div>
+    <div class="sum-spark">
+      <svg id="spark-overdue" width="60" height="18" viewBox="0 0 60 18"></svg>
+      <span class="sum-delta" id="delta-overdue">—</span>
     </div>
+    <div class="sum-hint">Overdue Issues ↓</div>
+  </div>
 
-    <!-- Single slim form card -->
-    <div class="connect-card-slim glass" data-reveal="scale">
-      <form class="connect-form" onsubmit="handleConnect(event)">
-        <div class="connect-field">
-          <div class="connect-label-row">
-            <span class="connect-label">REDMINE URL</span>
-            <span class="connect-hint-tag">REQUIRED</span>
-          </div>
-          <div class="connect-input-wrap">
-            <span class="connect-input-icon">↗</span>
-            <input class="connect-input" type="url" placeholder="https://redmine.yourcompany.com" required id="connect-url" />
-          </div>
-        </div>
+</div>
 
-        <div class="connect-field">
-          <div class="connect-label-row">
-            <span class="connect-label">API ACCESS KEY</span>
-            <span class="connect-hint-tag">아래 3단계 안내</span>
-          </div>
-          <div class="connect-input-wrap">
-            <span class="connect-input-icon">⦿</span>
-            <input class="connect-input mono" type="text" placeholder="API Key 입력" required id="connect-key" />
-          </div>
-        </div>
+<!-- ══ AI ANALYSIS  (8 + 4 cols) ═══════════════════════════════ -->
+<div class="g-content ai-row mb-4" id="sec-ai-summary">
 
-        <button class="connect-btn" type="submit">
-          <span>CONNECT TO REDMINE</span>
-          <span class="connect-btn-arrow">→</span>
-        </button>
-        <div class="connect-secure">
-          <span class="dot"></span>
-          CLIENT-SIDE ONLY · NEVER STORED
-        </div>
-        <div class="success-inline" id="connect-success">✓ 연결되었습니다. 대시보드로 이동합니다...</div>
-      </form>
+  <!-- Risk-Heavy Members — 8/12 -->
+  <div class="gc-8 risk-members-section">
+    <div class="risk-members-header">
+      <div>
+        <div class="risk-members-title">Risk-Heavy Members / 위험 노출 담당자</div>
+      </div>
+      <div onclick="goToTab('assignee')" style="font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(0,0,0,0.4);cursor:pointer;">View All ↓</div>
     </div>
+    <div id="risk-members-body"></div>
+  </div>
 
-    <!-- Steps strip — small inline row -->
-    <div class="connect-steps-strip" id="how-to-key" data-stagger>
-      <div class="step-pill">
-        <span class="step-num">01</span>
-        <span class="step-pill-text">Redmine 우측 상단 프로필 → <strong>내 계정</strong> 클릭</span>
-      </div>
-      <div class="step-pill">
-        <span class="step-num">02</span>
-        <span class="step-pill-text">우측 하단 <strong>API 액세스 키 → 표시</strong> 클릭</span>
-      </div>
-      <div class="step-pill">
-        <span class="step-num">03</span>
-        <span class="step-pill-text">키 복사 후 위 입력란에 <strong>붙여넣기</strong></span>
-      </div>
+  <!-- AI Card — 4/12 -->
+  <div class="gc-4 ai-card-dark">
+    <div>
+      <div class="ai-label-mono">AI Analysis</div>
+      <div class="ai-card-headline" id="aiHeadline">분석 중...</div>
+      <div class="ai-card-body-text" id="aiSummaryText">데이터를 불러오는 중입니다.</div>
     </div>
+    <button class="ai-refresh-btn" onclick="generateAiSummary()">&#8635; &nbsp; REFRESH ANALYSIS</button>
+  </div>
 
-  </section>
+</div>
 
-  <!-- BOTTOM BAR -->
-  <footer>
-    <span class="footer-logo" style="font-family: &quot;DM Sans&quot;">Vantix<span>.</span></span>
-    <span class="footer-meta">© 2025 Vantix · AI Risk Intelligence for Redmine</span>
-  </footer>
+<!-- ══ CARD PANELS  (6 + 6 cols) ════════════════════════════════ -->
+<div class="g-content cards-row mb-4">
 
-  <!-- TWEAKS -->
-  <div id="tweaks-panel" class="glass-heavy">
-    <div class="tweak-t">Tweaks</div>
-    <div class="tweak-r">
-      <div class="tweak-l">배경 컬러</div>
-      <select class="tweak-s" onchange="setBg(this.value)">
-        <option value="default">블루 그라디언트 (현재)</option>
-        <option value="warm">웜 선셋</option>
-        <option value="cool">쿨 민트</option>
-        <option value="neutral">뉴트럴 그레이</option>
+  <!-- Group Status — 6/12 -->
+  <div class="gc-6 card-panel" id="sec-group">
+    <div class="card-header">
+      <span>Group Status · 그룹 현황</span>
+      <span class="card-header-sub" id="group-header-sub">—</span>
+    </div>
+    <div class="card-body" style="padding:0;">
+      <div id="group-col-header" style="display:none;">
+        <div>Group</div>
+        <div>Overdue Ratio</div>
+        <div style="text-align:right;">OVR</div>
+        <div style="text-align:right;">Risk</div>
+      </div>
+      <div id="group-tbody"></div>
+      <div id="group-hidden-msg" style="padding:20px var(--sp-2);font-size:11px;color:#ccc;text-align:center;">프로젝트를 선택하면 그룹 현황이 표시됩니다.</div>
+    </div>
+  </div>
+
+  <!-- Milestones — 6/12 -->
+  <div class="gc-6 card-panel bg-muted" id="sec-version">
+    <div class="card-header">
+      <span>Milestones · 버전 / 마일스톤</span>
+      <span class="card-header-sub" id="version-project-name">—</span>
+    </div>
+    <div class="card-body" id="version-body" style="overflow-y:auto;flex:1;min-height:0;max-height:340px;">
+      <div style="padding:var(--sp-2);text-align:center;font-size:11px;color:#ccc;">로딩 중...</div>
+    </div>
+  </div>
+
+</div>
+
+<!-- ══ BOTTOM TAB SECTION ════════════════════════════════════════ -->
+<div class="g-padded pb-4">
+
+  <div style="display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-1);">
+    <div class="tab-bar">
+      <div class="tab-item active" data-tab="imminent" onclick="switchTab('imminent')">
+        마감 임박 <span class="tab-badge blue" id="badge-imminent">0</span>
+      </div>
+      <div class="tab-item" data-tab="overdue" onclick="switchTab('overdue')">
+        마감 초과 <span class="tab-badge red" id="badge-overdue">0</span>
+      </div>
+      <div class="tab-item" data-tab="assignee" onclick="switchTab('assignee')">담당자별</div>
+      <div class="tab-item" data-tab="all" onclick="switchTab('all')">전체 이슈</div>
+    </div>
+    <span id="tabCount" style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;">0건</span>
+  </div>
+
+  <div class="tab-filters">
+    <div class="tab-filter-cell">
+      <span class="tab-filter-label">Keyword 검색</span>
+      <input type="text" id="tabKeywordSearch" placeholder="ISSUE NAME OR ID" oninput="renderTab()">
+    </div>
+    <div class="tab-filter-cell">
+      <span class="tab-filter-label">Priority 우선순위</span>
+      <select id="tabPriorityFilter" onchange="renderTab()">
+        <option value="">ALL PRIORITIES</option>
+        <option value="High">HIGH</option>
+        <option value="Normal">NORMAL</option>
+        <option value="Low">LOW</option>
       </select>
     </div>
-    <div class="tweak-r">
-      <div class="tweak-l">글라스 강도</div>
-      <select class="tweak-s" onchange="setBlur(this.value)">
-        <option value="24px">보통 (현재)</option>
-        <option value="8px">얕은 블러</option>
-        <option value="48px">강한 블러</option>
+    <div class="tab-filter-cell">
+      <span class="tab-filter-label">Assignee 담당자</span>
+      <select id="tabAssigneeFilter" onchange="renderTab()">
+        <option value="">EVERYONE</option>
       </select>
     </div>
-    <div class="tweak-r">
-      <div class="tweak-l">네비 형태</div>
-      <select class="tweak-s" onchange="setNav(this.value)">
-        <option value="pill">플로팅 필 (현재)</option>
-        <option value="bar">상단 풀 바</option>
+    <div class="tab-filter-cell">
+      <span class="tab-filter-label">Status 상태</span>
+      <select id="tabStatusFilter" onchange="renderTab()">
+        <option value="">OPEN ISSUES</option>
+        <option value="all">ALL</option>
+        <option value="closed">CLOSED</option>
       </select>
     </div>
   </div>
 
-  <script>
-    function toggleMenuV3() {
-      const btn = document.getElementById('menu-btn-v3');
-      const menu = document.getElementById('mobile-menu-v3');
-      btn.classList.toggle('open');
-      menu.classList.toggle('open');
-    }
-    function closeMenuV3() {
-      document.getElementById('menu-btn-v3').classList.remove('open');
-      document.getElementById('mobile-menu-v3').classList.remove('open');
-    }
+  <div id="ai-focus-banner" style="display:none;background:#0f1e2e;border-bottom:2px solid #1a5276;padding:7px var(--sp-2);align-items:center;gap:8px;">
+    <span style="font-size:8px;letter-spacing:.1em;background:#1a5276;color:#7fb3d3;padding:2px 7px;text-transform:uppercase;flex-shrink:0;">✦ AI 포커스</span>
+    <span id="ai-focus-text" style="font-size:11px;color:#7fb3d3;flex:1;"></span>
+    <span id="ai-focus-count" style="font-size:10px;color:#3a7ca8;flex-shrink:0;"></span>
+    <button onclick="clearAiFocus()" style="background:none;border:none;color:#3a7ca8;cursor:pointer;font-size:13px;padding:0 2px;flex-shrink:0;" title="전체 해제">✕</button>
+  </div>
 
-    // Tweaks
-    window.addEventListener('message', e => {
-      if (e.data?.type === '__activate_edit_mode') document.getElementById('tweaks-panel').classList.add('open');
-      if (e.data?.type === '__deactivate_edit_mode') document.getElementById('tweaks-panel').classList.remove('open');
+  <div class="tab-content">
+    <div id="tab-card-list"></div>
+    <table class="data-table tab-table">
+      <thead>
+        <tr>
+          <th data-sort="id" onclick="setSort('id')" style="cursor:pointer;color:#bbb;">ID<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="subject" onclick="setSort('subject')" style="cursor:pointer;color:#bbb;">SUBJECT 이슈 제목<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="dept" onclick="setSort('dept')" style="cursor:pointer;color:#bbb;">그룹<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="assignee" onclick="setSort('assignee')" style="cursor:pointer;color:#bbb;">담당자<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="status" onclick="setSort('status')" style="cursor:pointer;color:#bbb;">상태<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="priority" onclick="setSort('priority')" style="cursor:pointer;color:#bbb;">PRIORITY<span class="sort-icon"> ⇅</span></th>
+          <th data-sort="due_date" onclick="setSort('due_date')" style="cursor:pointer;color:#000;text-align:right;">D-DAY<span class="sort-icon"> ▲</span></th>
+        </tr>
+      </thead>
+      <tbody id="tab-tbody">
+        <tr class="loading-row"><td colspan="7"><span class="loading-spinner"></span></td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    <div class="pg-left">
+      <span class="pg-info" id="pgInfo">Showing 1–10 of 0 entries</span>
+      <div class="pg-toggle">
+        <span class="pg-toggle-btn active" onclick="setPerPage(10, this)">10</span>
+        <span class="pg-toggle-btn" onclick="setPerPage(50, this)">50</span>
+      </div>
+    </div>
+    <div class="pg-controls" id="pgControls"></div>
+  </div>
+
+</div>
+
+<!-- ══ MODALS ═════════════════════════════════════════════════════ -->
+<div class="settings-overlay" id="settingsModal">
+  <div class="settings-box">
+    <div class="settings-header">
+      <div class="settings-title">Redmine 연결 설정</div>
+      <button class="settings-close" onclick="closeSettingsModal(event)">&#x2715;</button>
+    </div>
+    <div class="settings-body">
+      <div class="settings-field">
+        <label>Redmine URL</label>
+        <input type="text" id="settingsUrl" placeholder="https://your-redmine.example.com" value="__REDMINE_BASE_URL__">
+      </div>
+      <div class="settings-field">
+        <label>API Key</label>
+        <input type="password" id="settingsApiKey" placeholder="API Key를 입력하세요" value="">
+      </div>
+    </div>
+    <div class="settings-footer">
+      <div style="height:56px;display:flex;align-items:center;gap:10px;margin-bottom:8px;padding:0 14px;background:#f7f7f7;border-left:2px solid #ddd;">
+        <span style="font-size:13px;">💡</span>
+        <span style="font-size:11px;color:#999;line-height:1.5;">API 키 확인 → 내 계정 › 우측 하단 <b style="color:#666;">API 액세스 키</b> › 표시</span>
+      </div>
+      <button class="btn btn-black" onclick="saveSettings()" style="width:100%;height:28px;justify-content:center;margin-bottom:8px;">SAVE</button>
+      <button onclick="disconnectRedmine()" style="width:100%;height:28px;background:none;border:1px solid #B40023;color:#B40023;font-size:10px;font-weight:600;letter-spacing:0.15em;text-transform:uppercase;cursor:pointer;margin-bottom:8px;">DISCONNECT</button>
+      <div style="height:56px;display:flex;align-items:center;gap:10px;background:#0047A0;padding:0 14px;">
+        <svg width="12" height="12" viewBox="0 0 16 16" fill="none" style="flex-shrink:0;"><rect x="3" y="7" width="10" height="8" rx="1.5" stroke="#fff" stroke-width="1.2"/><path d="M5 7V5a3 3 0 0 1 6 0v2" stroke="#fff" stroke-width="1.2" stroke-linecap="round"/></svg>
+        <span style="font-size:11px;color:#fff;opacity:0.9;line-height:1.5;"><b style="opacity:1;">보안 안내</b> — 입력된 정보는 Vantix 서버로 전송되지 않으며, 로컬 브라우저에만 저장됩니다.</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="no-conn-overlay" id="noConnOverlay">
+  <div class="no-conn-title">Redmine 연결이 필요합니다</div>
+  <button class="btn btn-black" onclick="openSettingsModal()">설정하기</button>
+</div>
+
+<div class="modal-overlay" id="confirmModal" onclick="closeConfirmModal(event)">
+  <div class="modal-box" style="max-width:420px;">
+    <div class="modal-header">
+      <div class="modal-title" style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:3px;color:#111;">REDMINE 로드맵 페이지 이동</div>
+      <button class="modal-close" onclick="closeConfirmModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:#555;line-height:1.7;margin-bottom:var(--sp-2);">레드마인 로드맵 상세페이지로 이동하여 전체 현황을 확인합니다.<br><br><span id="confirmUrl" style="color:#0047A0;font-size:11px;word-break:break-all;"></span></p>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-black" style="flex:1;justify-content:center;" onclick="confirmRedmineGo()">확인</button>
+        <button class="btn" style="flex:1;justify-content:center;border:1px solid #e4e2e2;" onclick="closeConfirmModal()">취소</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="issueModal" onclick="closeModalOnOverlay(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle">이슈 로딩 중...</div>
+      <button class="modal-close" onclick="closeModal()">&#x2715;</button>
+    </div>
+    <div class="modal-body">
+      <div class="modal-meta" id="modalMeta"></div>
+      <div class="modal-field"><label>상태</label><select id="modalStatus"></select></div>
+      <div class="modal-field"><label>담당자</label><select id="modalAssignee"></select></div>
+      <div class="modal-field"><label>마감일</label><input type="date" id="modalDueDate"></div>
+      <div class="modal-field"><label>버전</label><select id="modalVersion"></select></div>
+      <div class="modal-field"><label>코멘트</label><textarea id="modalNotes" placeholder="변경 내용 또는 메모를 입력하세요..."></textarea></div>
+      <div id="journalsSection" style="display:none;">
+        <div style="font-size:10px;text-transform:uppercase;letter-spacing:0.05em;color:#999;font-weight:500;margin-bottom:8px;">활동 이력</div>
+        <div class="journals-list" id="journalsList"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <a id="modalRedmineLink" href="#" target="_blank" class="modal-redmine-link">Redmine에서 열기 &#x2197;</a>
+      <button class="btn btn-ghost" onclick="closeModal()">취소</button>
+      <button class="btn btn-black" onclick="saveIssue()">저장</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const _origFetch = window.fetch;
+window.fetch = function(url, opts = {}) {
+  const token = localStorage.getItem('vx_token');
+  if (token) {
+    opts.headers = opts.headers || {};
+    opts.headers['X-VX-Session'] = token;
+  }
+  return _origFetch(url, opts);
+};
+</script>
+<script>
+// ============================================================
+// State
+// ============================================================
+var allData = null;
+var currentProjectId = localStorage.getItem('vantix_last_project') || '';
+var currentUpdatedAfter = localStorage.getItem('vantix_since') || '__DEFAULT_UPDATED_AFTER__';
+var currentTab = 'imminent';
+var currentModalIssueId = null;
+var aiSummaryText = '';
+var REDMINE_BASE = '__REDMINE_BASE_URL__';
+  var REDMINE_API_KEY = '__REDMINE_API_KEY__';
+
+// ============================================================
+// Dept colors & status badges
+// ============================================================
+var DEPT_COLORS = { '기획':'#c2410c','PM':'#15803d','클라':'#1d4ed8','서버':'#7e22ce','UI':'#be123c' };
+function deptTag(dept) {
+  var c = DEPT_COLORS[dept] || '#888';
+  return '<span class="dept-tag" style="color:'+c+';">'+escHtml(dept||'—')+'</span>';
+}
+var STATUS_COLORS = {
+  '진행':'#2563eb','진행대기':'#7c3aed','In Progress':'#2563eb',
+  '해결':'#16a34a','해결됨':'#16a34a','Resolved':'#16a34a',
+  '완료':'#6b7280','Closed':'#6b7280','반려':'#6b7280','Rejected':'#6b7280',
+  '보류':'#d97706','보류(스펙아웃)':'#d97706','스펙아웃':'#d97706',
+};
+function statusBadge(status) {
+  var c = STATUS_COLORS[status]||'#999';
+  return '<span style="color:'+c+';font-size:10px;">'+escHtml(status)+'</span>';
+}
+var CLOSED_SET_JS = new Set(['완료','Closed','반려','Rejected','해결됨','Resolved','해결']);
+var HOLD_SET_JS   = new Set(['보류','보류(스펙아웃)','스펙아웃']);
+
+// ============================================================
+// D-Day helpers
+// ============================================================
+function dday(dueDateStr) {
+  if (!dueDateStr) return null;
+  var today = new Date(); today.setHours(0,0,0,0);
+  var due = new Date(dueDateStr+'T00:00:00');
+  return Math.floor((due-today)/86400000);
+}
+function ddayLabel(dueDateStr) {
+  if (!dueDateStr) return '—';
+  var d = dday(dueDateStr);
+  if (d===null) return '—';
+  if (d<0) return 'D+'+Math.abs(d);
+  if (d===0) return 'D-Day';
+  return 'D-'+d;
+}
+function ddayColor(dueDateStr) {
+  if (!dueDateStr) return '#bbb';
+  var d = dday(dueDateStr);
+  if (d===null) return '#bbb';
+  if (d<0) return '#c0392b';
+  if (d===0) return '#f59e0b';
+  if (d<=3) return '#2563eb';
+  return '#bbb';
+}
+
+// ============================================================
+// Sparkline
+// ============================================================
+function renderSparkline(svgId, values, color) {
+  var svg = document.getElementById(svgId);
+  if (!svg||!values||values.length<2) return;
+  var W=60,H=18;
+  var mn=Math.min.apply(null,values), mx=Math.max.apply(null,values);
+  var range=mx-mn||1;
+  var pts=values.map(function(v,i){
+    var x=(i/(values.length-1))*W;
+    var y=H-((v-mn)/range)*(H-3)-1;
+    return x.toFixed(1)+','+y.toFixed(1);
+  }).join(' ');
+  svg.innerHTML='<polyline points="'+pts+'" fill="none" stroke="'+color+'" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>';
+}
+
+// ============================================================
+// escHtml
+// ============================================================
+function escHtml(str) {
+  if (str==null) return '';
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ============================================================
+// Name helpers (adjust to your actual data shape)
+// ============================================================
+function getShortName(uname) { return (uname||'').split(' ')[0]||uname; }
+
+// ============================================================
+// Init
+// ============================================================
+async function init() {
+  await loadProjects();
+  await loadData();
+}
+
+async function loadProjects() {
+  try {
+    var res = await fetch('/api/projects');
+    var projects = await res.json();
+    var sel = document.getElementById('projectSelect');
+    sel.innerHTML = '<option value="">전체 프로젝트</option>';
+    projects.forEach(function(p){
+      var opt=document.createElement('option'); opt.value=p.identifier; opt.textContent=p.name; sel.appendChild(opt);
     });
-    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    if (currentProjectId) { sel.value=currentProjectId; if(sel.value!==currentProjectId) currentProjectId=''; }
+  } catch(e) { console.error('loadProjects error:',e); }
+}
 
-    const bgPresets = {
-      default: ['#b8d4f8,#d4e8ff', '#e8d5f5,#f3e8ff', '#c8f0e8,#d8f5ee', '#fde8d8,#fef0e8', '#e8edf5'],
-      warm:    ['#ffd4b8,#ffe8cc', '#f5d5e8,#ffe8f3', '#ffeab8,#fff3d4', '#ffd4d8,#ffe8ea', '#f5ede8'],
-      cool:    ['#b8e8d4,#ccf3e8', '#b8d4f8,#cce8ff', '#d4f5e8,#e8fff5', '#c8d8f8,#dce8ff', '#e8f0f5'],
-      neutral: ['#e8e8e8,#f0f0f0', '#e8e0f0,#f0ecf8', '#f0e8e8,#f8f0f0', '#e0e8e8,#ecf0f0', '#f0efee'],
-    };
+async function loadData() {
+  var params = new URLSearchParams({project_id:currentProjectId,updated_after:currentUpdatedAfter});
+  try {
+    var res = await fetch('/api/data?'+params,{signal:AbortSignal.timeout(15000)});
+    if (!res.ok) throw new Error('HTTP '+res.status);
+    allData = await res.json();
+    setServerStatus('online');
+    renderAll(); generateAiSummary();
+    _riskWeeks = parseInt(localStorage.getItem('riskWeeks')||'12');
+    document.querySelectorAll('#weeksBtns .ai-dow-btn').forEach(function(b){
+      b.classList.toggle('active',b.getAttribute('onclick').includes(','+_riskWeeks+')'));
+    });
+    loadRiskHistory();
+  } catch(e) {
+    console.error('loadData error:',e);
+    setServerStatus('offline');
+    if (allData) renderAll();
+  }
+}
 
-    function setBg(v) {
-      const orbs = document.querySelectorAll('.orb');
-      const colors = bgPresets[v];
-      document.querySelector('.bg').style.background = colors[4];
-      orbs.forEach((o, i) => {
-        o.style.background = `radial-gradient(circle, ${colors[i]})`;
-      });
-      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { bg: v } }, '*');
+function setServerStatus(status) {
+  var liveEl=document.querySelector('.live-indicator');
+  var cacheEl=document.getElementById('cacheAge');
+  if (status==='offline') {
+    liveEl.innerHTML='<span style="color:#c0392b;font-weight:700;">OFF</span>';
+    cacheEl.textContent='서버 연결 끊김';
+  } else {
+    liveEl.innerHTML='<span style="color:#16a34a;font-weight:700;">LIVE</span>';
+  }
+}
+
+function renderAll() {
+  if (!allData) return;
+  renderSummaryCards(); renderImminentCard(); renderAssigneeCard();
+  renderOverdueCard(); renderVersionCard();
+  renderGroupStatus(currentProjectId); renderTab(); updateCacheAge(); populateTabFilters();
+}
+
+async function renderGroupStatus(projectId) {
+  var tbody=document.getElementById('group-tbody');
+  var hiddenMsg=document.getElementById('group-hidden-msg');
+  var headerSub=document.getElementById('group-header-sub');
+  var colHeader=document.getElementById('group-col-header');
+  if (!projectId||projectId==='') {
+    if(tbody) tbody.innerHTML='';
+    if(hiddenMsg) hiddenMsg.style.display='block';
+    if(colHeader) colHeader.style.display='none';
+    return;
+  }
+  if(hiddenMsg) hiddenMsg.style.display='none';
+  if(colHeader) colHeader.style.display='grid';
+  try {
+    var res=await fetch('/api/groups?project_id='+encodeURIComponent(projectId));
+    var data=await res.json();
+    var groups=data.groups||[];
+    if(headerSub) headerSub.textContent=groups.length+' groups';
+    if(!tbody) return;
+    if(groups.length===0){tbody.innerHTML='<div style="padding:20px var(--sp-2);font-size:11px;color:#ccc;text-align:center;">그룹 정보 없음</div>';return;}
+    tbody.innerHTML=groups.map(function(g,idx){
+      var bg=idx%2===1?'#f5f3f3':'#fff';
+      var totalIssues=g.total_issues||1;
+      var overdueRatio=Math.min(100,Math.round((g.overdue_now/totalIssues)*100));
+      var barColor=g.risk==='Critical'?'#c0392b':g.risk==='High'?'#000':'#bbb';
+      var riskBg=g.risk==='Critical'?'#c0392b':g.risk==='High'?'#000':'#e4e2e2';
+      var riskColor=g.risk==='Stable'?'#666':'#fff';
+      var overdueColor=g.overdue_now>0?'#c0392b':'#000';
+      return '<div style="display:grid;grid-template-columns:100px 1fr 52px 72px;padding:11px var(--sp-2);border-bottom:1px solid #eae8e7;gap:10px;align-items:center;background:'+bg+';"><div><div style="font-size:12px;font-weight:700;color:#000;">'+g.name+'</div><div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.07em;margin-top:1px;">'+g.user_count+'명</div></div><div><div style="height:6px;background:#eae8e7;border-radius:3px;overflow:hidden;"><div style="height:6px;background:'+barColor+';width:'+overdueRatio+'%;border-radius:3px;"></div></div><div style="font-size:9px;color:#bbb;margin-top:3px;">'+overdueRatio+'% overdue</div></div><div style="font-size:12px;font-weight:600;text-align:right;color:'+overdueColor+';">'+g.overdue_now+'</div><div style="text-align:right;"><span style="font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:3px 7px;background:'+riskBg+';color:'+riskColor+';">'+g.risk+'</span></div></div>';
+    }).join('');
+  } catch(e) { if(tbody) tbody.innerHTML='<div style="padding:20px var(--sp-2);font-size:11px;color:#ccc;text-align:center;">그룹 로드 실패</div>'; }
+}
+
+// ============================================================
+// Summary Cards
+// ============================================================
+function renderSummaryCards() {
+  var d=allData;
+  var trend=d.trend_7days||{};
+  window._currentRedmineUrl = allData.redmine_url || '';
+  renderRiskMembers(allData);
+  var valTotalEl=document.getElementById('val-total');
+  if(valTotalEl) valTotalEl.textContent=(d.total_issues!==undefined&&d.total_issues!==null)?d.total_issues:'—';
+  renderSparkline('spark-total',trend.open||[],'#999');
+  var deltaTotalEl=document.getElementById('delta-total');
+  if(deltaTotalEl) deltaTotalEl.textContent='— No Change';
+  var valOpenEl=document.getElementById('val-open');
+  if(valOpenEl) valOpenEl.textContent=(d.open_issues!==undefined&&d.open_issues!==null)?d.open_issues:'—';
+  renderSparkline('spark-open',trend.open||[],'#b7770d');
+  var dOpen=trend.delta_open||0;
+  var deltaOpenEl=document.getElementById('delta-open');
+  if(deltaOpenEl){deltaOpenEl.textContent=dOpen===0?'— No Change':(dOpen>0?'+'+dOpen+' Increase':dOpen+' Decrease');deltaOpenEl.className='sum-delta '+(dOpen>0?'up':dOpen<0?'down':'');}
+  var valImminentEl=document.getElementById('val-imminent');
+  if(valImminentEl) valImminentEl.textContent=(d.imminent_count!==undefined)?d.imminent_count:(d.imminent_issues||[]).length;
+  var valOverdueEl=document.getElementById('val-overdue');
+  if(valOverdueEl) valOverdueEl.textContent=(d.overdue!==undefined&&d.overdue!==null)?d.overdue:'—';
+  renderSparkline('spark-overdue',trend.overdue||[],'#c0392b');
+  var dOverdue=trend.delta_overdue||0;
+  var deltaOverdueEl=document.getElementById('delta-overdue');
+  if(deltaOverdueEl){deltaOverdueEl.textContent=dOverdue===0?'— No Change':(dOverdue>0?'+'+dOverdue+' Increase':dOverdue+' Decrease');deltaOverdueEl.className='sum-delta '+(dOverdue>0?'up':dOverdue<0?'down':'');}
+  var riskList=d.project_risk||[];
+  var topRisk;
+  if(!currentProjectId&&riskList.length>1){
+    var avgScore=Math.round(riskList.reduce(function(s,r){return s+r.risk_score;},0)/riskList.length*10)/10;
+    var avgLevel=avgScore>=30?'Critical':avgScore>=15?'High':avgScore>=5?'Medium':'Low';
+    topRisk={risk_score:avgScore,risk_level:avgLevel,name:'전체 '+riskList.length+'개 프로젝트 평균'};
+  } else { topRisk=riskList[0]; }
+  var dotEl=document.getElementById('risk-dot');
+  var levelEl=document.getElementById('risk-level-text');
+  var subEl=document.getElementById('risk-sub');
+  var RISK_COLORS={Critical:{dot:'#f87171',text:'#c0392b'},High:{dot:'#fb923c',text:'#fb923c'},Medium:{dot:'#fbbf24',text:'#b7770d'},Low:{dot:'#34d399',text:'#16a34a'}};
+  if(topRisk){
+    var rc=RISK_COLORS[topRisk.risk_level]||{dot:'#ccc',text:'#999'};
+    if(dotEl) dotEl.style.background=rc.dot;
+    if(levelEl){levelEl.textContent=topRisk.risk_level;levelEl.style.color=rc.text;}
+    var scoreDisplayEl=document.getElementById('risk-score-display');
+    if(scoreDisplayEl){var normalizedScore=Math.min(Math.round(topRisk.risk_score*100/60),100);scoreDisplayEl.textContent=normalizedScore;scoreDisplayEl.style.color=rc.text;}
+    if(subEl) subEl.textContent='';
+    var gaugeFill=document.getElementById('risk-gauge-fill');
+    if(gaugeFill){var s=topRisk.risk_score,pct;if(s<5)pct=(s/5)*25;else if(s<15)pct=25+((s-5)/10)*25;else if(s<30)pct=50+((s-15)/15)*25;else pct=75+Math.min((s-30)/70,1)*25;gaugeFill.style.width=pct.toFixed(1)+'%';gaugeFill.style.background=rc.dot;}
+    var commentEl=document.getElementById('risk-ai-comment-text');
+    if(commentEl&&topRisk.name){
+      commentEl.textContent='분석 중...';
+      var topIssues=(topRisk.issues_overdue||[]).slice(0,3).map(function(i){return i.subject;}).join(', ');
+      fetch('/api/ai/risk-comment?name='+encodeURIComponent(topRisk.name)+'&score='+topRisk.risk_score+'&overdue='+(d.overdue||0)+'&urgent='+((d.imminent_issues||[]).length)+'&open_issues='+(d.open_issues||0)+'&top_issues='+encodeURIComponent(topIssues)).then(function(r){return r.json();}).then(function(data){if(data.comment)commentEl.textContent=data.comment;else commentEl.textContent='—';}).catch(function(){commentEl.textContent='—';});
     }
+  } else {
+    if(dotEl) dotEl.style.background='#34d399';
+    if(levelEl){levelEl.textContent='Low';levelEl.style.color='#16a34a';}
+    var scoreDisplayEl=document.getElementById('risk-score-display');
+    if(scoreDisplayEl){scoreDisplayEl.textContent='0';scoreDisplayEl.style.color='#16a34a';}
+    if(subEl) subEl.textContent='위험 프로젝트 없음';
+    var gaugeFill=document.getElementById('risk-gauge-fill');
+    if(gaugeFill) gaugeFill.style.width='0%';
+    var commentEl=document.getElementById('risk-ai-comment-text');
+    if(commentEl) commentEl.textContent='위험 프로젝트 없음';
+  }
+  var badgeOverdueEl=document.getElementById('badge-overdue');
+  if(badgeOverdueEl) badgeOverdueEl.textContent=d.overdue||0;
+  var badgeImminentEl=document.getElementById('badge-imminent');
+  if(badgeImminentEl) badgeImminentEl.textContent=(d.imminent_issues||[]).length;
+  var scoreWrap=document.getElementById('risk-score-wrap');
+  var tooltip=document.getElementById('risk-tooltip');
+  if(scoreWrap&&tooltip){
+    scoreWrap.addEventListener('mouseenter',function(){tooltip.style.display='block';});
+    scoreWrap.addEventListener('mouseleave',function(){tooltip.style.display='none';});
+  }
+}
 
-    function setBlur(v) {
-      document.querySelectorAll('.glass, .glass-heavy').forEach(el => {
-        el.style.backdropFilter = `blur(${v}) saturate(180%)`;
-        el.style.webkitBackdropFilter = `blur(${v}) saturate(180%)`;
-      });
-      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { blur: v } }, '*');
-    }
+// ============================================================
+// Imminent / Overdue cards
+// ============================================================
+function renderImminentCard() {
+  var issues=allData.imminent_issues||[];
+  var imminentHeaderSub=document.getElementById('imminent-header-sub');
+  if(imminentHeaderSub) imminentHeaderSub.textContent='D-10 이내 · '+issues.length+'건';
+  var container=document.getElementById('imminent-tbody');
+  if(!container) return;
+  if(issues.length===0){container.innerHTML='<div style="padding:20px var(--sp-2);font-size:11px;color:#ccc;text-align:center;">마감 임박 이슈 없음</div>';return;}
+  container.innerHTML=issues.map(function(i){
+    var color=ddayColor(i.due_date),label=ddayLabel(i.due_date);
+    var assigneeShort=i.assignee_short||i.assignee||'',dept=i.dept||'';
+    return '<div class="ci-row" onclick="openIssue('+i.id+')"><div class="ci-meta"><span class="ci-num">#'+i.id+'</span><span class="ci-sep">·</span><span class="ci-assignee">'+escHtml(assigneeShort)+'</span><span class="ci-sep">·</span><span class="ci-group">'+escHtml(dept)+'</span><span class="ci-sep">·</span><span class="ci-status">'+escHtml(i.status)+'</span></div><div class="ci-bottom"><span class="ci-title">'+escHtml(i.subject)+'</span><span class="ci-elapsed" style="color:'+color+';">'+label+'</span></div></div>';
+  }).join('');
+}
 
-    function setNav(v) {
-      const nav = document.querySelector('nav');
-      if (v === 'bar') {
-        nav.style.top = '0';
-        nav.style.width = '100%';
-        nav.style.maxWidth = 'none';
-        nav.style.borderRadius = '0';
-        nav.style.left = '0';
-        nav.style.transform = 'none';
-        nav.style.padding = '12px 48px';
+function getInitials(name){
+  name=name.trim();if(!name)return '?';
+  if(/[가-힣一-鿿぀-ヿ]/.test(name))return name[0];
+  var words=name.trim().split(/\s+/).filter(function(w){return /[a-zA-Z]/.test(w);});
+  if(words.length>=2)return(words[0][0]+words[1][0]).toUpperCase();
+  var letters=name.replace(/[^a-zA-Z]/g,'');
+  return letters?letters[0].toUpperCase():name[0];
+}
+
+function renderRiskMembers(allData){
+  var container=document.getElementById('risk-members-body');
+  if(!container)return;
+  var usersData=allData.users_data||{};
+  var todayStr=new Date().toISOString().slice(0,10);
+  var rows=[];
+  for(var uname in usersData){
+    var ud=usersData[uname],issues=ud.issues||[];
+    var open=issues.filter(function(i){return!CLOSED_SET_JS.has(i.status);});
+    var overdueIssues=open.filter(function(i){return i.due_date&&i.due_date<todayStr&&!HOLD_SET_JS.has(i.status);});
+    if(overdueIssues.length===0)continue;
+    var overdueRatio=open.length>0?Math.round(overdueIssues.length/open.length*100):0;
+    var level=overdueRatio>=60?'critical':overdueRatio>=30?'high':'medium';
+    rows.push({uname:uname,shortN:ud.short_name||getShortName(uname),dept:ud.group||getDept(uname),open:open.length,overdue:overdueIssues.length,overdueRatio:overdueRatio,level:level});
+  }
+  rows.sort(function(a,b){return b.overdueRatio-a.overdueRatio||b.open-a.open;});
+  var top3=rows.slice(0,3);
+  if(top3.length===0){container.innerHTML='<div style="padding:var(--sp-2) var(--sp-3);font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:0.1em;">초과 이슈 없음</div>';return;}
+  var LEVEL_COLOR={critical:'#c0392b',high:'#b45309',medium:'#555'};
+  var LEVEL_LABEL={critical:'CRITICAL',high:'HIGH',medium:'MEDIUM'};
+  var LEVEL_BADGE_BG={critical:'#c0392b',high:'#000',medium:'#000'};
+  var LEVEL_BADGE_COLOR={critical:'#fff',high:'#fff',medium:'#fff'};
+  var maxOpen=Math.max.apply(null,top3.map(function(r){return r.open;}))||1;
+  container.innerHTML=top3.map(function(r){
+    var color=LEVEL_COLOR[r.level]||'#555',label=LEVEL_LABEL[r.level]||'MEDIUM';
+    var badgeBg=LEVEL_BADGE_BG[r.level]||'#000',badgeFg=LEVEL_BADGE_COLOR[r.level]||'#fff';
+    var initials=getInitials(r.shortN);
+    var odValColor=r.overdueRatio>=60?'#c0392b':r.overdueRatio>=30?'#b45309':'#2e7d32';
+    var openPct=Math.round(r.open/maxOpen*100);
+    var barColor=r.level==='critical'?'#c0392b':r.level==='high'?'#b45309':'#000';
+    return '<div class="risk-member-row" data-name="'+escHtml(r.shortN)+'" onclick="selectMemberFromCard(this)"><div class="risk-member-top"><div class="risk-member-avatar" style="background:'+badgeBg+';color:'+badgeFg+';">'+escHtml(initials)+'</div><div class="risk-member-name-block"><div class="risk-member-name">'+escHtml(r.shortN)+'</div><div class="risk-member-dept">'+escHtml(r.dept)+'</div></div><div class="risk-member-bar-section"><div class="risk-member-bar-row"><span class="risk-member-bar-lbl">OVR</span><div class="risk-member-bar-track"><div class="risk-member-bar-fill" style="width:'+r.overdueRatio+'%;background:'+barColor+';"></div></div><span class="risk-member-bar-val" style="color:'+odValColor+';">'+r.overdueRatio+'%</span></div><div class="risk-member-bar-row"><span class="risk-member-bar-lbl">OPN</span><div class="risk-member-bar-track"><div class="risk-member-bar-fill" style="width:'+openPct+'%;background:#555;"></div></div><span class="risk-member-bar-val">'+r.open+'</span></div></div><span class="risk-member-badge" style="background:'+badgeBg+';color:'+badgeFg+';width:64px;text-align:center;flex-shrink:0;margin:0 auto;">'+label+'</span></div></div>';
+  }).join('');
+}
+
+function renderAssigneeCard(){
+  var usersData=allData.users_data||{};
+  var todayStr=new Date().toISOString().slice(0,10);
+  var rows=[];
+  for(var uname in usersData){
+    var ud=usersData[uname],issues=ud.issues||[];
+    var total=issues.length;
+    var open=issues.filter(function(i){return!CLOSED_SET_JS.has(i.status);}).length;
+    var overdue=issues.filter(function(i){return i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status);}).length;
+    rows.push({name:(usersData[uname]&&usersData[uname].short_name)||getShortName(uname),group:(usersData[uname]&&usersData[uname].group)||getDept(uname),total:total,open:open,overdue:overdue});
+  }
+  renderAssigneeRows(rows);
+}
+
+function renderAssigneeRows(data){
+  var container=document.getElementById('assignee-tbody');
+  if(!container)return;
+  if(!data||data.length===0){container.innerHTML='<div style="padding:20px var(--sp-2);font-size:11px;color:#ccc;text-align:center;">담당자 데이터 없음</div>';return;}
+  var sorted=[...data].sort((a,b)=>(b.overdue||0)-(a.overdue||0));
+  var maxOverdue=sorted[0]?.overdue||1;
+  container.innerHTML=sorted.map(row=>{
+    var overdue=row.overdue||0,total=row.total||0,open=row.open||0;
+    var group=row.group?`<span>(${row.group})</span>`:'';
+    var isCritical=overdue>=3;
+    var barPct=Math.min(Math.round((overdue/maxOverdue)*100),100);
+    var barClass=isCritical?'assignee-bar-critical':'assignee-bar-normal';
+    var metaL=isCritical?'<span class="assignee-meta-l critical">마감 초과 위험</span>':`<span class="assignee-meta-l">진행 ${String(open).padStart(2,'0')}건</span>`;
+    var metaR=isCritical?'<span class="assignee-meta-r urgent">즉시 조치 필요</span>':`<span class="assignee-meta-r">${overdue>=1?'초과 있음':'정상'}</span>`;
+    var overdueHtml=overdue>0?`<span style="color:#c0392b;font-weight:500;">초과 ${overdue}</span>`:`<span style="color:#999;">초과 0</span>`;
+    return `<div class="assignee-row"><div class="assignee-row-top"><span class="assignee-row-name">${escHtml(row.name)} ${group}</span><span class="assignee-row-counts">전체 ${total} · 오픈 ${open} · ${overdueHtml}</span></div><div class="assignee-bar-track"><div class="assignee-bar-fill ${barClass}" style="width:${barPct}%;"></div></div><div class="assignee-row-meta">${metaL}${metaR}</div></div>`;
+  }).join('');
+}
+
+function renderOverdueCard(){
+  var usersData=allData.users_data||{};
+  var todayStr=new Date().toISOString().slice(0,10);
+  var overdues=[];
+  for(var uname in usersData){
+    var ud=usersData[uname];
+    (ud.issues||[]).forEach(function(i){
+      if(i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status)){
+        var d=dday(i.due_date);
+        overdues.push(Object.assign({},i,{assigneeShort:getShortName(uname),dept:(usersData[uname]&&usersData[uname].group)||getDept(uname),elapsed:d}));
+      }
+    });
+  }
+  overdues.sort(function(a,b){return a.elapsed-b.elapsed;});
+  var overdueHeaderSub=document.getElementById('overdue-header-sub');
+  if(overdueHeaderSub) overdueHeaderSub.textContent=overdues.length+'건';
+  var container=document.getElementById('overdue-tbody');
+  if(!container)return;
+  if(overdues.length===0){container.innerHTML='<div style="padding:20px var(--sp-2);font-size:11px;color:#ccc;text-align:center;">마감 초과 이슈 없음</div>';return;}
+  container.innerHTML=overdues.map(function(i){
+    var elapsedAbs=Math.abs(i.elapsed),color=elapsedAbs>7?'#c0392b':'#b7770d',label='D+'+elapsedAbs;
+    return '<div class="ci-row" onclick="openIssue('+i.id+')"><div class="ci-meta"><span class="ci-num">#'+i.id+'</span><span class="ci-sep">·</span><span class="ci-assignee">'+escHtml(i.assigneeShort)+'</span><span class="ci-sep">·</span><span class="ci-group">'+escHtml(i.dept)+'</span><span class="ci-sep">·</span><span class="ci-status">'+escHtml(i.status)+'</span></div><div class="ci-bottom"><span class="ci-title">'+escHtml(i.subject)+'</span><span class="ci-elapsed" style="color:'+color+';">'+label+'</span></div></div>';
+  }).join('');
+}
+
+async function renderVersionCard(){
+  var cardsRow=document.getElementById('sec-group').closest('.cards-row');
+  if(!currentProjectId){
+    if(cardsRow)cardsRow.style.display='none';
+    return;
+  }
+  if(cardsRow)cardsRow.style.display='';
+  document.getElementById('sec-version').style.display='block';
+  var card=document.getElementById('sec-version'); card.style.display='block';
+  document.getElementById('version-project-name').textContent=currentProjectId;
+  var body=document.getElementById('version-body');
+  body.innerHTML='<div style="padding:var(--sp-2);text-align:center;font-size:11px;color:#ccc;">로딩 중...</div>';
+  try {
+    var res=await fetch('/api/versions?project_id='+encodeURIComponent(currentProjectId));
+    var versions=await res.json();
+    if(!versions||versions.length===0){body.innerHTML='<div style="padding:var(--sp-2);text-align:center;font-size:11px;color:#ccc;">버전 없음</div>';return;}
+    var html='<div class="tl-body"><div class="tl-line"></div>';
+    versions.forEach(function(v){
+      var pct=v.done_pct||0,hasDate=!!v.due_date;
+      var raw=hasDate?ddayLabel(v.due_date):null;
+      var isOverdue=raw&&raw.toString().startsWith('D+');
+      var dNum=raw?parseInt(raw.toString().replace(/[^0-9]/g,'')):null;
+      var isImminent=!isOverdue&&dNum!==null&&dNum<=10;
+      var isDone=pct===100&&!isOverdue&&!isImminent;
+      var isActive=isOverdue||isImminent;
+      html+='<div class="tl-item" onclick="goToRedmineVersion(this)" data-pid="'+currentProjectId+'" data-vid="'+v.id+'">';
+      if(isActive){
+        var cardCls=isOverdue?'tl-active-card overdue':'tl-active-card';
+        var badgeCls=isOverdue?'tl-active-badge overdue':'tl-active-badge imminent';
+        var badgeTxt=isOverdue?'OVERDUE':'IMMINENT';
+        var ddayTxt=isOverdue?'D+'+dNum+' 마감 초과':'D-'+dNum+' 마감 임박';
+        var pctColor=isOverdue?'#c0392b':'#b7770d';
+        var desc='완료율 <span style="font-weight:700;color:'+pctColor+';">'+pct+'%</span> · '+(isOverdue?'마감일 초과 상태. 잔여 이슈 확인 필요.':'마감까지 '+dNum+'일 남음.');
+        html+='<div class="tl-dot active"></div><div class="tl-content"><div class="'+cardCls+'"><div class="tl-active-top"><span class="tl-active-name">'+escHtml(v.name)+'</span><span class="'+badgeCls+'">'+badgeTxt+'</span></div><div class="tl-active-desc">'+desc+'</div><div class="tl-active-dday red">'+ddayTxt+'</div></div></div>';
+      } else if(isDone){
+        var dStr=hasDate?'D+'+dNum:'완료';
+        html+='<div class="tl-dot done"></div><div class="tl-content"><div class="tl-passive"><div><div class="tl-passive-name done">'+escHtml(v.name)+'</div><div class="tl-passive-sub">'+pct+'% 완료</div></div><span class="tl-passive-dday" style="color:#ccc;">'+dStr+'</span></div></div>';
       } else {
-        nav.style.top = '16px';
-        nav.style.width = 'calc(100% - 48px)';
-        nav.style.maxWidth = '1100px';
-        nav.style.borderRadius = '999px';
-        nav.style.left = '50%';
-        nav.style.transform = 'translateX(-50%)';
-        nav.style.padding = '12px 20px 12px 24px';
+        var ddayColor2=(hasDate&&dNum<=30)?'#0047A0':'#bbb';
+        var ddayStr=hasDate?'D-'+dNum:'미정';
+        var subTxt=pct>0?pct+'% 진행 중':'0% 미시작';
+        html+='<div class="tl-dot"></div><div class="tl-content"><div class="tl-passive"><div><div class="tl-passive-name upcoming">'+escHtml(v.name)+'</div><div class="tl-passive-sub">'+subTxt+'</div></div><span class="tl-passive-dday" style="color:'+ddayColor2+';">'+ddayStr+'</span></div></div>';
       }
-      window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { nav: v } }, '*');
+      html+='</div>';
+    });
+    html+='</div>';
+    body.innerHTML=html;
+    body.querySelectorAll('.tl-item').forEach(function(item){
+      var h=item.getBoundingClientRect().height;
+      item.querySelector('.tl-dot').style.setProperty('--tl-item-h',h+'px');
+    });
+  } catch(e){body.innerHTML='<div style="padding:var(--sp-2);text-align:center;font-size:11px;color:#c0392b;">로딩 실패</div>';}
+}
+
+// ============================================================
+// Tab helpers
+// ============================================================
+var _confirmUrl='';
+function goToRedmineVersion(el){
+  var item=el.closest('.tl-item');
+  var projectId=item.getAttribute('data-pid'),versionId=item.getAttribute('data-vid');
+  var base=localStorage.getItem('redmine_url')||'';
+  if(!base){alert('Redmine URL이 설정되지 않았습니다.');return;}
+  _confirmUrl=base.replace(/\/$/,'')+'/projects/'+projectId+'/roadmap#version-'+versionId;
+  document.getElementById('confirmUrl').textContent=_confirmUrl;
+  document.getElementById('confirmModal').classList.add('open');
+}
+function confirmRedmineGo(){var url=_confirmUrl;closeConfirmModal();if(url)window.open(url,'_blank');}
+function closeConfirmModal(e){
+  if(e&&e.target!==document.getElementById('confirmModal'))return;
+  document.getElementById('confirmModal').classList.remove('open');_confirmUrl='';
+}
+
+function selectMemberFromCard(el){
+  var shortName=el.getAttribute('data-name');
+  document.querySelectorAll('.risk-member-row').forEach(function(row){row.classList.toggle('selected',row.getAttribute('data-name')===shortName);});
+  var assigneeSelect=document.getElementById('tabAssigneeFilter');
+  if(assigneeSelect&&shortName){
+    for(var i=0;i<assigneeSelect.options.length;i++){
+      if(assigneeSelect.options[i].text.trim()===shortName.trim()){assigneeSelect.selectedIndex=i;break;}
     }
+  }
+  switchTab('assignee');renderTab();
+  var bottomEl=document.querySelector('.g-padded');
+  if(bottomEl){var y=bottomEl.getBoundingClientRect().top+window.pageYOffset-80;window.scrollTo({top:y,behavior:'smooth'});}
+}
 
-    function handleHero(e) {
-      e.preventDefault();
-      const email = document.getElementById('hero-email').value;
-      saveEmail(email);
-      e.target.style.display = 'none';
-      document.getElementById('hero-success').classList.add('show');
+function switchTab(tab){
+  var table=document.querySelector('.tab-table');
+  if(table)table.classList.add('fading');
+  setTimeout(function(){
+    currentTab=tab;
+    document.querySelectorAll('.tab-item').forEach(function(el){el.classList.toggle('active',el.dataset.tab===tab);});
+    if(tab!=='assignee'){
+      var assigneeSelect=document.getElementById('tabAssigneeFilter');
+      if(assigneeSelect)assigneeSelect.selectedIndex=0;
+      document.querySelectorAll('.risk-member-row').forEach(function(row){row.classList.remove('selected');});
     }
+    renderTab();
+    if(table)table.classList.remove('fading');
+  },200);
+}
 
-    function handleFooter(e) {
-      e.preventDefault();
-      const email = document.getElementById('footer-email').value;
-      saveEmail(email);
-      e.target.style.display = 'none';
-      document.getElementById('footer-note').style.display = 'none';
-      document.getElementById('footer-success').classList.add('show');
-    }
+function populateTabFilters(){
+  if(!allData)return;
+  var usersData=allData.users_data||{};
+  var assigneeSel=document.getElementById('tabAssigneeFilter');
+  if(assigneeSel){
+    var curAssignee=assigneeSel.value;
+    assigneeSel.innerHTML='<option value="">EVERYONE</option>';
+    Object.keys(usersData).sort().forEach(function(uname){
+      var opt=document.createElement('option');opt.value=uname;opt.textContent=getShortName(uname);assigneeSel.appendChild(opt);
+    });
+    if(curAssignee)assigneeSel.value=curAssignee;
+  }
+}
 
-    function handleConnect(e) {
-      e.preventDefault();
-      const url = document.getElementById('connect-url').value.trim();
-      const key = document.getElementById('connect-key').value.trim();
-      try {
-        const list = JSON.parse(localStorage.getItem('vantix_connect') || '[]');
-        list.push({ url, ts: Date.now() });
-        localStorage.setItem('vantix_connect', JSON.stringify(list));
-      } catch(_) {}
-      e.target.querySelector('.connect-btn').style.display = 'none';
-      e.target.querySelector('.connect-secure').style.display = 'none';
-      document.getElementById('connect-success').classList.add('show');
-    }
+function getTabIssues(){
+  if(!allData)return[];
+  var usersData=allData.users_data||{};
+  var todayStr=new Date().toISOString().slice(0,10);
+  var future3=new Date();future3.setDate(future3.getDate()+7);var future3Str=future3.toISOString().slice(0,10);
+  var issues=[];
+  for(var uname in usersData){
+    (usersData[uname].issues||[]).forEach(function(i){
+      issues.push(Object.assign({},i,{_uname:uname,_dept:(usersData[uname]&&usersData[uname].group)||getDept(uname),_short:(usersData[uname]&&usersData[uname].short_name)||getShortName(uname),_elapsed:i.due_date?dday(i.due_date):null}));
+    });
+  }
+  if(currentTab==='overdue') issues=issues.filter(function(i){return i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status);});
+  else if(currentTab==='imminent') issues=issues.filter(function(i){return i.due_date&&i.due_date>=todayStr&&i.due_date<=future3Str&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status);});
+  var keywordF=((document.getElementById('tabKeywordSearch')||{}).value||'').trim().toLowerCase();
+  var priorityF=(document.getElementById('tabPriorityFilter')||{}).value||'';
+  var assigneeF=(document.getElementById('tabAssigneeFilter')||{}).value||'';
+  var statusF=(document.getElementById('tabStatusFilter')||{}).value||'';
+  if(keywordF)issues=issues.filter(function(i){return String(i.id).includes(keywordF)||i.subject.toLowerCase().includes(keywordF);});
+  if(priorityF)issues=issues.filter(function(i){var p=i.priority||'';if(priorityF==='High')return p==='High'||p==='높음';if(priorityF==='Normal')return p==='Normal'||p==='보통';if(priorityF==='Low')return p==='Low'||p==='낮음';return true;});
+  if(assigneeF)issues=issues.filter(function(i){return i._uname===assigneeF;});
+  if(statusF==='closed')issues=issues.filter(function(i){return CLOSED_SET_JS.has(i.status);});
+  else if(statusF==='all'){}
+  else issues=issues.filter(function(i){return!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status);});
+  var sk=window._sortKey||'due_date',sd=window._sortDir||'asc';
+  issues.sort(function(a,b){
+    var av,bv;
+    if(sk==='id'){av=a.id;bv=b.id;}
+    else if(sk==='subject'){av=(a.subject||'').toLowerCase();bv=(b.subject||'').toLowerCase();}
+    else if(sk==='dept'){av=(a._dept||'').toLowerCase();bv=(b._dept||'').toLowerCase();}
+    else if(sk==='assignee'){av=(a._short||'').toLowerCase();bv=(b._short||'').toLowerCase();}
+    else if(sk==='status'){av=(a.status||'').toLowerCase();bv=(b.status||'').toLowerCase();}
+    else if(sk==='priority'){var pm={'high':0,'높음':0,'normal':1,'보통':1,'low':2,'낮음':2};av=pm[(a.priority||'').toLowerCase()]??9;bv=pm[(b.priority||'').toLowerCase()]??9;}
+    else{av=a.due_date||'9999';bv=b.due_date||'9999';}
+    if(av<bv)return sd==='asc'?-1:1;if(av>bv)return sd==='asc'?1:-1;return 0;
+  });
+  return issues;
+}
 
-    function saveEmail(email) {
-      const list = JSON.parse(localStorage.getItem('vantix_v3') || '[]');
-      if (!list.includes(email)) { list.push(email); localStorage.setItem('vantix_v3', JSON.stringify(list)); }
-    }
+function setSort(key){
+  if(window._sortKey===key){window._sortDir=window._sortDir==='asc'?'desc':'asc';}
+  else{window._sortKey=key;window._sortDir='asc';}
+  currentPage=1;
+  document.querySelectorAll('th[data-sort]').forEach(function(th){
+    var icon=th.querySelector('.sort-icon');if(!icon)return;
+    if(th.dataset.sort===window._sortKey){icon.textContent=window._sortDir==='asc'?' ▲':' ▼';th.style.color='#000';}
+    else{icon.textContent=' ⇅';th.style.color='#bbb';}
+  });
+  renderTab();
+}
 
-    /* ── SCROLL REVEAL — IntersectionObserver ── */
-    (function () {
-      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if (prefersReduced) {
-        document.querySelectorAll('[data-reveal], [data-stagger]').forEach(el => el.classList.add('in'));
-        document.querySelectorAll('.num-count').forEach(el => {
-          const target = parseFloat(el.dataset.countTo || '0');
-          const dec = parseInt(el.dataset.countDecimals || '0', 10);
-          el.textContent = target.toFixed(dec);
-        });
-        return;
-      }
+var currentPage=1,perPage=10;
+function setPerPage(n,el){perPage=n;currentPage=1;document.querySelectorAll('.pg-toggle-btn').forEach(function(b){b.classList.remove('active');});el.classList.add('active');renderTab();}
 
-      // Counter animation
-      function easeOutExpo(t) { return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); }
-      function animateCount(el) {
-        if (el.dataset.counted === '1') return;
-        el.dataset.counted = '1';
-        const target = parseFloat(el.dataset.countTo || '0');
-        const dec = parseInt(el.dataset.countDecimals || '0', 10);
-        const dur = 1600;
-        const start = performance.now();
-        function tick(now) {
-          const p = Math.min((now - start) / dur, 1);
-          const v = target * easeOutExpo(p);
-          el.textContent = v.toFixed(dec);
-          if (p < 1) requestAnimationFrame(tick);
-          else el.textContent = target.toFixed(dec);
+function renderPagination(total){
+  var totalPages=Math.ceil(total/perPage);
+  var start=(currentPage-1)*perPage+1,end=Math.min(currentPage*perPage,total);
+  var infoEl=document.getElementById('pgInfo'),ctrlEl=document.getElementById('pgControls');
+  if(infoEl)infoEl.innerHTML='Showing '+start+'–'+end+' of <span style="color:#0047A0;font-size:11px;letter-spacing:0.1em;">'+total+' ENTRIES</span>';
+  if(!ctrlEl)return;
+  var html='<button class="pg-btn" onclick="goPage('+(currentPage-1)+')"'+(currentPage<=1?' disabled':'')+'>Previous</button>';
+  var pages=[];
+  if(totalPages<=5){for(var i=1;i<=totalPages;i++)pages.push(i);}
+  else{pages.push(1);if(currentPage>3)pages.push('...');for(var i=Math.max(2,currentPage-1);i<=Math.min(totalPages-1,currentPage+1);i++)pages.push(i);if(currentPage<totalPages-2)pages.push('...');pages.push(totalPages);}
+  pages.forEach(function(p){
+    if(p==='...'){html+='<span class="pg-ellipsis">...</span>';}
+    else{html+='<span class="pg-num'+(p===currentPage?' active':'')+'" onclick="goPage('+p+')">'+String(p).padStart(2,'0')+'</span>';}
+  });
+  html+='<button class="pg-btn" onclick="goPage('+(currentPage+1)+')"'+(currentPage>=totalPages?' disabled':'')+'>Next</button>';
+  ctrlEl.innerHTML=html;
+}
+
+function goPage(p){var total=getTabIssues().length,totalPages=Math.ceil(total/perPage);if(p<1||p>totalPages)return;currentPage=p;renderTab();}
+
+function renderTab(){
+  var issues=getTabIssues();
+  document.getElementById('tabCount').textContent=issues.length+'건';
+  var todayStr=new Date().toISOString().slice(0,10);
+  var tbody=document.getElementById('tab-tbody');
+  if(issues.length===0){
+    var emptyHtml='<tr><td colspan="7" style="padding:13px 12px;color:#bbb;font-size:11px;">이슈 없음</td></tr>';
+    for(var e=0;e<perPage-1;e++)emptyHtml+='<tr style="border-bottom:0.5px solid #e8e6e2;"><td colspan="7" style="padding:0;height:51px;"></td></tr>';
+    tbody.innerHTML=emptyHtml;renderPagination(0);return;
+  }
+  var cardList=document.getElementById('tab-card-list');
+  if(cardList){
+    cardList.innerHTML=issues.map(function(i){
+      var isOverdue=i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status);
+      var elapsed,elapsedColor;
+      if(i._elapsed!==null){if(i._elapsed<0){elapsed='D+'+Math.abs(i._elapsed);elapsedColor=isOverdue?(Math.abs(i._elapsed)>7?'#c0392b':'#b7770d'):'#c0392b';}else{elapsed=ddayLabel(i.due_date);elapsedColor=ddayColor(i.due_date);}}else{elapsed='—';elapsedColor='#bbb';}
+      if(!window._deptColorMap)window._deptColorMap={};if(!window._deptColorIndex)window._deptColorIndex=0;
+      var _palette=['#f59e0b','#2563eb','#e11d48','#16a34a','#7c3aed','#111111','#0891b2','#f97316'];
+      if(i._dept&&!window._deptColorMap[i._dept]){window._deptColorMap[i._dept]=_palette[window._deptColorIndex%_palette.length];window._deptColorIndex++;}
+      var deptColor=(i._dept&&window._deptColorMap[i._dept])||'#aaa';
+      var statusBg=i.status==='진행'?'#dcfce7':i.status==='완료'?'#f0f0f0':'#fef9c3';
+      var statusColor=i.status==='진행'?'#16a34a':i.status==='완료'?'#888':'#92400e';
+      return '<div class="tab-issue-card" onclick="openIssue('+i.id+')" style="border-left:4px solid '+deptColor+';"><div class="tab-card-top"><span class="tab-card-id">#'+i.id+'</span><span style="font-size:12px;font-weight:600;color:'+elapsedColor+';">'+elapsed+'</span></div><div class="tab-card-title">'+escHtml(i.subject)+'</div><div class="tab-card-meta">'+deptTag(i._dept)+'<span style="font-size:11px;font-weight:500;color:#111;">'+escHtml(i._short)+'</span><span class="tab-card-status" style="background:'+statusBg+';color:'+statusColor+';">'+escHtml(i.status)+'</span><span class="tab-card-date">'+(i.due_date||'—')+'</span></div></div>';
+    }).join('');
+  }
+  var allIssues=issues;issues=issues.slice((currentPage-1)*perPage,currentPage*perPage);
+  renderPagination(allIssues.length);
+  tbody.innerHTML=issues.map(function(i){
+    var isOverdue=i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status);
+    var isClosed=CLOSED_SET_JS.has(i.status)||HOLD_SET_JS.has(i.status);
+    var elapsed,elapsedCls;
+    if(i._elapsed!==null){if(i._elapsed<0){elapsed=isClosed?'CLOSED':'D+'+Math.abs(i._elapsed);elapsedCls=isClosed?'closed':(Math.abs(i._elapsed)>7?'red':'orange-overdue');}else{var d=i._elapsed;elapsed=isClosed?'CLOSED':(d<=0?'D-Day':'D-'+d);elapsedCls=isClosed?'closed':(d<=3?'red':d<=10?'orange':'gray');}}else{elapsed='—';elapsedCls='gray';}
+    if(!window._deptColorMap)window._deptColorMap={};if(!window._deptColorIndex)window._deptColorIndex=0;
+    var _palette=['#f59e0b','#2563eb','#e11d48','#16a34a','#7c3aed','#111111','#0891b2','#f97316'];
+    if(i._dept&&!window._deptColorMap[i._dept]){window._deptColorMap[i._dept]=_palette[window._deptColorIndex%_palette.length];window._deptColorIndex++;}
+    var rowDeptColor=(i._dept&&window._deptColorMap[i._dept])||'#ccc';
+    var statusCls=CLOSED_SET_JS.has(i.status)?'done':HOLD_SET_JS.has(i.status)?'wait':i.status==='진행'?'progress':'';
+    var priorityCls=(i.priority==='High'||i.priority==='높음')?'high':'';
+    var priorityTxt=(i.priority==='High'||i.priority==='높음')?'HIGH':(i.priority==='Low'||i.priority==='낮음')?'LOW':'NORMAL';
+    var dueTip=i.due_date?'마감 '+i.due_date:'마감일 없음';
+    return '<tr data-id="'+i.id+'" onclick="openIssue('+i.id+')" style="border-left:3px solid '+rowDeptColor+';"><td class="td-id">#'+i.id+'</td><td><div class="td-subject">'+escHtml(i.subject)+'</div><div class="td-project">'+escHtml(i.project)+'</div></td><td><span class="td-group-badge">'+escHtml(i._dept||'—')+'</span></td><td style="font-size:11px;font-weight:500;">'+escHtml(i._short)+'</td><td><span class="status-badge '+statusCls+'">'+escHtml(i.status)+'</span></td><td class="td-priority '+priorityCls+'">'+priorityTxt+'</td><td style="text-align:right;"><div class="dday-wrap"><span class="td-dday '+elapsedCls+'">'+elapsed+'</span><div class="dday-tooltip">'+dueTip+'</div></div></td></tr>';
+  }).join('');
+  var emptyRows=perPage-issues.length;
+  if(emptyRows>0){var emptyHtml='';for(var e=0;e<emptyRows;e++){emptyHtml+='<tr style="border-bottom:0.5px solid #e8e6e2;"><td colspan="7" style="padding:0;height:51px;">&nbsp;</td></tr>';}tbody.innerHTML+=emptyHtml;}
+}
+
+function updateCacheAge(){
+  var el=document.getElementById('cacheAge');if(!allData){el.textContent='—';return;}
+  var liveEl=document.querySelector('.live-indicator');if(liveEl&&liveEl.textContent.includes('OFF'))return;
+  if(allData.cached&&allData.cache_age){el.textContent='캐시 '+allData.cache_age;}else{el.textContent='방금 갱신됨';}
+}
+
+// ============================================================
+// Issue Modal
+// ============================================================
+async function openIssue(id){
+  currentModalIssueId=id;
+  var modal=document.getElementById('issueModal');modal.classList.add('open');
+  document.getElementById('modalTitle').textContent='#'+id+' 로딩 중...';
+  ['modalMeta','modalStatus','modalAssignee','modalVersion'].forEach(function(el){document.getElementById(el).innerHTML='';});
+  document.getElementById('modalDueDate').value='';document.getElementById('modalNotes').value='';
+  document.getElementById('journalsSection').style.display='none';
+  try{
+    var res=await fetch('/api/issue/'+id),data=await res.json(),issue=data.issue||{};
+    var statuses=data.statuses||[],assignees=data.assignees||[],versions=data.versions||[];
+    document.getElementById('modalTitle').textContent=issue.subject||('#'+id);
+    document.getElementById('modalRedmineLink').href=REDMINE_BASE+'/issues/'+id;
+    var metaItems=[issue.project&&issue.project.name,issue.tracker&&issue.tracker.name,issue.priority&&issue.priority.name,issue.created_on?'생성 '+issue.created_on.slice(0,10):null].filter(Boolean);
+    document.getElementById('modalMeta').innerHTML=metaItems.map(function(m){return'<span class="modal-meta-item">'+escHtml(m)+'</span>';}).join('');
+    document.getElementById('modalStatus').innerHTML=statuses.map(function(s){return'<option value="'+s.id+'"'+(s.name===(issue.status&&issue.status.name)?' selected':'')+'>'+escHtml(s.name)+'</option>';}).join('');
+    document.getElementById('modalAssignee').innerHTML='<option value="">— 미지정 —</option>'+assignees.map(function(a){return'<option value="'+a.id+'"'+(a.id===(issue.assigned_to&&issue.assigned_to.id)?' selected':'')+'>'+escHtml(a.name)+'</option>';}).join('');
+    document.getElementById('modalDueDate').value=issue.due_date||'';
+    document.getElementById('modalVersion').innerHTML='<option value="">— 버전 없음 —</option>'+versions.map(function(v){return'<option value="'+v.id+'"'+(v.id===(issue.fixed_version&&issue.fixed_version.id)?' selected':'')+'>'+escHtml(v.name)+'</option>';}).join('');
+    var journals=(issue.journals||[]).filter(function(j){return j.notes;});
+    if(journals.length>0){document.getElementById('journalsSection').style.display='block';document.getElementById('journalsList').innerHTML=journals.slice(-5).reverse().map(function(j){return'<div class="journal-item"><div class="journal-meta">'+escHtml((j.user&&j.user.name)||'?')+' · '+(j.created_on?j.created_on.slice(0,10):'')+' </div><div class="journal-notes">'+escHtml(j.notes)+'</div></div>';}).join('');}
+  }catch(e){document.getElementById('modalTitle').textContent='로딩 실패';console.error('openIssue error:',e);}
+}
+
+async function saveIssue(){
+  if(!currentModalIssueId)return;
+  var body={};
+  var statusSel=document.getElementById('modalStatus'),assigneeSel=document.getElementById('modalAssignee'),verSel=document.getElementById('modalVersion');
+  if(statusSel.value)body.status_id=parseInt(statusSel.value);
+  if(assigneeSel.value)body.assigned_to_id=parseInt(assigneeSel.value);
+  if(verSel.value)body.fixed_version_id=parseInt(verSel.value);
+  var dueDate=document.getElementById('modalDueDate').value,notes=document.getElementById('modalNotes').value;
+  if(dueDate)body.due_date=dueDate;if(notes.trim())body.notes=notes;
+  try{
+    var res=await fetch('/api/issue/'+currentModalIssueId,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    var result=await res.json();
+    if(result.ok){closeModal();await loadData();}else{alert('저장 실패: '+(result.error||'알 수 없는 오류'));}
+  }catch(e){alert('저장 중 오류 발생');console.error(e);}
+}
+function closeModal(){document.getElementById('issueModal').classList.remove('open');currentModalIssueId=null;}
+function closeModalOnOverlay(e){if(e.target===document.getElementById('issueModal'))closeModal();}
+
+// ============================================================
+// Settings Modal
+// ============================================================
+function openSettingsModal(){document.getElementById('settingsModal').classList.add('open');}
+function closeSettingsModal(e){if(e&&e.target===document.getElementById('settingsModal'))return;document.getElementById('settingsModal').classList.remove('open');}
+
+
+// ============================================================
+// Risk Chart
+// ============================================================
+var _riskWeeks=12;
+function toggleRiskSettings(){var panel=document.getElementById('riskSettingsPanel'),btn=document.getElementById('riskGearBtn');panel.classList.toggle('open');btn.classList.toggle('active');}
+function setWeeks(el,val){el.parentElement.querySelectorAll('.ai-dow-btn').forEach(function(b){b.classList.remove('active');});el.classList.add('active');_riskWeeks=val;}
+function applyRiskSettings(){localStorage.setItem('riskWeeks',_riskWeeks);document.getElementById('riskSettingsPanel').classList.remove('open');document.getElementById('riskGearBtn').classList.remove('active');loadRiskHistory();}
+async function loadRiskHistory(){
+  try{
+    var params=new URLSearchParams({project_id:currentProjectId,weeks:_riskWeeks});
+    var res=await fetch('/api/risk-history?'+params),data=await res.json();
+    renderRiskChart(data.history||[]);
+  }catch(e){console.error('risk history load failed',e);}
+}
+function renderRiskChart(history){
+  var bars=document.getElementById('riskChartBars'),labels=document.getElementById('riskChartLabels');
+  if(!bars)return;
+  if(history.length<2){bars.innerHTML='<div class="risk-chart-empty">ACCUMULATING DATA</div>';if(labels)labels.innerHTML='';return;}
+  var maxScore=Math.max.apply(null,history.map(function(d){return d.score;}))||1;
+  var totalSlots=_riskWeeks||12;
+  var emptyCount=Math.max(0,totalSlots-history.length);
+  var baseScore=history.length>0?history[0].score:30;
+  var emptyBars=Array.from({length:emptyCount},function(_,i){
+    var h=Math.max(4,Math.round((baseScore/maxScore)*100*(0.3+0.4*(i/Math.max(emptyCount-1,1)))));
+    return'<div class="ai-bar-group"><div class="ai-bar normal" style="height:'+h+'%;opacity:0.12;"></div></div>';
+  }).join('');
+  var emptyLabels='<div class="ai-bar-label"></div>'.repeat(emptyCount);
+  bars.innerHTML=emptyBars+history.map(function(d){var h=Math.max(4,Math.round((d.score/maxScore)*100));var lvl=(d.level||'').toLowerCase();var cls=lvl==='critical'?'critical':lvl==='low'?'low':'normal';return'<div class="ai-bar-group"><div class="ai-bar '+cls+'" style="height:'+h+'%;"></div></div>';}).join('');
+  labels.innerHTML=emptyLabels+history.map(function(d){return'<div class="ai-bar-label">'+d.week+'</div>';}).join('');
+}
+
+// ============================================================
+// AI Summary
+// ============================================================
+async function generateAiSummary(){
+  var el=document.getElementById('aiSummaryText'),headEl=document.getElementById('aiHeadline');
+  el.textContent='분석 중...';if(headEl)headEl.textContent='분석 중...';
+  loadRiskHistory();
+  try{
+    var params=new URLSearchParams({project_id:currentProjectId,updated_after:currentUpdatedAfter});
+    var res=await fetch('/api/ai/report-summary?'+params),data=await res.json();
+    if(data.summary){
+      aiSummaryText=data.summary;
+      var lines=data.summary.trim().split(String.fromCharCode(10)).filter(function(l){return l.trim();});
+      if(headEl)headEl.textContent=lines[0]||'';
+      var bodyLines=lines.slice(1);
+      el.innerHTML=bodyLines.map(function(line){
+        var rawKey=line.split(':')[0];
+        var keyMap={'상황1':'ST1','상황2':'ST2','상황':'ST','원인':'CA','대처':'AC'};
+        var key=(keyMap[rawKey]||rawKey)+':';
+        var val=line.slice(line.indexOf(':')+1).trim();
+        var isS1=/^ST1?:/.test(line),isS2=/^ST2:/.test(line);
+        var valColor=isS1?'#e05a4e':isS2?'#d4824a':'#fff';
+        return'<div style="display:flex;gap:8px;margin-bottom:10px;align-items:baseline;"><span style="font-family:DM Mono,monospace;font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">'+key+'</span><span style="font-size:11px;color:'+valColor+';line-height:1.5;">'+escHtml(val)+'</span></div>';
+      }).join('');
+    }else if(data.error){if(headEl)headEl.textContent='AI 오류';el.textContent=data.error;}
+  }catch(e){if(headEl)headEl.textContent='요청 실패';el.textContent='서버에 연결할 수 없습니다.';}
+}
+function openAiSummary(){
+  var el=document.getElementById('sec-ai-summary');
+  if(el){var y=el.getBoundingClientRect().top+window.pageYOffset-80;window.scrollTo({top:y,behavior:'smooth'});}
+  if(!aiSummaryText)generateAiSummary();
+}
+
+async function openReport(){
+  try{
+    var params=new URLSearchParams({project_id:currentProjectId,updated_after:currentUpdatedAfter});
+    var res=await fetch('/api/report/preview?'+params),html=await res.text();
+    if(aiSummaryText){var aiBlock='<div style="background:#f9f9f9;border-left:3px solid #c0392b;padding:12px 16px;margin:16px 0;font-size:13px;line-height:1.7;">'+escHtml(aiSummaryText)+'</div>';html=html.replace('<table',aiBlock+'<table');}
+    var blob=new Blob([html],{type:'text/html'}),url=URL.createObjectURL(blob);
+    var a=document.createElement('a');a.href=url;a.download='vantix-report-'+new Date().toISOString().slice(0,10)+'.html';a.click();URL.revokeObjectURL(url);
+  }catch(e){alert('리포트 생성 실패');}
+}
+
+async function forceRefresh(){try{await fetch('/api/cache/clear');await loadData();}catch(e){console.error('forceRefresh error:',e);}}
+
+function onProjectChange(){
+  currentProjectId=document.getElementById('projectSelect').value;
+  localStorage.setItem('vantix_last_project', currentProjectId);
+  loadData();loadRiskHistory();
+}
+
+document.addEventListener('click',function(e){
+  if(!e.target.closest('#since-wrap'))closeSinceDD();
+});
+function onDateChange(){
+  var val=document.getElementById('filterDateInput').value;
+  if(val){currentUpdatedAfter=val;document.getElementById('filterDateDisplay').textContent=val;loadData();}
+}
+
+function daysAgoDate(n){var d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10);}
+function toggleSinceDD(){
+  var dd=document.getElementById('since-dd');
+  var open=dd.style.display==='none';
+  dd.style.display=open?'block':'none';
+  document.getElementById('since-chevron').style.transform=open?'rotate(180deg)':'';
+}
+function closeSinceDD(){
+  document.getElementById('since-dd').style.display='none';
+  document.getElementById('since-chevron').style.transform='';
+}
+function pickSince(el,days){
+  document.querySelectorAll('.since-dd-item').forEach(function(i){i.classList.remove('active');});
+  el.classList.add('active');
+  var val=daysAgoDate(days);
+  currentUpdatedAfter=val;
+  document.getElementById('filterDateDisplay').textContent=val;
+  localStorage.setItem('vantix_since',val);
+  document.getElementById('since-custom-row').style.display='none';
+  closeSinceDD();
+  loadData();loadRiskHistory();
+}
+function toggleSinceCustom(){
+  var cr=document.getElementById('since-custom-row');
+  cr.style.display=cr.style.display==='none'?'block':'none';
+  document.querySelectorAll('.since-dd-item').forEach(function(i){i.classList.remove('active');});
+  document.getElementById('since-custom-btn').classList.add('active');
+}
+function pickSinceCustom(val){
+  if(!val)return;
+  currentUpdatedAfter=val;
+  document.getElementById('filterDateDisplay').textContent=val;
+  localStorage.setItem('vantix_since',val);
+  closeSinceDD();
+  loadData();loadRiskHistory();
+}
+function clearAiFocus(){document.getElementById('ai-focus-banner').style.display='none';}
+
+// ── Boot
+document.addEventListener('DOMContentLoaded',init);
+
+function onDateChange() {
+  var val = document.getElementById('filterDateInput').value;
+  if (val) { currentUpdatedAfter = val; loadData(); }
+}
+
+// ============================================================
+// Tab navigation helper
+// ============================================================
+function goToTab(tabName) {
+  switchTab(tabName);
+  var el = document.querySelector('.g-padded.pb-4');
+  if (el) { var y = el.getBoundingClientRect().top + window.pageYOffset - 80; window.scrollTo({ top: y, behavior: 'smooth' }); }
+}
+
+// ============================================================
+// Scroll helper
+// ============================================================
+function scrollToSection(id) {
+  var el = document.getElementById(id);
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+// ============================================================
+// Settings Modal
+// ============================================================
+function openSettingsModal() {
+  document.getElementById('noConnOverlay').classList.remove('visible');
+  // 현재 세션 URL은 서버에서 받은 값으로 채우기
+  var urlEl = document.getElementById('settingsUrl');
+  var keyEl = document.getElementById('settingsApiKey');
+  if (urlEl && window._currentRedmineUrl) urlEl.value = window._currentRedmineUrl;
+  if (keyEl) keyEl.value = '••••••••••••••••••••••••••••••••••••••••';
+  document.getElementById('settingsModal').classList.add('open');
+}
+
+function disconnectRedmine() {
+  if (!confirm('Redmine 연결을 끊고 로그아웃하시겠습니까?')) return;
+  fetch('/api/disconnect', {method: 'POST'})
+    .finally(function() {
+      window.location.href = '/connect';
+    });
+}
+
+function closeSettingsModal(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('settingsModal').classList.remove('open');
+  var url = localStorage.getItem('redmine_url');
+  var key = localStorage.getItem('redmine_apikey');
+  if (!url || !key) {
+document.getElementById('noConnOverlay').classList.add('visible');
+  }
+}
+
+function saveSettings() {
+  var url = document.getElementById('settingsUrl').value.trim();
+  var key = document.getElementById('settingsApiKey').value.trim();
+  if (!url) return;
+  var isDummyKey = /^[•\*]+$/.test(key);
+  if (isDummyKey) key = '';  // 더미값이면 빈값으로 → 서버에서 기존 키 유지
+  var btn = document.querySelector('#settingsModal .btn-black');
+  btn.textContent = 'SAVING...';
+  btn.disabled = true;
+  fetch('/api/update-connection', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({url: url, api_key: key})
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || 'error'); });
+    return r.json();
+  }).then(function() {
+    document.getElementById('settingsModal').classList.remove('open');
+    document.getElementById('noConnOverlay').classList.remove('visible');
+    window.location.reload();
+  }).catch(function(err) {
+    btn.textContent = 'SAVE';
+    btn.disabled = false;
+    alert('연결 실패: ' + err.message);
+  });
+}
+
+// ============================================================
+// Utility
+// ============================================================
+function escHtml(str) {
+  if (!str) return '';
+  return String(str)
+.replace(/&/g,'&amp;')
+.replace(/</g,'&lt;')
+.replace(/>/g,'&gt;')
+.replace(/"/g,'&quot;');
+}
+
+function getDept(uname) {
+  if (!uname) return '—';
+  var parts = uname.split('_');
+  if (parts.length >= 2) {
+var dept = parts[0].replace(/^[0-9]+/, '');
+return dept || '—';
+  }
+  return uname;
+}
+
+function getShortName(uname) {
+  if (!uname) return '—';
+  var parts = uname.split('_');
+  return parts.length >= 2 ? parts[parts.length - 1] : uname;
+}
+
+// ============================================================
+// AI Command Panel
+// ============================================================
+var rmCurrentStep = 1;
+var rmCurrentField = 'assignee';
+var rmSelectedIssues = [];
+
+function openRedmineModal(btnEl) {
+  var signalText = '';
+  if (btnEl && btnEl.closest) {
+var card = btnEl.closest('[style*="border-bottom"]');
+if (card) {
+  var actionEl = card.querySelector('[style*="font-weight:500"]');
+  if (actionEl) signalText = actionEl.textContent || '';
+}
+  }
+  var panel = document.getElementById('ai-cmd-panel');
+  if (panel) panel.classList.remove('open');
+  setTimeout(function() {
+switchTab('overdue');
+setTimeout(function() { applyAiFocus(signalText); }, 300);
+  }, 150);
+}
+
+function closeRedmineModal(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('redmine-modal').style.display = 'none';
+}
+
+function closeMonitorModal() {
+  document.getElementById('monitor-modal').style.display = 'none';
+}
+
+function applyMonitor() {
+  var pid = currentProjectId || '';
+  var cfg = {
+overdue: document.getElementById('monitor-overdue').checked,
+urgent: document.getElementById('monitor-urgent').checked,
+critical: document.getElementById('monitor-critical').checked,
+hour: document.getElementById('monitor-time').value
+  };
+  localStorage.setItem('monitor_' + pid, JSON.stringify(cfg));
+  fetch('/api/action/monitor', {
+method: 'POST',
+headers: {'Content-Type':'application/json'},
+body: JSON.stringify({ project_id: pid, config: cfg })
+  })
+  .then(r => r.json())
+  .then(function() {
+closeMonitorModal();
+showToast('알림 설정 완료 — 매일 ' + cfg.hour + ':00 발송');
+  })
+  .catch(function() {
+closeMonitorModal();
+showToast('알림 설정 저장됨');
+  });
+}
+
+function rmLoadIssues() {
+  var pid = currentProjectId || '';
+  var list = document.getElementById('rm-issue-list');
+  fetch('/api/data?project_id=' + encodeURIComponent(pid) + '&updated_after=' + currentUpdatedAfter)
+.then(r => r.json())
+.then(data => {
+  var issues = [];
+  var users = data.users_data || {};
+  Object.values(users).forEach(function(u) {
+    u.issues.forEach(function(i) { issues.push(i); });
+  });
+  issues.sort(function(a,b) {
+    var today = new Date().toISOString().slice(0,10);
+    var ao = a.due_date && a.due_date < today ? -2 : 0;
+    var bo = b.due_date && b.due_date < today ? -2 : 0;
+    return ao - bo;
+  });
+  if (!issues.length) {
+    list.innerHTML = '<div style="font-size:11px;color:#555;text-align:center;padding:20px;">이슈 없음</div>';
+    return;
+  }
+  var assignees = {};
+  issues.forEach(function(i) { if(i.assignee) assignees[i.assignee] = true; });
+  var sel = document.getElementById('rm-assignee-val');
+  sel.innerHTML = '<option value="">담당자 선택...</option>';
+  Object.keys(assignees).forEach(function(a) {
+    sel.innerHTML += '<option value="' + escHtml(a) + '">' + escHtml(a) + '</option>';
+  });
+  fetch('/api/versions?project_id=' + encodeURIComponent(pid))
+    .then(r => r.json())
+    .then(vdata => {
+      var vsel = document.getElementById('rm-version-val');
+      vsel.innerHTML = '<option value="">버전 선택...</option>';
+      (vdata.versions || []).forEach(function(v) {
+        vsel.innerHTML += '<option value="' + v.id + '">' + escHtml(v.name) + '</option>';
+      });
+    }).catch(function(){});
+  list.innerHTML = issues.slice(0,20).map(function(i) {
+    var today = new Date().toISOString().slice(0,10);
+    var isOverdue = i.due_date && i.due_date < today;
+    var badge = isOverdue
+      ? '<span style="font-size:8px;padding:2px 5px;background:#B40023;color:#fff;margin-left:4px;">초과</span>'
+      : (i.due_date ? '<span style="font-size:8px;padding:2px 5px;background:#e67e22;color:#fff;margin-left:4px;">임박</span>' : '');
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1e1e1e;">' +
+      '<div onclick="rmToggleIssue(this,' + i.id + ')" style="width:13px;height:13px;border:1px solid #444;cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;" data-id="' + i.id + '"></div>' +
+      '<span style="font-size:9px;color:#555;min-width:36px;">#' + i.id + '</span>' +
+      '<span style="font-size:10px;color:#ccc;flex:1;line-height:1.3;">' + escHtml(i.subject) + badge + '</span>' +
+      '</div>';
+  }).join('');
+})
+.catch(function() {
+  list.innerHTML = '<div style="font-size:11px;color:#B40023;text-align:center;padding:20px;">로드 실패</div>';
+});
+}
+
+function rmToggleIssue(el, id) {
+  var idx = rmSelectedIssues.indexOf(id);
+  if (idx === -1) {
+rmSelectedIssues.push(id);
+el.style.background = '#1a5276';
+el.style.borderColor = '#1a5276';
+el.textContent = '✓';
+  } else {
+rmSelectedIssues.splice(idx, 1);
+el.style.background = 'none';
+el.style.borderColor = '#444';
+el.textContent = '';
+  }
+}
+
+function rmSelectField(el, field) {
+  document.querySelectorAll('.rm-field-tab').forEach(function(t) {
+t.style.background = 'transparent';
+t.style.borderColor = '#333';
+t.style.color = '#666';
+  });
+  el.style.background = '#1a5276';
+  el.style.borderColor = '#1a5276';
+  el.style.color = '#fff';
+  ['assignee','due','version','priority','status'].forEach(function(f) {
+document.getElementById('rm-field-'+f).style.display = f === field ? 'block' : 'none';
+  });
+  rmCurrentField = field;
+}
+
+function rmNextStep() {
+  if (rmCurrentStep === 1 && rmSelectedIssues.length === 0) {
+showToast('이슈를 1개 이상 선택해주세요');
+return;
+  }
+  if (rmCurrentStep < 3) {
+if (rmCurrentStep === 2) rmBuildConfirm();
+rmCurrentStep++;
+rmUpdateStep();
+  }
+}
+
+function rmPrevStep() {
+  if (rmCurrentStep > 1) {
+rmCurrentStep--;
+rmUpdateStep();
+  }
+}
+
+function rmUpdateStep() {
+  [1,2,3].forEach(function(i) {
+document.getElementById('rm-step'+i).style.display = i === rmCurrentStep ? 'block' : 'none';
+var tab = document.getElementById('rm-step'+i+'-tab');
+tab.style.color = i === rmCurrentStep ? '#fff' : (i < rmCurrentStep ? '#27ae60' : '#555');
+tab.style.borderBottom = i === rmCurrentStep ? '2px solid #1a5276' : (i < rmCurrentStep ? '2px solid #27ae60' : '2px solid transparent');
+  });
+  document.getElementById('rm-btn-prev').style.display = rmCurrentStep > 1 ? 'inline-block' : 'none';
+  document.getElementById('rm-btn-next').style.display = rmCurrentStep < 3 ? 'inline-block' : 'none';
+  document.getElementById('rm-btn-apply').style.display = rmCurrentStep === 3 ? 'inline-block' : 'none';
+}
+
+function rmBuildConfirm() {
+  var fieldLabels = {assignee:'담당자',due:'마감일',version:'버전',priority:'우선순위',status:'상태'};
+  var val = '';
+  if (rmCurrentField === 'assignee') val = document.getElementById('rm-assignee-val').value;
+  else if (rmCurrentField === 'due') val = document.getElementById('rm-due-val').value;
+  else if (rmCurrentField === 'version') val = document.getElementById('rm-version-val').options[document.getElementById('rm-version-val').selectedIndex].text;
+  else if (rmCurrentField === 'priority') val = document.getElementById('rm-priority-val').options[document.getElementById('rm-priority-val').selectedIndex].text;
+  else if (rmCurrentField === 'status') val = document.getElementById('rm-status-val').options[document.getElementById('rm-status-val').selectedIndex].text;
+  var html = rmSelectedIssues.map(function(id) {
+return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #1e1e1e;">' +
+  '<span style="font-size:10px;color:#ccc;flex:1;">#' + id + '</span>' +
+  '<span style="font-size:10px;color:#1a5276;">→ ' + escHtml(val) + '</span>' +
+  '</div>';
+  }).join('');
+  html += '<div style="margin-top:10px;padding:8px;background:#0d0d0d;border-left:2px solid #1a5276;">' +
+'<div style="font-size:9px;color:#888;">변경 항목</div>' +
+'<div style="font-size:10px;color:#fff;margin-top:2px;">' + fieldLabels[rmCurrentField] + ' → ' + escHtml(val) + '</div>' +
+'</div>';
+  document.getElementById('rm-confirm-list').innerHTML = html;
+}
+
+function rmApply() {
+  var pid = currentProjectId || '';
+  var field = rmCurrentField;
+  var val = '';
+  if (field === 'assignee') val = document.getElementById('rm-assignee-val').value;
+  else if (field === 'due') val = document.getElementById('rm-due-val').value;
+  else if (field === 'version') val = document.getElementById('rm-version-val').value;
+  else if (field === 'priority') val = document.getElementById('rm-priority-val').value;
+  else if (field === 'status') val = document.getElementById('rm-status-val').value;
+  fetch('/api/action/redmine-update', {
+method: 'POST',
+headers: {'Content-Type':'application/json'},
+body: JSON.stringify({
+  project_id: pid,
+  issue_ids: rmSelectedIssues,
+  field: field,
+  value: val
+})
+  })
+  .then(r => r.json())
+  .then(function(data) {
+closeRedmineModal();
+showToast('Redmine 적용 완료 (' + (data.success || []).length + '건)');
+  })
+  .catch(function() {
+showToast('적용 실패 — 다시 시도해주세요');
+  });
+}
+function openEscalateModal() {
+  var m = document.getElementById('escalate-modal');
+  m.style.display = 'flex';
+}
+
+function closeEscalateModal() {
+  document.getElementById('escalate-modal').style.display = 'none';
+}
+
+function applyEscalate() {
+  var type = document.getElementById('escalate-type').value;
+  closeEscalateModal();
+  if (type === 'email') {
+var pid = currentProjectId || '';
+fetch('/api/report/send?project_id=' + encodeURIComponent(pid), { method: 'POST' })
+  .then(r => r.json())
+  .then(function() { showToast('보고서 이메일 발송 완료'); })
+  .catch(function() { showToast('발송 실패 — 이메일 설정 확인 필요'); });
+  } else {
+var btn = document.querySelector('[onclick*="report"]') || document.getElementById('report-btn');
+if (btn) btn.click();
+else showToast('리포트 버튼을 눌러주세요');
+  }
+}
+
+function showToast(msg) {
+  var t = document.getElementById('ai-toast');
+  if (!t) {
+t = document.createElement('div');
+t.id = 'ai-toast';
+t.style.cssText = 'position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#111;color:#fff;padding:8px 20px;font-size:10px;letter-spacing:.1em;text-transform:uppercase;border:1px solid #333;z-index:999;';
+document.body.appendChild(t);
+  }
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(function() { t.style.display = 'none'; }, 2500);
+}
+function openMonitorModal() {
+  var pid = currentProjectId || '';
+  var modal = document.getElementById('monitor-modal');
+  if (!modal) { console.error('monitor-modal not found'); return; }
+  var saved = localStorage.getItem('monitor_' + pid);
+  if (saved) {
+try {
+  var cfg = JSON.parse(saved);
+  document.getElementById('monitor-overdue').checked = cfg.overdue !== false;
+  document.getElementById('monitor-urgent').checked = cfg.urgent !== false;
+  document.getElementById('monitor-critical').checked = cfg.critical === true;
+  document.getElementById('monitor-time').value = cfg.hour || '9';
+  document.getElementById('monitor-status-text').textContent = '현재: 알림 ON';
+  document.getElementById('monitor-status-text').style.color = '#27ae60';
+} catch(e) {}
+  } else {
+document.getElementById('monitor-status-text').textContent = '';
+  }
+  modal.style.display = 'flex';
+}
+
+function toggleAiPanel() {
+  var p = document.getElementById('ai-cmd-panel');
+  var opening = !p.classList.contains('open');
+  p.classList.toggle('open');
+  if (opening) {
+    loadActionSignals();
+    setTimeout(function() {
+      document.addEventListener('click', _aiPanelOutsideClick);
+    }, 0);
+  } else {
+    document.removeEventListener('click', _aiPanelOutsideClick);
+  }
+}
+function _aiPanelOutsideClick(e) {
+  var panel = document.getElementById('ai-cmd-panel');
+  var toggle = document.getElementById('ai-cmd-toggle');
+  if (!panel.contains(e.target) && !toggle.contains(e.target)) {
+    panel.classList.remove('open');
+    document.removeEventListener('click', _aiPanelOutsideClick);
+  }
+}
+
+var _aiFocusIds = [];
+var _aiFocusDone = {};
+
+function applyAiFocus(signalText) {
+  _aiFocusIds = [];
+  _aiFocusDone = {};
+  var matches = (signalText || '').match(/#(\d+)/g) || [];
+  matches.forEach(function(m) { _aiFocusIds.push(parseInt(m.replace('#',''))); });
+  if (!_aiFocusIds.length) return;
+  var banner = document.getElementById('ai-focus-banner');
+  if (banner) { banner.style.display = 'flex'; }
+  var txt = document.getElementById('ai-focus-text');
+  if (txt) txt.textContent = signalText.length > 60 ? signalText.slice(0,60) + '…' : signalText;
+  var prog = document.getElementById('ai-prog-wrap');
+  if (prog) prog.style.display = 'block';
+  updateAiFocusProgress();
+  setTimeout(function() {
+_aiFocusIds.forEach(function(id) {
+  var row = document.querySelector('tr[data-id="' + id + '"]');
+  if (!row) return;
+  row.style.background = '#0f1e2e';
+  row.style.color = '#7fb3d3';
+  var lastTd = row.querySelector('td:last-child');
+  if (lastTd && !lastTd.querySelector('.ai-check-btn')) {
+    var orig = lastTd.innerHTML;
+    lastTd.setAttribute('data-orig', orig);
+    lastTd.innerHTML = '<button class="ai-check-btn" onclick="confirmAiRow(' + id + ',event)" style="background:none;border:1px solid #1a5276;color:#3a7ca8;font-size:8px;padding:2px 7px;cursor:pointer;font-family:inherit;letter-spacing:.06em;text-transform:uppercase;white-space:nowrap;">✓ 확인</button>';
+  }
+});
+  }, 250);
+}
+
+function confirmAiRow(id, e) {
+  if (e) e.stopPropagation();
+  if (_aiFocusDone[id]) return;
+  _aiFocusDone[id] = true;
+  var row = document.querySelector('tr[data-id="' + id + '"]');
+  if (row) {
+row.style.background = '';
+row.style.color = '';
+var lastTd = row.querySelector('td:last-child');
+if (lastTd) {
+  var orig = lastTd.getAttribute('data-orig') || '';
+  lastTd.innerHTML = orig + '<span style="font-size:8px;color:#27ae60;letter-spacing:.06em;text-transform:uppercase;padding:2px 6px;border:1px solid #27ae60;opacity:.7;margin-left:4px;">확인됨</span>';
+}
+  }
+  updateAiFocusProgress();
+  if (Object.keys(_aiFocusDone).length === _aiFocusIds.length) {
+setTimeout(function() {
+  clearAiFocus();
+}, 1200);
+  }
+}
+
+function updateAiFocusProgress() {
+  var done = Object.keys(_aiFocusDone).length;
+  var total = _aiFocusIds.length;
+  var pct = total ? Math.round(done / total * 100) : 0;
+  var fill = document.getElementById('ai-prog-fill');
+  var txt = document.getElementById('ai-prog-txt');
+  var cnt = document.getElementById('ai-focus-count');
+  if (fill) fill.style.width = pct + '%';
+  if (txt) txt.textContent = done + ' / ' + total;
+  if (cnt) cnt.textContent = done + '/' + total + ' 확인';
+}
+
+function clearAiFocus() {
+  _aiFocusIds.forEach(function(id) {
+var row = document.querySelector('tr[data-id="' + id + '"]');
+if (!row) return;
+row.style.background = '';
+row.style.color = '';
+var lastTd = row.querySelector('td:last-child');
+if (lastTd) {
+  var orig = lastTd.getAttribute('data-orig');
+  if (orig !== null) lastTd.innerHTML = orig;
+}
+  });
+  _aiFocusIds = [];
+  _aiFocusDone = {};
+  var banner = document.getElementById('ai-focus-banner');
+  if (banner) banner.style.display = 'none';
+  var prog = document.getElementById('ai-prog-wrap');
+  if (prog) prog.style.display = 'none';
+}
+
+function loadActionSignals(forceRefresh = false) {
+  var pid = currentProjectId || '';
+  var list = document.getElementById('ai-cmd-list');
+  list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">분석 중...</div>';
+
+  function attempt(retryCount) {
+    fetch('/api/ai/action-signals?project_id=' + encodeURIComponent(pid) + '&force=' + forceRefresh)
+      .then(r => r.json())
+      .then(data => {
+        if (data.no_cache) {
+          list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">RE-ANALYZE를 눌러 분석을 시작하세요.</div>';
+          return;
         }
-        requestAnimationFrame(tick);
-      }
-
-      const io = new IntersectionObserver((entries) => {
-        entries.forEach(e => {
-          if (e.isIntersecting) {
-            e.target.classList.add('in');
-            e.target.querySelectorAll('.num-count').forEach(animateCount);
-            io.unobserve(e.target);
-          }
+        var signals = data.signals || [];
+        // P1 → P2 → P3 순서 정렬
+        var priorityOrder = {'P1': 1, 'P2': 2, 'P3': 3};
+        signals.sort(function(a, b) {
+          return (priorityOrder[a.priority] || 9) - (priorityOrder[b.priority] || 9);
         });
-      }, { threshold: 0.18, rootMargin: '0px 0px -8% 0px' });
-
-      document.querySelectorAll('[data-reveal], [data-stagger]').forEach(el => io.observe(el));
-
-      /* ── HERO PARALLAX — scroll-linked ── */
-      const hero = document.getElementById('hero');
-      const heroH1 = hero ? hero.querySelector('h1') : null;
-      const heroSub = hero ? hero.querySelector('.hero-sub') : null;
-      const heroBadge = hero ? hero.querySelector('.hero-badge') : null;
-      let ticking = false;
-      function onScroll() {
-        if (ticking || !hero) return;
-        ticking = true;
-        requestAnimationFrame(() => {
-          const y = window.scrollY;
-          const fade = Math.max(0, 1 - y / 500);
-          if (heroH1)    { heroH1.style.transform = `translate3d(0, ${y * -0.15}px, 0)`; heroH1.style.opacity = fade; }
-          if (heroSub)   { heroSub.style.transform = `translate3d(0, ${y * -0.08}px, 0)`; heroSub.style.opacity = fade; }
-          if (heroBadge) { heroBadge.style.transform = `translate3d(0, ${y * -0.20}px, 0)`; heroBadge.style.opacity = fade; }
-          // Orb parallax depth
-          document.querySelectorAll('.orb').forEach((orb, i) => {
-            const depth = 0.04 + (i % 3) * 0.03;
-            orb.style.transform = `translate3d(0, ${y * depth}px, 0)`;
-          });
-          ticking = false;
-        });
-      }
-      window.addEventListener('scroll', onScroll, { passive: true });
-
-      /* ── MOUSE PARALLAX — bg-mouse orb ── */
-      const bgMouse = document.getElementById('bgMouse');
-      if (bgMouse) {
-        let mx = window.innerWidth / 2, my = window.innerHeight / 2;
-        let cx = mx, cy = my;
-        window.addEventListener('mousemove', (e) => { mx = e.clientX; my = e.clientY; }, { passive: true });
-        function loop() {
-          cx += (mx - cx) * 0.04;
-          cy += (my - cy) * 0.04;
-          bgMouse.style.transform = `translate3d(${cx - 300}px, ${cy - 300}px, 0)`;
-          requestAnimationFrame(loop);
+        if (!signals.length && retryCount > 0) {
+          setTimeout(function() { attempt(retryCount - 1); }, 2000);
+          return;
         }
-        loop();
-      }
-    })();
-  </script>
+        if (!signals.length) {
+          list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">액션 시그널 없음</div>';
+          return;
+        }
+        var dotColor = {'P1':'#B40023','P2':'#e67e22','P3':'#27ae60'};
+        list.innerHTML = signals.map(s => {
+          var dc = dotColor[s.priority] || '#888';
+          var bl = s.priority === 'P1' ? 'border-left:2px solid #B40023;' : '';
+          return '<div style="padding:11px 16px;border-bottom:1px solid #1a1a1a;' + bl + '">' +
+            '<div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:3px;display:flex;align-items:center;gap:5px;">' +
+            '<span style="width:5px;height:5px;border-radius:50%;background:' + dc + ';display:inline-block;flex-shrink:0;"></span>' +
+            s.priority + ' · ' + s.timing + '</div>' +
+            '<div style="font-size:11px;font-weight:500;color:#ffffff;line-height:1.3;margin-bottom:3px;">' + escHtml(s.action) + '</div>' +
+            '<div style="font-size:10px;color:#aaa;line-height:1.4;margin-bottom:3px;">' + escHtml(s.reason) + '</div>' +
+            '<div style="font-size:9px;color:#888;">→ ' + escHtml(s.who) + '</div>' +
+            (function() {
+              var actionBtn = '';
+              if (s.action_type === 'REASSIGN') {
+                actionBtn = '<button class="ai-action-btn reassign" onclick="openRedmineModal(this)">✏️ Redmine 수정</button>';
+              } else if (s.action_type === 'ESCALATE') {
+                actionBtn = '<button class="ai-action-btn escalate" onclick="openEscalateModal()">📄 보고서 생성</button>';
+              } else if (s.action_type === 'MONITOR') {
+                actionBtn = '<button class="ai-action-btn monitor" onclick="openMonitorModal()">🔔 알림 설정</button>';
+              }
+              return actionBtn;
+            })() +
+            '</div>';
+        }).join('');
+        document.getElementById('ai-cmd-timestamp').textContent =
+          'LAST ANALYZED · ' + new Date().toTimeString().slice(0,5) + ' KST';
+      })
+      .catch(() => {
+        if (retryCount > 0) {
+          setTimeout(function() { attempt(retryCount - 1); }, 2000);
+        } else {
+          list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#B40023;">분석 실패 — 재시도</div>';
+        }
+      });
+  }
+
+  attempt(4); // 최대 4회 재시도 (2초 간격)
+}
+</script>
+<div id="ai-cmd-panel">
+  <div style="padding:20px 16px;border-bottom:1px solid #222;">
+<div style="display:inline-block;background:#1a5276;padding:4px 10px;">
+  <span style="font-size:11px;font-weight:700;color:#ffffff;letter-spacing:.08em;text-transform:uppercase;">✦ VANTIX AI COMMAND PANEL</span>
+</div>
+  </div>
+  <div id="ai-cmd-list" style="flex:1;overflow-y:auto;">
+<div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">프로젝트를 선택하면<br>액션 시그널이 표시됩니다.</div>
+  </div>
+  <div style="padding:10px 16px;border-top:1px solid #1e1e1e;">
+<div style="font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#555;" id="ai-cmd-timestamp">LAST ANALYZED —</div>
+<div id="ai-prog-wrap" style="display:none;margin-bottom:8px;padding:8px 10px;background:#0f1e2e;border:1px solid #1a3a54;">
+  <div style="font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#3a7ca8;margin-bottom:6px;display:flex;justify-content:space-between;">
+    <span>✦ 확인 현황</span><span id="ai-prog-txt">0 / 0</span>
+  </div>
+  <div style="height:2px;background:#1a3a54;">
+    <div id="ai-prog-fill" style="height:2px;background:#1a5276;width:0%;transition:width .3s;"></div>
+  </div>
+</div>
+<button onclick="loadActionSignals(true)" style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#888;padding:5px 10px;border:1px solid #2a2a2a;cursor:pointer;display:inline-block;margin-top:4px;background:none;position:relative;z-index:999;">↻ RE-ANALYZE</button>
+  </div>
+</div>
+<div id="ai-cmd-toggle" onclick="toggleAiPanel()">✦ AI</div>
+<div id="escalate-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;">
+  <div style="background:#1a1a1a;width:300px;border:1px solid #333;">
+<div style="padding:14px 16px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;">
+  <div style="font-size:11px;font-weight:700;color:#fff;letter-spacing:.05em;text-transform:uppercase;">📄 보고서 생성</div>
+  <button onclick="closeEscalateModal()" style="background:none;border:none;color:#666;cursor:pointer;font-size:14px;">✕</button>
+</div>
+<div style="padding:14px 16px;">
+  <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:8px;">포함 내용</div>
+  <div style="font-size:10px;color:#aaa;line-height:1.9;">
+    ✦ AI 시그널 요약 (P1 우선)<br>
+    ✦ 현재 리스크 지수 및 추이<br>
+    ✦ 마감초과 이슈 목록<br>
+    ✦ 담당자별 부하 현황
+  </div>
+  <div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-top:12px;margin-bottom:8px;">발송 방식</div>
+  <select id="escalate-type" style="width:100%;background:#222;border:1px solid #333;color:#fff;padding:7px 10px;font-size:11px;font-family:inherit;">
+    <option value="pdf">PDF 다운로드</option>
+    <option value="email">이메일 발송</option>
+  </select>
+</div>
+</div>
+</div>
+<div id="site-footer" style="height:28px;border-top:1px solid #e4e2e2;display:flex;align-items:center;justify-content:center;background:#fbf9f8;margin-top:24px;">
+  <span style="font-size:9px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:#555;">© 2026 VANTIX · AI RISK INTELLIGENCE FOR REDMINE</span>
+</div>
 </body>
 </html>
