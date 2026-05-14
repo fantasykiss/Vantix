@@ -1399,7 +1399,7 @@ window.fetch = function(url, opts = {}) {
 // State
 // ============================================================
 var allData = null;
-var currentProjectId = '__DEFAULT_PROJECT_ID__';
+var currentProjectId = localStorage.getItem('vantix_last_project') || '';
 var currentUpdatedAfter = '__DEFAULT_UPDATED_AFTER__';
 var currentTab = 'imminent';
 var currentModalIssueId = null;
@@ -2141,7 +2141,9 @@ async function openReport(){
 async function forceRefresh(){try{await fetch('/api/cache/clear');await loadData();}catch(e){console.error('forceRefresh error:',e);}}
 
 function onProjectChange(){
-  currentProjectId=document.getElementById('projectSelect').value;loadData();loadRiskHistory();
+  currentProjectId=document.getElementById('projectSelect').value;
+  localStorage.setItem('vantix_last_project', currentProjectId);
+  loadData();loadRiskHistory();
 }
 function onDateChange(){
   var val=document.getElementById('filterDateInput').value;
