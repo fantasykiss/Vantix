@@ -665,7 +665,7 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
         "pending_server":   pending_server,
         "pending_client":   pending_client,
         "project_risk":     project_risk_list,
-        "users_data":       {k: {"issues": v["issues"], "projects": list(v["projects"])} for k, v in users_data.items()},
+        "users_data":       {k: {"issues": v["issues"], "projects": list(v["projects"]), "group": v.get("group", "")} for k, v in users_data.items()},
         "imminent_count":   len(imminent_issues),
         "imminent_issues":  imminent_issues,
         "trend_7days":      trend_7days,
