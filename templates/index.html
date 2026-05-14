@@ -1692,7 +1692,7 @@ function renderRiskMembers(allData){
     if(overdueIssues.length===0)continue;
     var overdueRatio=open.length>0?Math.round(overdueIssues.length/open.length*100):0;
     var level=overdueRatio>=60?'critical':overdueRatio>=30?'high':'medium';
-    rows.push({uname:uname,shortN:getShortName(uname),dept:getDept(uname),open:open.length,overdue:overdueIssues.length,overdueRatio:overdueRatio,level:level});
+    rows.push({uname:uname,shortN:getShortName(uname),dept:ud.group||getDept(uname),open:open.length,overdue:overdueIssues.length,overdueRatio:overdueRatio,level:level});
   }
   rows.sort(function(a,b){return b.overdueRatio-a.overdueRatio||b.open-a.open;});
   var top3=rows.slice(0,3);

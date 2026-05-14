@@ -463,11 +463,42 @@ def get_issues(project_id="", updated_after="2026-03-01", redmine_url=None, api_
 
 def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=None, api_key=None):
     issues = get_issues(project_id, updated_after, redmine_url=redmine_url, api_key=api_key)
-    users_data = defaultdict(lambda: {"issues": [], "projects": set()})
+
+    # 멤버십 API로 user_id → group_name 매핑 테이블 생성
+    user_group_map = {}  # {user_name: group_name}
+    if project_id:
+        try:
+            memberships = fetch(f"/projects/{project_id}/memberships.json", redmine_url=redmine_url, api_key=api_key).get("memberships", [])
+            # 1차: 그룹 엔트리에서 그룹 id → name 확보
+            group_id_map = {}
+            for m in memberships:
+                grp = m.get("group")
+                if grp:
+                    group_id_map[grp["id"]] = grp["name"]
+            # 2차: 유저 엔트리에서 inherited role로 그룹 매핑
+            for m in memberships:
+                user = m.get("user")
+                if not user:
+                    continue
+                uname = user.get("name", "")
+                # inherited role이 있으면 그룹 소속 유저
+                inherited_roles = [r for r in m.get("roles", []) if r.get("inherited")]
+                if inherited_roles:
+                    # 같은 role name을 가진 그룹 찾기
+                    role_name = inherited_roles[0]["name"]
+                    matched_group = next((gname for gname in group_id_map.values() if gname == role_name), None)
+                    if matched_group:
+                        user_group_map[uname] = matched_group
+        except Exception:
+            pass
+
+    users_data = defaultdict(lambda: {"issues": [], "projects": set(), "group": ""})
     for iss in issues:
         if "assigned_to" not in iss:
             continue
         uname = iss["assigned_to"]["name"]
+        if not users_data[uname]["group"]:
+            users_data[uname]["group"] = user_group_map.get(uname, dept_name(uname))
         users_data[uname]["issues"].append({
             "id":         iss["id"],
             "subject":    iss["subject"],
