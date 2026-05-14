@@ -1318,7 +1318,7 @@ body {
       </div>
       <div class="settings-field">
         <label>API Key</label>
-        <input type="password" id="settingsApiKey" placeholder="API Key를 입력하세요" value="REDACTED_REDMINE_API_KEY">
+        <input type="password" id="settingsApiKey" placeholder="API Key를 입력하세요" value="">
       </div>
     </div>
     <div class="settings-footer">
@@ -1583,6 +1583,7 @@ async function renderGroupStatus(projectId) {
 function renderSummaryCards() {
   var d=allData;
   var trend=d.trend_7days||{};
+  window._currentRedmineUrl = allData.redmine_url || '';
   renderRiskMembers(allData);
   var valTotalEl=document.getElementById('val-total');
   if(valTotalEl) valTotalEl.textContent=(d.total_issues!==undefined&&d.total_issues!==null)?d.total_issues:'—';
@@ -2178,6 +2179,11 @@ function scrollToSection(id) {
 // ============================================================
 function openSettingsModal() {
   document.getElementById('noConnOverlay').classList.remove('visible');
+  // 현재 세션 URL은 서버에서 받은 값으로 채우기
+  var urlEl = document.getElementById('settingsUrl');
+  var keyEl = document.getElementById('settingsApiKey');
+  if (urlEl && window._currentRedmineUrl) urlEl.value = window._currentRedmineUrl;
+  if (keyEl) keyEl.value = '';  // 키는 보안상 비워둠 — 변경 시에만 입력
   document.getElementById('settingsModal').classList.add('open');
 }
 
@@ -2202,7 +2208,17 @@ document.getElementById('noConnOverlay').classList.add('visible');
 function saveSettings() {
   var url = document.getElementById('settingsUrl').value.trim();
   var key = document.getElementById('settingsApiKey').value.trim();
-  if (!url || !key) return;
+  if (!url) return;
+  if (!key) {
+    // 키 미입력 시 URL만 변경 — 기존 키는 서버 세션에서 유지
+    // URL이 바뀌지 않았으면 그냥 모달 닫기
+    if (url === window._currentRedmineUrl) {
+      document.getElementById('settingsModal').classList.remove('open');
+      return;
+    }
+    alert('API Key를 입력해주세요.');
+    return;
+  }
   var btn = document.querySelector('#settingsModal .btn-black');
   btn.textContent = 'SAVING...';
   btn.disabled = true;
