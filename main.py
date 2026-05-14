@@ -469,26 +469,34 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
     if project_id:
         try:
             memberships = fetch(f"/projects/{project_id}/memberships.json", redmine_url=redmine_url, api_key=api_key).get("memberships", [])
-            # 1차: 그룹 엔트리에서 그룹 id → name 확보
-            group_id_map = {}
+            # 1차: 그룹 엔트리에서 그룹명 목록 확보
+            group_names = set()
             for m in memberships:
                 grp = m.get("group")
                 if grp:
-                    group_id_map[grp["id"]] = grp["name"]
-            # 2차: 유저 엔트리에서 inherited role로 그룹 매핑
+                    group_names.add(grp["name"])
+            # 2차: 유저명 접미사에서 그룹명 추출
+            # 패턴1: "기획_ 방효민" → split("_")[0].strip() = "기획"
+            # 패턴2: "방효민 기획_" → rsplit("_",1)[0].split()[-1].strip() = "기획"
             for m in memberships:
                 user = m.get("user")
                 if not user:
                     continue
                 uname = user.get("name", "")
-                # inherited role이 있으면 그룹 소속 유저
-                inherited_roles = [r for r in m.get("roles", []) if r.get("inherited")]
-                if inherited_roles:
-                    # 같은 role name을 가진 그룹 찾기
-                    role_name = inherited_roles[0]["name"]
-                    matched_group = next((gname for gname in group_id_map.values() if gname == role_name), None)
-                    if matched_group:
-                        user_group_map[uname] = matched_group
+                if not uname or "_" not in uname:
+                    continue
+                # 접두사 매칭: "기획_ 방효민"
+                prefix = uname.split("_")[0].strip()
+                if prefix in group_names:
+                    user_group_map[uname] = prefix
+                    continue
+                # 접미사 매칭: "방효민 기획_"
+                parts = uname.rsplit("_", 1)
+                if parts:
+                    suffix_part = parts[0].strip()
+                    last_token = suffix_part.split()[-1].strip() if " " in suffix_part else suffix_part
+                    if last_token in group_names:
+                        user_group_map[uname] = last_token
         except Exception:
             pass
 
