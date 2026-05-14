@@ -662,13 +662,30 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
                 gname = grp["name"]
                 if gname not in group_map:
                     group_map[gname] = {"id": grp["id"], "name": gname, "user_count": 0}
-        # 2차: 유저 엔트리 접두사로 실제 인원 카운트
+        # 2차: 유저 엔트리 접두사 또는 그룹 직접 매핑으로 인원 카운트
         for m in members:
             user = m.get("user")
-            if user and "_" in user.get("name", ""):
-                prefix = user["name"].split("_")[0].strip()
+            if not user:
+                continue
+            uname = user.get("name", "")
+            # 접두사 매칭 (기획_홍길동 → 기획)
+            if "_" in uname:
+                prefix = uname.split("_")[0].strip()
                 if prefix in group_map:
                     group_map[prefix]["user_count"] += 1
+                    group_map[prefix].setdefault("members", []).append(uname)
+            else:
+                # 언더스코어 없는 유저는 Redmine 그룹 멤버십으로 직접 매핑
+                for gname in group_map:
+                    grp_members = fetch(
+                        f"/groups/{group_map[gname]['id']}/memberships.json",
+                        redmine_url=redmine_url, api_key=api_key
+                    ).get("users", [])
+                    grp_member_names = [u.get("name", "") for u in grp_members]
+                    if uname in grp_member_names:
+                        group_map[gname]["user_count"] += 1
+                        group_map[gname].setdefault("members", []).append(uname)
+                        break
 
         if not group_map:
             return []
@@ -678,10 +695,18 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
 
         # 3. 담당자명 접두사로 그룹 매핑 (기획_홍길동 → 기획)
         def extract_group(assignee_name):
+            if not assignee_name:
+                return None
+            # 1. 언더스코어 있으면 접두사로 매칭 (기획_홍길동 → 기획)
             if "_" in assignee_name:
                 prefix = assignee_name.split("_")[0].strip()
                 if prefix in group_map:
                     return prefix
+            # 2. 언더스코어 없으면 담당자명 전체를 그룹명과 직접 비교 (방효민 → 기획)
+            # group_map의 각 그룹 멤버 목록에서 찾기
+            for gname, ginfo in group_map.items():
+                if assignee_name.strip() in ginfo.get("members", []):
+                    return gname
             return None
 
         # 4. 8주 역산 계산
