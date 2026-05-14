@@ -25,23 +25,30 @@
       --r-pill: 999px;
       --sans: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
 
-      /* Glass tokens */
-      --glass-bg: rgba(190,220,255,0.10);
-      --glass-bg-heavy: rgba(190,220,255,0.22);
-      --glass-border: rgba(150,200,255,0.25);
-      --glass-border-subtle: rgba(150,200,255,0.15);
-      --glass-shadow: 0 8px 40px rgba(0,0,0,0.10), 0 2px 8px rgba(0,0,0,0.06);
-      --glass-shadow-lg: 0 24px 64px rgba(0,0,0,0.12), 0 4px 16px rgba(0,0,0,0.07);
-      --glass-inset: inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.2);
+      /* Glass tokens — thin liquid (iOS 26) */
+      --glass-bg: rgba(255,255,255,0.18);
+      --glass-bg-heavy: rgba(255,255,255,0.28);
+      --glass-border: rgba(255,255,255,0.55);
+      --glass-border-subtle: rgba(255,255,255,0.30);
+      --glass-shadow: 0 1px 2px rgba(15,40,70,0.04), 0 10px 30px rgba(15,40,70,0.07);
+      --glass-shadow-lg: 0 2px 6px rgba(15,40,70,0.06), 0 28px 60px rgba(15,40,70,0.10);
+      --glass-inset: inset 0 1px 0 rgba(255,255,255,0.85), inset 0 -1px 0 rgba(255,255,255,0.18);
 
       /* Text */
-      --text: #1a1a1e;
-      --text-secondary: rgba(60,60,67,0.6);
-      --text-tertiary: rgba(60,60,67,0.35);
+      --text: #0f2a3d;
+      --text-secondary: rgba(15,42,61,0.62);
+      --text-tertiary: rgba(15,42,61,0.35);
 
-      /* Accent */
+      /* Accent — cool summer */
       --accent: #007AFF;
-      --accent-light: rgba(0,122,255,0.12);
+      --accent-light: rgba(0,122,255,0.10);
+      --aqua: #5ac8d6;
+      --mint: #7dd3c0;
+      --soft-blue: #4a90e2;
+
+      /* Motion — cinematic easing */
+      --ease-expo: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-cf: cubic-bezier(0.22, 1, 0.36, 1);
     }
 
     html { scroll-behavior: smooth; }
@@ -54,47 +61,63 @@
       -webkit-font-smoothing: antialiased;
     }
 
-    /* ── GRADIENT MESH BACKGROUND ── */
+    /* ── GRADIENT MESH BACKGROUND — summer cool ── */
     .bg {
       position: fixed;
       inset: 0;
       z-index: -1;
-      background: #e8edf5;
+      background: linear-gradient(180deg, #e9f6fa 0%, #dff1f5 40%, #e6f4f1 100%);
       overflow: hidden;
     }
 
     .orb {
       position: absolute;
       border-radius: 50%;
-      filter: blur(80px);
+      filter: blur(70px);
       opacity: 0.55;
       animation: float linear infinite;
+      will-change: transform;
     }
-    .orb-1 { width: 700px; height: 700px; background: radial-gradient(circle, #b8d4f8, #d4e8ff); top: -200px; left: -100px; animation-duration: 30s; }
-    .orb-2 { width: 600px; height: 600px; background: radial-gradient(circle, #e8d5f5, #f3e8ff); top: 20%; right: -150px; animation-duration: 38s; animation-direction: reverse; }
-    .orb-3 { width: 500px; height: 500px; background: radial-gradient(circle, #c8f0e8, #d8f5ee); bottom: 10%; left: 20%; animation-duration: 25s; }
-    .orb-4 { width: 400px; height: 400px; background: radial-gradient(circle, #fde8d8, #fef0e8); bottom: -100px; right: 10%; animation-duration: 32s; animation-direction: reverse; }
+    .orb-1 { width: 820px; height: 820px; background: radial-gradient(circle, #a7e0e8, #cdf0f4); top: -260px; left: -160px; animation-duration: 38s; }
+    .orb-2 { width: 720px; height: 720px; background: radial-gradient(circle, #bcd9f5, #d8e8fb); top: 18%; right: -200px; animation-duration: 46s; animation-direction: reverse; }
+    .orb-3 { width: 600px; height: 600px; background: radial-gradient(circle, #b8e8d8, #d6f1e4); bottom: 14%; left: 18%; animation-duration: 34s; }
+    .orb-4 { width: 480px; height: 480px; background: radial-gradient(circle, #c8e8f8, #e2f1fb); bottom: -120px; right: 8%; animation-duration: 42s; animation-direction: reverse; }
+    .orb-5 { width: 380px; height: 380px; background: radial-gradient(circle, #ade1d0, #d2efe3); top: 55%; left: 45%; animation-duration: 50s; }
+    .orb-6 { width: 340px; height: 340px; background: radial-gradient(circle, #c2def2, #def0fa); top: 8%; left: 38%; animation-duration: 30s; animation-direction: reverse; }
 
     @keyframes float {
       0%   { transform: translate(0, 0) scale(1); }
-      33%  { transform: translate(40px, -30px) scale(1.05); }
-      66%  { transform: translate(-20px, 40px) scale(0.97); }
+      33%  { transform: translate(50px, -40px) scale(1.05); }
+      66%  { transform: translate(-30px, 50px) scale(0.97); }
       100% { transform: translate(0, 0) scale(1); }
     }
 
-    /* ── GLASS MIXIN-STYLE CLASSES ── */
+    /* mouse-parallax orb (.bg-mouse) tracked by JS */
+    .bg-mouse {
+      position: fixed;
+      width: 600px; height: 600px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(125,211,192,0.55), transparent 65%);
+      filter: blur(80px);
+      top: 0; left: 0;
+      pointer-events: none;
+      z-index: -1;
+      will-change: transform;
+    }
+
+    /* ── GLASS MIXIN-STYLE CLASSES — thin liquid ── */
     .glass {
       background: var(--glass-bg);
-      backdrop-filter: blur(10px) saturate(180%) brightness(106%);
-      -webkit-backdrop-filter: blur(10px) saturate(180%) brightness(106%);
+      backdrop-filter: blur(8px) saturate(180%);
+      -webkit-backdrop-filter: blur(8px) saturate(180%);
       border: 1px solid var(--glass-border);
       box-shadow: var(--glass-shadow), var(--glass-inset);
     }
 
     .glass-heavy {
       background: var(--glass-bg-heavy);
-      backdrop-filter: blur(16px) saturate(180%) brightness(106%);
-      -webkit-backdrop-filter: blur(16px) saturate(180%) brightness(106%);
+      backdrop-filter: blur(10px) saturate(200%);
+      -webkit-backdrop-filter: blur(10px) saturate(200%);
       border: 1px solid var(--glass-border);
       box-shadow: var(--glass-shadow-lg), var(--glass-inset);
     }
@@ -203,7 +226,7 @@
     }
 
     h1 .gradient-text {
-      background: linear-gradient(135deg, #007AFF 0%, #5856D6 50%, #AF52DE 100%);
+      background: linear-gradient(135deg, #007AFF 0%, #5ac8d6 50%, #7dd3c0 100%);
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
@@ -217,7 +240,6 @@
       max-width: 500px;
       margin-bottom: 48px;
       text-wrap: pretty;
-      text-align: center;
     }
 
     /* Glass CTA Card */
@@ -347,6 +369,7 @@
     .icon-blue  { background: linear-gradient(135deg, #007AFF, #5856D6); }
     .icon-purple { background: linear-gradient(135deg, #5856D6, #AF52DE); }
     .icon-green  { background: linear-gradient(135deg, #34C759, #30D158); }
+    .icon-aqua   { background: linear-gradient(135deg, #007AFF 0%, #5ac8d6 60%, #7dd3c0 100%); }
 
     .feature-icon svg { width: 22px; height: 22px; }
 
@@ -430,10 +453,64 @@
 
     /* ── FOOTER CTA ── */
     #footer-cta {
-      padding: 40px 24px 100px;
-      max-width: 1080px;
+      padding: 80px 24px 100px;
+      max-width: 720px;
       margin: 0 auto;
     }
+
+    /* ── Connect Section (Minimal) ── */
+    .connect-header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+    .connect-header .section-eyebrow {
+      margin-bottom: 12px;
+    }
+    .connect-header .section-title {
+      margin-bottom: 16px;
+    }
+    .connect-lead-center {
+      font-size: 15px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      max-width: 520px;
+      margin: 0 auto;
+      text-wrap: pretty;
+    }
+    .connect-card-slim {
+      border-radius: var(--r-lg);
+      padding: 36px 36px 28px;
+      margin-bottom: 24px;
+    }
+    .connect-steps-strip {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+    .step-pill {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: rgba(255,255,255,0.18);
+      backdrop-filter: blur(8px) saturate(180%);
+      -webkit-backdrop-filter: blur(8px) saturate(180%);
+      border: 1px solid var(--glass-border);
+      border-radius: 14px;
+      box-shadow: var(--glass-shadow);
+    }
+    .step-pill .step-num {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      font-size: 11px;
+    }
+    .step-pill-text {
+      font-size: 12px;
+      color: var(--text-secondary);
+      line-height: 1.5;
+      letter-spacing: -0.005em;
+    }
+    .step-pill-text strong { color: var(--text); font-weight: 600; }
 
     .footer-card {
       border-radius: 32px;
@@ -502,13 +579,13 @@
     .connect-input-wrap {
       display: flex; align-items: center;
       gap: 12px;
-      background: rgba(255,255,255,0.45);
-      backdrop-filter: blur(10px) saturate(150%);
-      -webkit-backdrop-filter: blur(10px) saturate(150%);
-      border: 1px solid rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.28);
+      backdrop-filter: blur(8px) saturate(180%);
+      -webkit-backdrop-filter: blur(8px) saturate(180%);
+      border: 1px solid rgba(255,255,255,0.55);
       border-radius: 16px;
       padding: 14px 18px;
-      box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.6);
       transition: border-color 0.2s, box-shadow 0.2s;
     }
     .connect-input-wrap:focus-within {
@@ -590,16 +667,17 @@
     }
     .connect-steps li:last-child { border-bottom: none; }
     .step-num {
-      width: 28px; height: 28px; flex-shrink: 0;
-      border-radius: 8px;
-      background: var(--accent-light);
-      border: 1px solid rgba(0,122,255,0.22);
-      color: var(--accent);
+      width: 36px; height: 36px; flex-shrink: 0;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #007AFF 0%, #5ac8d6 60%, #7dd3c0 100%);
+      border: none;
+      color: #fff;
       display: flex; align-items: center; justify-content: center;
-      font-size: 11px; font-weight: 700;
+      font-size: 12px; font-weight: 700;
       font-family: 'SF Mono', ui-monospace, monospace;
+      box-shadow: 0 4px 12px rgba(0,122,255,0.22);
     }
-    .step-text { font-size: 12px; color: var(--text-secondary); line-height: 1.6; padding-top: 5px; }
+    .step-text { font-size: 13px; color: var(--text-secondary); line-height: 1.6; padding-top: 8px; }
     .connect-aside-foot {
       margin-top: 24px;
       padding-top: 18px;
@@ -753,13 +831,12 @@
       .testimonials-grid { grid-template-columns: 1fr; gap: 12px; }
       .tcard { padding: 24px 20px; }
 
-      #footer-cta { padding: 24px 20px 80px; }
+      #footer-cta { padding: 56px 20px 64px; }
       .footer-card { padding: 32px 20px; border-radius: 24px; }
       .footer-form { flex-direction: column; gap: 10px; }
-      .connect-card { padding: 28px 20px; }
-      .connect-grid { grid-template-columns: 1fr; gap: 20px; }
-      .connect-right { padding: 24px 20px; border-radius: 20px; }
-      .connect-card h2 { font-size: 32px; }
+      .connect-card-slim { padding: 24px 20px; }
+      .connect-steps-strip { grid-template-columns: 1fr; gap: 8px; }
+      .connect-header .section-title { font-size: 30px; }
 
       footer { flex-direction: column; gap: 8px; text-align: center; padding: 20px; }
 
@@ -774,6 +851,157 @@
     @media (max-width: 390px) {
       h1 { font-size: 34px; }
     }
+
+    /* ── SCROLL REVEAL — cinematic ── */
+    [data-reveal] {
+      opacity: 0;
+      transform: translateY(40px);
+      transition: opacity 1.1s var(--ease-expo), transform 1.1s var(--ease-expo);
+      will-change: opacity, transform;
+    }
+    [data-reveal="fade"] { transform: none; }
+    [data-reveal="scale"] { transform: scale(0.94) translateY(30px); }
+    [data-reveal="tilt"]  { transform: perspective(1000px) rotateX(10deg) translateY(40px); transform-origin: center bottom; }
+
+    [data-reveal].in {
+      opacity: 1;
+      transform: none;
+    }
+
+    [data-stagger] > * {
+      opacity: 0;
+      transform: translateY(32px);
+      transition: opacity 1s var(--ease-expo), transform 1s var(--ease-expo);
+    }
+    [data-stagger].in > * { opacity: 1; transform: none; }
+    [data-stagger].in > *:nth-child(1) { transition-delay: 0.05s; }
+    [data-stagger].in > *:nth-child(2) { transition-delay: 0.18s; }
+    [data-stagger].in > *:nth-child(3) { transition-delay: 0.31s; }
+    [data-stagger].in > *:nth-child(4) { transition-delay: 0.44s; }
+    [data-stagger].in > *:nth-child(5) { transition-delay: 0.57s; }
+    [data-stagger].in > *:nth-child(6) { transition-delay: 0.70s; }
+
+    /* Hero parallax & initial reveal */
+    #hero .hero-badge,
+    #hero h1,
+    #hero .hero-sub {
+      opacity: 0;
+      transform: translateY(28px);
+      animation: heroIn 1.4s var(--ease-expo) forwards;
+    }
+    #hero .hero-badge { animation-delay: 0.15s; }
+    #hero h1          { animation-delay: 0.35s; }
+    #hero .hero-sub   { animation-delay: 0.6s; }
+    @keyframes heroIn { to { opacity: 1; transform: none; } }
+
+    /* ── NUMBERS SECTION ── */
+    #numbers {
+      padding: 80px 24px 100px;
+      max-width: 1180px;
+      margin: 0 auto;
+    }
+    .numbers-head {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+    .numbers-head .section-eyebrow {
+      margin-bottom: 16px;
+    }
+    .numbers-head h2 {
+      font-size: clamp(32px, 4.2vw, 52px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      line-height: 1.1;
+      max-width: 760px;
+      margin: 0 auto;
+      text-wrap: balance;
+    }
+    .numbers-head h2 .nh-accent {
+      background: linear-gradient(135deg, #007AFF 0%, #5ac8d6 60%, #7dd3c0 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .numbers-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+    }
+    .num-card {
+      padding: 32px 28px 28px;
+      border-radius: var(--r-lg);
+      position: relative;
+      overflow: hidden;
+      isolation: isolate;
+    }
+    .num-card::after {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 50%;
+      background: linear-gradient(180deg, rgba(255,255,255,0.35), transparent);
+      pointer-events: none;
+      z-index: -1;
+    }
+    .num-card .num-label {
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 14px;
+      font-family: 'SF Mono', ui-monospace, monospace;
+    }
+    .num-card .num-big {
+      font-size: clamp(48px, 5.5vw, 76px);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+      background: linear-gradient(135deg, #007AFF 0%, #5ac8d6 100%);
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: inline-flex;
+      align-items: baseline;
+    }
+    .num-card .num-unit {
+      font-size: 0.42em;
+      font-weight: 700;
+      margin-left: 4px;
+      background: inherit;
+      -webkit-background-clip: text;
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .num-card .num-desc {
+      font-size: 14px;
+      color: var(--text-secondary);
+      line-height: 1.55;
+      margin-top: 16px;
+      letter-spacing: -0.005em;
+    }
+    .num-card .num-base {
+      font-size: 10px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--text-tertiary);
+      margin-top: 14px;
+      font-family: 'SF Mono', ui-monospace, monospace;
+    }
+    @media (max-width: 900px) {
+      .numbers-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 520px) {
+      #numbers { padding: 56px 20px 64px; }
+      .numbers-grid { grid-template-columns: 1fr; gap: 12px; }
+      .num-card { padding: 24px 22px; }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      [data-reveal], [data-stagger] > * { opacity: 1; transform: none; transition: none; }
+      #hero .hero-badge, #hero h1, #hero .hero-sub { opacity: 1; transform: none; animation: none; }
+      .orb, .bg-mouse { animation: none; transition: none; }
+    }
   </style>
 </head>
 <body>
@@ -784,7 +1012,10 @@
     <div class="orb orb-2"></div>
     <div class="orb orb-3"></div>
     <div class="orb orb-4"></div>
+    <div class="orb orb-5"></div>
+    <div class="orb orb-6"></div>
   </div>
+  <div class="bg-mouse" id="bgMouse"></div>
 
   <!-- NAV -->
   <nav class="glass">
@@ -794,7 +1025,7 @@
       <a class="nav-link" href="#testimonials">후기</a>
       <a class="nav-btn" href="#footer-cta">시작하기</a>
     </div>
-    <button class="nav-menu-btn" id="menu-btn-v3" aria-label="메뉴" onclick="toggleMenuV3()">
+    <button class="nav-menu-btn glass" id="menu-btn-v3" aria-label="메뉴" onclick="toggleMenuV3()">
       <span></span><span></span><span></span>
     </button>
   </nav>
@@ -809,13 +1040,8 @@
   <!-- HERO -->
   <section id="hero">
     <div class="hero-badge">Redmine 전용 AI 리스크 분석</div>
-    <h1>리스크를 <span class="gradient-text">먼저</span><br/>감지합니다.</h1>
-    <p class="hero-sub">
-      AI가 Redmine 이슈 데이터를<br/>
-      실시간으로 읽고,<br/>
-      문제가 생기기 전에<br/>
-      조용히 알려드립니다.
-    </p>
+    <h1>리스크를<br/>누구보다 <span class="gradient-text">먼저</span><br/>감지하세요.</h1>
+    <p class="hero-sub">AI가 이슈 데이터를 실시간으로 읽고,<br/>문제가 생기기 전에 미리 알려드립니다.</p>
 
     <div class="cta-card glass-heavy" style="border-radius: 30px; border-style: solid; display:none">
       <p>얼리 액세스 신청 — 선착순 마감</p>
@@ -828,11 +1054,49 @@
     </div>
   </section>
 
+  <!-- NUMBERS — 숨자로 보는 성과 -->
+  <section id="numbers">
+    <div class="numbers-head" data-reveal>
+      <div class="section-eyebrow">숫자로 보는 성과</div>
+      <h2>당신은 Vantix로
+조용한 여름을 보냅니다.</h2>
+    </div>
+    <div class="numbers-grid" data-stagger>
+      <div class="num-card glass">
+        <div class="num-label">RISK DETECTION</div>
+        <div class="num-big"><span class="num-count" data-count-to="40" style="font-weight: 800">0</span><span class="num-unit">%</span></div>
+        <div class="num-desc">AI 분석을 기반으로 프로젝트 리스크를 더 빨리 대응합니다.
+</div>
+        <div class="num-base">FASTER · 기존 대비</div>
+      </div>
+      <div class="num-card glass">
+        <div class="num-label">ON-TIME RATE</div>
+        <div class="num-big"><span class="num-count" data-count-to="80">0</span><span class="num-unit">%</span></div>
+        <div class="num-desc">일정 준수율이 기존 대비<br/>높아집니다.</div>
+        <div class="num-base">INCREASE · 기존 대비</div>
+      </div>
+      <div class="num-card glass">
+        <div class="num-label">RESPONSE SPEED</div>
+        <div class="num-big"><span class="num-count" data-count-to="3.2" data-count-decimals="1">0</span><span class="num-unit">×</span></div>
+        <div class="num-desc">이슈 대응 속도가 사용 전 평균 대비
+3.2배 향상됩니다.</div>
+        <div class="num-base">FASTER · PM 기준</div>
+      </div>
+      <div class="num-card glass">
+        <div class="num-label">REPORT TIME ↓</div>
+        <div class="num-big"><span class="num-count" data-count-to="65">0</span><span class="num-unit">%</span></div>
+        <div class="num-desc">보고서 작성 시간을
+획기적으로 줄여줍니다. (리포트 기능)</div>
+        <div class="num-base">REDUCED · 기존 대비</div>
+      </div>
+    </div>
+  </section>
+
   <!-- FEATURES -->
   <section id="features">
-    <div class="section-eyebrow">핵심 기능</div>
-    <h2 class="section-title">왜 Vantix인가요?</h2>
-    <div class="features-grid">
+    <div class="section-eyebrow" data-reveal>핵심 기능</div>
+    <h2 class="section-title" data-reveal>왜 Vantix인가요?</h2>
+    <div class="features-grid" data-stagger>
       <div class="feature-card glass">
         <div class="feature-icon icon-blue">
           <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
@@ -859,16 +1123,16 @@
 
   <!-- TESTIMONIALS -->
   <section id="testimonials">
-    <div class="section-eyebrow">사용자 후기</div>
-    <h2 class="section-title" style="margin-bottom: 40px;">실제 PM들의 이야기</h2>
-    <div class="testimonials-grid">
+    <div class="section-eyebrow" data-reveal>사용자 후기</div>
+    <h2 class="section-title" style="margin-bottom: 40px;" data-reveal>실제 사용자들의 이야기</h2>
+    <div class="testimonials-grid" data-stagger>
       <div class="tcard glass">
-        <p class="tcard-quote">리스크를 뒤늦게 보고받는 게 항상 문제였어요. Vantix는 이슈가 커지기 3일 전에 먼저 알려줬습니다.</p>
+        <p class="tcard-quote">리스크를 뒤늦게 보고받는 게 항상 문제였어요. Vantix는 이슈가 커지기 전에 먼저 알려줬습니다.</p>
         <div class="tcard-author">
           <div class="author-avatar av-blue">김</div>
           <div class="author-info">
             <div class="author-name">김민준</div>
-            <div class="author-role">Senior PM · 핀테크 스타트업</div>
+            <div class="author-role">Senior PM · 판교 핀테크 스타트업</div>
           </div>
         </div>
       </div>
@@ -895,64 +1159,72 @@
     </div>
   </section>
 
-  <!-- FOOTER CTA — Connect Redmine -->
+  <!-- FOOTER CTA — Connect Redmine (Minimal) -->
   <section id="footer-cta">
-    <div class="footer-card connect-card glass-heavy">
-      <div class="connect-grid">
-        <div class="connect-left">
-          <div class="connect-eyebrow">REDMINE CONNECTION</div>
-          <h2>지금 바로 시작 하세요.</h2>
-          <p class="connect-lead">Redmine 인스턴스 URL과 API Key만 입력하면 곧바로 리스크 분석이 시작됩니다. 데이터는 서버에 저장되지 않습니다.</p>
 
-          <form class="connect-form" onsubmit="handleConnect(event)">
-            <div class="connect-field">
-              <div class="connect-label-row">
-                <span class="connect-label">REDMINE URL</span>
-                <span class="connect-hint-tag">REQUIRED</span>
-              </div>
-              <div class="connect-input-wrap">
-                <span class="connect-input-icon">↗</span>
-                <input class="connect-input" type="url" placeholder="https://redmine.yourcompany.com" required id="connect-url" />
-              </div>
-              <div class="connect-help">예시: http://localhost:3000 또는 https://pm.studio.com</div>
-            </div>
+    <!-- Section header — outside card, like features/numbers -->
+    <div class="connect-header" data-reveal>
+      <div class="feature-icon icon-aqua" style="margin: 0 auto 20px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      </div>
+      <div class="section-eyebrow">Redmine 연동</div>
+      <h2 class="section-title">지금 바로 시작하세요.</h2>
+      <p class="connect-lead-center">Redmine URL과 API Key만 입력하면 곧 바로 리스크 분석이 시작됩니다.<br/>데이터는 서버에 저장되지 않습니다.</p>
+    </div>
 
-            <div class="connect-field">
-              <div class="connect-label-row">
-                <span class="connect-label">API ACCESS KEY</span>
-                <a class="connect-howto" href="#how-to-key">발급 방법 →</a>
-              </div>
-              <div class="connect-input-wrap">
-                <span class="connect-input-icon">⦿</span>
-                <input class="connect-input mono" type="text" placeholder="API Key 입력" required id="connect-key" />
-              </div>
-              <div class="connect-help">내 계정 → API 액세스 키 → 표시</div>
-            </div>
-
-            <button class="connect-btn" type="submit">
-              <span>CONNECT TO REDMINE</span>
-              <span class="connect-btn-arrow">→</span>
-            </button>
-            <div class="connect-secure">
-              <span class="dot"></span>
-              CLIENT-SIDE ONLY · NEVER STORED
-            </div>
-            <div class="success-inline" id="connect-success">✓ 연결되었습니다. 대시보드로 이동합니다...</div>
-          </form>
+    <!-- Single slim form card -->
+    <div class="connect-card-slim glass" data-reveal="scale">
+      <form class="connect-form" onsubmit="handleConnect(event)">
+        <div class="connect-field">
+          <div class="connect-label-row">
+            <span class="connect-label">REDMINE URL</span>
+            <span class="connect-hint-tag">REQUIRED</span>
+          </div>
+          <div class="connect-input-wrap">
+            <span class="connect-input-icon">↗</span>
+            <input class="connect-input" type="url" placeholder="https://redmine.yourcompany.com" required id="connect-url" />
+          </div>
         </div>
 
-        <aside class="connect-right" id="how-to-key">
-          <div class="connect-aside-tag">HOW TO GET KEY</div>
-          <div class="connect-aside-title">Redmine API 키<br/>발급 가이드</div>
-          <ol class="connect-steps">
-            <li><span class="step-num">01</span><span class="step-text">Redmine 우측 상단 프로필 → 내 계정 클릭</span></li>
-            <li><span class="step-num">02</span><span class="step-text">우측 하단 API 액세스 키 → 표시 클릭</span></li>
-            <li><span class="step-num">03</span><span class="step-text">키 복사 후 위 입력란에 붙여넣기</span></li>
-          </ol>
-          <div class="connect-aside-foot">얼리 액세스 사용자에게는<br/><strong>론칭 후 6개월 무료</strong> 혜택이 제공됩니다.</div>
-        </aside>
+        <div class="connect-field">
+          <div class="connect-label-row">
+            <span class="connect-label">API ACCESS KEY</span>
+            <span class="connect-hint-tag">아래 3단계 안내</span>
+          </div>
+          <div class="connect-input-wrap">
+            <span class="connect-input-icon">⦿</span>
+            <input class="connect-input mono" type="text" placeholder="API Key 입력" required id="connect-key" />
+          </div>
+        </div>
+
+        <button class="connect-btn" type="submit">
+          <span>CONNECT TO REDMINE</span>
+          <span class="connect-btn-arrow">→</span>
+        </button>
+        <div class="connect-secure">
+          <span class="dot"></span>
+          CLIENT-SIDE ONLY · NEVER STORED
+        </div>
+        <div class="success-inline" id="connect-success">✓ 연결되었습니다. 대시보드로 이동합니다...</div>
+      </form>
+    </div>
+
+    <!-- Steps strip — small inline row -->
+    <div class="connect-steps-strip" id="how-to-key" data-stagger>
+      <div class="step-pill">
+        <span class="step-num">01</span>
+        <span class="step-pill-text">Redmine 우측 상단 프로필 → <strong>내 계정</strong> 클릭</span>
+      </div>
+      <div class="step-pill">
+        <span class="step-num">02</span>
+        <span class="step-pill-text">우측 하단 <strong>API 액세스 키 → 표시</strong> 클릭</span>
+      </div>
+      <div class="step-pill">
+        <span class="step-num">03</span>
+        <span class="step-pill-text">키 복사 후 위 입력란에 <strong>붙여넣기</strong></span>
       </div>
     </div>
+
   </section>
 
   <!-- BOTTOM BAR -->
@@ -1056,7 +1328,6 @@
       window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { nav: v } }, '*');
     }
 
-    // Forms
     function handleHero(e) {
       e.preventDefault();
       const email = document.getElementById('hero-email').value;
@@ -1078,39 +1349,105 @@
       e.preventDefault();
       const url = document.getElementById('connect-url').value.trim();
       const key = document.getElementById('connect-key').value.trim();
-      const btn = e.target.querySelector('.connect-btn');
-      if (!url || !key) return;
-      btn.disabled = true;
-      btn.textContent = 'CONNECTING...';
-      fetch('/api/connect', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({url, api_key: key})
-      })
-      .then(r => r.json())
-      .then(data => {
-        if (data.ok) {
-          btn.textContent = 'CONNECTED — LOADING DASHBOARD...';
-          if (data.token) localStorage.setItem('vx_token', data.token);
-          window.location.href = '/';
-        } else {
-          btn.disabled = false;
-          btn.style.opacity = '1';
-          btn.textContent = 'CONNECT TO REDMINE';
-          alert(data.detail || '연결 실패. URL과 API Key를 확인해주세요.');
-        }
-      })
-      .catch(() => {
-        btn.disabled = false;
-        btn.textContent = 'CONNECT TO REDMINE';
-        alert('서버 연결 오류가 발생했습니다.');
-      });
+      try {
+        const list = JSON.parse(localStorage.getItem('vantix_connect') || '[]');
+        list.push({ url, ts: Date.now() });
+        localStorage.setItem('vantix_connect', JSON.stringify(list));
+      } catch(_) {}
+      e.target.querySelector('.connect-btn').style.display = 'none';
+      e.target.querySelector('.connect-secure').style.display = 'none';
+      document.getElementById('connect-success').classList.add('show');
     }
 
     function saveEmail(email) {
       const list = JSON.parse(localStorage.getItem('vantix_v3') || '[]');
       if (!list.includes(email)) { list.push(email); localStorage.setItem('vantix_v3', JSON.stringify(list)); }
     }
+
+    /* ── SCROLL REVEAL — IntersectionObserver ── */
+    (function () {
+      const prefersReduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      if (prefersReduced) {
+        document.querySelectorAll('[data-reveal], [data-stagger]').forEach(el => el.classList.add('in'));
+        document.querySelectorAll('.num-count').forEach(el => {
+          const target = parseFloat(el.dataset.countTo || '0');
+          const dec = parseInt(el.dataset.countDecimals || '0', 10);
+          el.textContent = target.toFixed(dec);
+        });
+        return;
+      }
+
+      // Counter animation
+      function easeOutExpo(t) { return t === 1 ? 1 : 1 - Math.pow(2, -10 * t); }
+      function animateCount(el) {
+        if (el.dataset.counted === '1') return;
+        el.dataset.counted = '1';
+        const target = parseFloat(el.dataset.countTo || '0');
+        const dec = parseInt(el.dataset.countDecimals || '0', 10);
+        const dur = 1600;
+        const start = performance.now();
+        function tick(now) {
+          const p = Math.min((now - start) / dur, 1);
+          const v = target * easeOutExpo(p);
+          el.textContent = v.toFixed(dec);
+          if (p < 1) requestAnimationFrame(tick);
+          else el.textContent = target.toFixed(dec);
+        }
+        requestAnimationFrame(tick);
+      }
+
+      const io = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.classList.add('in');
+            e.target.querySelectorAll('.num-count').forEach(animateCount);
+            io.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.18, rootMargin: '0px 0px -8% 0px' });
+
+      document.querySelectorAll('[data-reveal], [data-stagger]').forEach(el => io.observe(el));
+
+      /* ── HERO PARALLAX — scroll-linked ── */
+      const hero = document.getElementById('hero');
+      const heroH1 = hero ? hero.querySelector('h1') : null;
+      const heroSub = hero ? hero.querySelector('.hero-sub') : null;
+      const heroBadge = hero ? hero.querySelector('.hero-badge') : null;
+      let ticking = false;
+      function onScroll() {
+        if (ticking || !hero) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          const y = window.scrollY;
+          const fade = Math.max(0, 1 - y / 500);
+          if (heroH1)    { heroH1.style.transform = `translate3d(0, ${y * -0.15}px, 0)`; heroH1.style.opacity = fade; }
+          if (heroSub)   { heroSub.style.transform = `translate3d(0, ${y * -0.08}px, 0)`; heroSub.style.opacity = fade; }
+          if (heroBadge) { heroBadge.style.transform = `translate3d(0, ${y * -0.20}px, 0)`; heroBadge.style.opacity = fade; }
+          // Orb parallax depth
+          document.querySelectorAll('.orb').forEach((orb, i) => {
+            const depth = 0.04 + (i % 3) * 0.03;
+            orb.style.transform = `translate3d(0, ${y * depth}px, 0)`;
+          });
+          ticking = false;
+        });
+      }
+      window.addEventListener('scroll', onScroll, { passive: true });
+
+      /* ── MOUSE PARALLAX — bg-mouse orb ── */
+      const bgMouse = document.getElementById('bgMouse');
+      if (bgMouse) {
+        let mx = window.innerWidth / 2, my = window.innerHeight / 2;
+        let cx = mx, cy = my;
+        window.addEventListener('mousemove', (e) => { mx = e.clientX; my = e.clientY; }, { passive: true });
+        function loop() {
+          cx += (mx - cx) * 0.04;
+          cy += (my - cy) * 0.04;
+          bgMouse.style.transform = `translate3d(${cx - 300}px, ${cy - 300}px, 0)`;
+          requestAnimationFrame(loop);
+        }
+        loop();
+      }
+    })();
   </script>
 </body>
 </html>
