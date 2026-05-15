@@ -1395,6 +1395,36 @@ async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01
     return send_report_email(html, subject, EMAIL_CFG)
 
 
+@app.get("/api/redmine-users")
+async def api_redmine_users(s: dict = Depends(_require_session)):
+    redmine_url = s.get("url")
+    api_key     = s.get("api_key")
+    try:
+        data  = fetch("/users.json?limit=100", redmine_url=redmine_url, api_key=api_key)
+        users = []
+        for u in data.get("users", []):
+            name = f"{u.get('lastname', '')} {u.get('firstname', '')}".strip() or u.get("login", "")
+            users.append({"id": u.get("id"), "name": name, "email": u.get("mail", ""), "login": u.get("login", "")})
+        return {"users": users}
+    except Exception as e:
+        return {"users": [], "error": str(e)}
+
+
+@app.post("/api/report/send-html")
+async def api_report_send_html(request: Request, s: dict = Depends(_require_session)):
+    body       = await request.json()
+    html       = body.get("html", "")
+    recipients = body.get("recipients", [])
+    subject    = body.get("subject", f"[Vantix] 주간 리포트 {date.today().strftime('%Y-%m-%d')}")
+    if not html:
+        return {"ok": False, "error": "리포트 내용이 없습니다"}
+    if not recipients:
+        return {"ok": False, "error": "수신자를 선택해주세요"}
+    from dataclasses import replace
+    cfg = replace(EMAIL_CFG, recipients=recipients)
+    return send_report_email(html, subject, cfg)
+
+
 # ==================== AI 엔드포인트 ====================
 
 @app.get("/api/ai/risk-comment")
