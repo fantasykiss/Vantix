@@ -339,29 +339,34 @@ def render_html_report(report, sections=None, memo="") -> str:
         rows_html = ""
         for v in version_rows:
             bb, bc = badge_styles.get(v["badge"], ("#f5f3f3","#555"))
-            due_color = RED if v["badge"] == "OVERDUE" else "#bbbbbb"
-            overdue_color = RED if v["overdue"] > 0 else "#bbbbbb"
+            due_color = RED if v["badge"] == "OVERDUE" else "#aaaaaa"
+            overdue_color = RED if v["overdue"] > 0 else "#cccccc"
+            open_cnt = v["total"] - v["closed"]
             rows_html += f"""
-<div style='padding:9px 20px;border-bottom:{BORDER_H};display:flex;align-items:center;gap:12px;'>
-  <div style='{F_SANS}font-size:11px;font-weight:500;color:#111111;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>{v["name"]}</div>
-  <div style='{F_MONO}font-size:9px;color:{due_color};min-width:64px;'>{v["due"]}</div>
-  <div style='font-size:9px;letter-spacing:0.08em;padding:1px 6px;background:{bb};color:{bc};min-width:44px;text-align:center;'>{v["badge"]}</div>
-  <div style='width:100px;height:3px;background:#f0eeea;flex-shrink:0;'>
-    <div style='height:3px;background:{v["bar_color"]};width:{v["pct"]}%;'></div>
+<div style='padding:14px 20px;border-bottom:{BORDER_H};'>
+  <div style='display:flex;align-items:center;gap:8px;margin-bottom:10px;'>
+    <div style='{F_SANS}font-size:12px;font-weight:600;color:#111111;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>{v["name"]}</div>
+    <div style='font-size:9px;letter-spacing:0.1em;padding:2px 8px;background:{bb};color:{bc};font-weight:700;'>{v["badge"]}</div>
+    <div style='{F_MONO}font-size:10px;color:{due_color};flex-shrink:0;'>{v["due"]}</div>
   </div>
-  <div style='{F_MONO}font-size:10px;font-weight:700;color:{v["bar_color"]};min-width:28px;text-align:right;'>{v["pct"]}%</div>
-  <div style='display:flex;gap:0;flex-shrink:0;'>
-    <div style='width:44px;text-align:center;'>
-      <div style='font-family:monospace;font-size:8px;color:#bbbbbb;letter-spacing:0.05em;'>완료</div>
-      <div style='font-family:monospace;font-size:12px;font-weight:700;color:#111111;'>{v["closed"]}</div>
+  <div style='display:flex;align-items:center;gap:12px;'>
+    <div style='flex:1;height:5px;background:#f0eeea;'>
+      <div style='height:5px;background:{v["bar_color"]};width:{v["pct"]}%;'></div>
     </div>
-    <div style='width:44px;text-align:center;'>
-      <div style='font-family:monospace;font-size:8px;color:#bbbbbb;letter-spacing:0.05em;'>오픈</div>
-      <div style='font-family:monospace;font-size:12px;font-weight:700;color:{MUTED};'>{v["total"]-v["closed"]}</div>
-    </div>
-    <div style='width:44px;text-align:center;'>
-      <div style='font-family:monospace;font-size:8px;color:#bbbbbb;letter-spacing:0.05em;'>초과</div>
-      <div style='font-family:monospace;font-size:12px;font-weight:700;color:{overdue_color};'>{v["overdue"]}</div>
+    <div style='{F_MONO}font-size:11px;font-weight:700;color:{v["bar_color"]};width:36px;text-align:right;flex-shrink:0;'>{v["pct"]}%</div>
+    <div style='display:flex;gap:1px;flex-shrink:0;border-left:1px solid #eeeeee;padding-left:12px;'>
+      <div style='width:48px;text-align:center;'>
+        <div style='{F_MONO}font-size:9px;color:#bbbbbb;margin-bottom:2px;'>완료</div>
+        <div style='{F_MONO}font-size:13px;font-weight:700;color:#111111;'>{v["closed"]}</div>
+      </div>
+      <div style='width:48px;text-align:center;'>
+        <div style='{F_MONO}font-size:9px;color:#bbbbbb;margin-bottom:2px;'>오픈</div>
+        <div style='{F_MONO}font-size:13px;font-weight:700;color:#555555;'>{open_cnt}</div>
+      </div>
+      <div style='width:48px;text-align:center;'>
+        <div style='{F_MONO}font-size:9px;color:#bbbbbb;margin-bottom:2px;'>초과</div>
+        <div style='{F_MONO}font-size:13px;font-weight:700;color:{overdue_color};'>{v["overdue"]}</div>
+      </div>
     </div>
   </div>
 </div>"""
