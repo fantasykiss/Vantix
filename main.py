@@ -923,7 +923,7 @@ async def root(request: Request):
 
 @app.get("/api/projects")
 async def api_projects(request: Request, s: dict = Depends(_require_session)):
-    projects = get_projects()
+    projects = get_projects(redmine_url=s["url"], api_key=s["key"])
     return [{"identifier": p["identifier"], "name": p["name"]} for p in projects]
 
 
@@ -1397,8 +1397,8 @@ async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01
 
 @app.get("/api/redmine-users")
 async def api_redmine_users(s: dict = Depends(_require_session)):
-    redmine_url = s.get("url")
-    api_key     = s.get("api_key")
+    redmine_url = s["url"]
+    api_key     = s["key"]
     try:
         data  = fetch("/users.json?limit=100", redmine_url=redmine_url, api_key=api_key)
         users = []
