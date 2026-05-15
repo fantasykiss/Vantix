@@ -1301,7 +1301,7 @@ async def api_report_preview(
     from fastapi.responses import HTMLResponse
 
     redmine_url = s.get("url")
-    api_key     = s.get("api_key")
+    api_key     = s.get("key")
 
     dashboard = get_cache(project_id, updated_after)
     if not dashboard:
