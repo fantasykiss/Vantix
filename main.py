@@ -1421,7 +1421,8 @@ async def api_report_send_html(request: Request, s: dict = Depends(_require_sess
     if not recipients:
         return {"ok": False, "error": "수신자를 선택해주세요"}
     from dataclasses import replace
-    cfg = replace(EMAIL_CFG, recipients=recipients)
+    cfg = replace(EMAIL_CFG, recipients=recipients,
+                  enabled=bool(EMAIL_CFG.host and EMAIL_CFG.user and EMAIL_CFG.password))
     return send_report_email(html, subject, cfg)
 
 
