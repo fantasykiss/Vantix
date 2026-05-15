@@ -148,7 +148,8 @@ SSL_CONTEXT.check_hostname = False
 SSL_CONTEXT.verify_mode = ssl.CERT_NONE
 
 app = FastAPI()
-app.mount("/devlog", StaticFiles(directory="etc"), name="devlog")
+if os.path.isdir("etc"):
+    app.mount("/devlog", StaticFiles(directory="etc"), name="devlog")
 
 # ==================== 캐시 ====================
 _cache = {}
