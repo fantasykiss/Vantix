@@ -1889,7 +1889,7 @@ var _confirmUrl='';
 function goToRedmineVersion(el){
   var item=el.closest('.tl-item');
   var projectId=item.getAttribute('data-pid'),versionId=item.getAttribute('data-vid');
-  var base=localStorage.getItem('redmine_url')||'';
+  var base=window._currentRedmineUrl||'';
   if(!base){alert('Redmine URL이 설정되지 않았습니다.');return;}
   _confirmUrl=base.replace(/\/$/,'')+'/projects/'+projectId+'/roadmap#version-'+versionId;
   document.getElementById('confirmUrl').textContent=_confirmUrl;
