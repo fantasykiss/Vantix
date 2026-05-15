@@ -1855,7 +1855,10 @@ async function renderVersionCard(){
       var isDone=pct===100;
       var isActive=isOverdue||isImminent;
       html+='<div class="tl-item" onclick="goToRedmineVersion(this)" data-pid="'+currentProjectId+'" data-vid="'+v.id+'">';
-      if(isActive){
+      if(isDone){
+        var dStr=hasDate?'D+'+dNum:'완료';
+        html+='<div class="tl-dot done"></div><div class="tl-content"><div class="tl-passive"><div><div class="tl-passive-name done">'+escHtml(v.name)+'</div><div class="tl-passive-sub">'+pct+'% 완료</div></div><span class="tl-passive-dday" style="color:#ccc;">'+dStr+'</span></div></div>';
+      } else if(isActive){
         var cardCls=isOverdue?'tl-active-card overdue':'tl-active-card';
         var badgeCls=isOverdue?'tl-active-badge overdue':'tl-active-badge imminent';
         var badgeTxt=isOverdue?'OVERDUE':'IMMINENT';
@@ -1863,9 +1866,6 @@ async function renderVersionCard(){
         var pctColor=isOverdue?'#c0392b':'#b7770d';
         var desc='완료율 <span style="font-weight:700;color:'+pctColor+';">'+pct+'%</span> · '+(isOverdue?'마감일 초과 상태. 잔여 이슈 확인 필요.':'마감까지 '+dNum+'일 남음.');
         html+='<div class="tl-dot active"></div><div class="tl-content"><div class="'+cardCls+'"><div class="tl-active-top"><span class="tl-active-name">'+escHtml(v.name)+'</span><span class="'+badgeCls+'">'+badgeTxt+'</span></div><div class="tl-active-desc">'+desc+'</div><div class="tl-active-dday red">'+ddayTxt+'</div></div></div>';
-      } else if(isDone){
-        var dStr=hasDate?'D+'+dNum:'완료';
-        html+='<div class="tl-dot done"></div><div class="tl-content"><div class="tl-passive"><div><div class="tl-passive-name done">'+escHtml(v.name)+'</div><div class="tl-passive-sub">'+pct+'% 완료</div></div><span class="tl-passive-dday" style="color:#ccc;">'+dStr+'</span></div></div>';
       } else {
         var ddayColor2=(hasDate&&dNum<=30)?'#0047A0':'#bbb';
         var ddayStr=hasDate?'D-'+dNum:'미정';
