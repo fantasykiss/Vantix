@@ -19,7 +19,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 import uvicorn
 
 # ==================== 서버 설정 ====================
-from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE
+from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL
 import uuid as _uuid
 
 # ── 세션 스토어 (Postgres 우선, 파일 폴백) ──────────────────
@@ -741,6 +741,7 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
         "pending_client":   pending_client,
         "project_risk":     project_risk_list,
         "redmine_url":      redmine_url or "",
+        "redmine_public_url": REDMINE_PUBLIC_URL or redmine_url or "",
         "users_data":       {k: {"issues": v["issues"], "projects": list(v["projects"]), "group": v.get("group", ""), "short_name": v.get("short_name", k)} for k, v in users_data.items()},
         "imminent_count":   len(imminent_issues),
         "imminent_issues":  imminent_issues,

@@ -1641,6 +1641,7 @@ function renderSummaryCards() {
   var d=allData;
   var trend=d.trend_7days||{};
   window._currentRedmineUrl = allData.redmine_url || '';
+  window._currentRedminePublicUrl = allData.redmine_public_url || allData.redmine_url || '';
   renderRiskMembers(allData);
   var valTotalEl=document.getElementById('val-total');
   if(valTotalEl) valTotalEl.textContent=(d.total_issues!==undefined&&d.total_issues!==null)?d.total_issues:'—';
@@ -1889,7 +1890,7 @@ var _confirmUrl='';
 function goToRedmineVersion(el){
   var item=el.closest('.tl-item');
   var projectId=item.getAttribute('data-pid'),versionId=item.getAttribute('data-vid');
-  var base=window._currentRedmineUrl||'';
+  var base=window._currentRedminePublicUrl||window._currentRedmineUrl||'';
   if(!base){alert('Redmine URL이 설정되지 않았습니다.');return;}
   _confirmUrl=base.replace(/\/$/,'')+'/projects/'+projectId+'/roadmap#version-'+versionId;
   document.getElementById('confirmUrl').textContent=_confirmUrl;
