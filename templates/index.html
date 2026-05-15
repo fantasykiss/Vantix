@@ -1852,7 +1852,7 @@ async function renderVersionCard(){
       var isOverdue=raw&&raw.toString().startsWith('D+');
       var dNum=raw?parseInt(raw.toString().replace(/[^0-9]/g,'')):null;
       var isImminent=!isOverdue&&dNum!==null&&dNum<=10;
-      var isDone=pct===100&&!isOverdue&&!isImminent;
+      var isDone=pct===100;
       var isActive=isOverdue||isImminent;
       html+='<div class="tl-item" onclick="goToRedmineVersion(this)" data-pid="'+currentProjectId+'" data-vid="'+v.id+'">';
       if(isActive){
