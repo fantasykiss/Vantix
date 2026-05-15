@@ -22,38 +22,106 @@ import uvicorn
 from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE
 import uuid as _uuid
 
-# ── 세션 스토어 (메모리, 베타용) ──────────────────────────────
-_sessions: dict = {}          # token → {url, key, created}
+# ── 세션 스토어 (Postgres 우선, 파일 폴백) ──────────────────
 SESSION_TTL = 86400 * 30      # 30일
 _SESSION_FILE = os.path.join(os.path.dirname(__file__), "sessions.json")
+_DATABASE_URL = os.getenv("DATABASE_URL", "")
 
-def _load_sessions():
-    global _sessions
+def _db_conn():
+    import psycopg2
+    return psycopg2.connect(_DATABASE_URL)
+
+def _init_session_table():
+    if not _DATABASE_URL:
+        return
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS vantix_sessions (
+                        token TEXT PRIMARY KEY,
+                        url   TEXT NOT NULL,
+                        key   TEXT NOT NULL,
+                        created DOUBLE PRECISION NOT NULL
+                    )
+                """)
+            conn.commit()
+    except Exception as e:
+        print(f"[session] DB 테이블 초기화 실패: {e}")
+
+def _save_session(token: str, url: str, key: str, created: float):
+    if _DATABASE_URL:
+        try:
+            with _db_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "INSERT INTO vantix_sessions (token, url, key, created) VALUES (%s,%s,%s,%s) "
+                        "ON CONFLICT (token) DO UPDATE SET url=EXCLUDED.url, key=EXCLUDED.key, created=EXCLUDED.created",
+                        (token, url, key, created)
+                    )
+                conn.commit()
+            return
+        except Exception as e:
+            print(f"[session] DB 저장 실패: {e}")
+    # 파일 폴백
+    try:
+        data = {}
+        if os.path.exists(_SESSION_FILE):
+            with open(_SESSION_FILE, "r") as f:
+                data = json.load(f)
+        data[token] = {"url": url, "key": key, "created": created}
+        with open(_SESSION_FILE, "w") as f:
+            json.dump(data, f)
+    except Exception:
+        pass
+
+def _delete_session(token: str):
+    if _DATABASE_URL:
+        try:
+            with _db_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("DELETE FROM vantix_sessions WHERE token=%s", (token,))
+                conn.commit()
+            return
+        except Exception as e:
+            print(f"[session] DB 삭제 실패: {e}")
     try:
         if os.path.exists(_SESSION_FILE):
             with open(_SESSION_FILE, "r") as f:
                 data = json.load(f)
-            now = time.time()
-            _sessions = {k: v for k, v in data.items() if now - v["created"] < SESSION_TTL}
-    except Exception:
-        _sessions = {}
-
-def _save_sessions():
-    try:
-        with open(_SESSION_FILE, "w") as f:
-            json.dump(_sessions, f)
+            data.pop(token, None)
+            with open(_SESSION_FILE, "w") as f:
+                json.dump(data, f)
     except Exception:
         pass
 
 def _get_session(token: str) -> dict | None:
-    s = _sessions.get(token)
-    if not s:
-        return None
-    if time.time() - s["created"] > SESSION_TTL:
-        del _sessions[token]
-        _save_sessions()
-        return None
-    return s
+    if _DATABASE_URL:
+        try:
+            with _db_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT url, key, created FROM vantix_sessions WHERE token=%s", (token,))
+                    row = cur.fetchone()
+            if not row:
+                return None
+            url, key, created = row
+            if time.time() - created > SESSION_TTL:
+                _delete_session(token)
+                return None
+            return {"url": url, "key": key, "created": created}
+        except Exception as e:
+            print(f"[session] DB 조회 실패: {e}")
+    # 파일 폴백
+    try:
+        if os.path.exists(_SESSION_FILE):
+            with open(_SESSION_FILE, "r") as f:
+                data = json.load(f)
+            s = data.get(token)
+            if s and time.time() - s["created"] < SESSION_TTL:
+                return s
+    except Exception:
+        pass
+    return None
 
 def _require_session(request: Request) -> dict:
     token = request.cookies.get("vx_session") or request.headers.get("X-VX-Session")
@@ -62,7 +130,7 @@ def _require_session(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="session_expired")
     return s
 
-_load_sessions()
+_init_session_table()
 from app.reporter import build_report_data, render_html_report, send_report_email
 from app.constants import PROGRESS_SET, RESOLVED_SET, CLOSED_SET, HOLD_SET, DEPT_NORMALIZE, dept_name, short_name
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -1096,8 +1164,7 @@ async def api_connect(request: Request):
         raise HTTPException(status_code=400, detail=f"Redmine 연결 실패: {str(e)}")
 
     token = str(_uuid.uuid4())
-    _sessions[token] = {"url": rm_url, "key": rm_key, "created": time.time()}
-    _save_sessions()
+    _save_session(token, rm_url, rm_key, time.time())
     response = JSONResponse({"ok": True, "user": user_data.get("user", {}).get("login", ""), "token": token})
     response.set_cookie("vx_session", token, httponly=False, max_age=SESSION_TTL, samesite="lax", secure=False)
     return response
@@ -1106,9 +1173,8 @@ async def api_connect(request: Request):
 async def api_disconnect(request: Request):
     """세션 종료 + 쿠키 만료"""
     token = request.cookies.get("vx_session")
-    if token and token in _sessions:
-        del _sessions[token]
-        _save_sessions()
+    if token:
+        _delete_session(token)
     response = JSONResponse({"ok": True})
     response.delete_cookie("vx_session")
     return response
@@ -1134,8 +1200,7 @@ async def api_update_connection(request: Request):
             user_data = json.loads(resp.read().decode())
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Redmine 연결 실패: {str(e)}")
-    _sessions[token] = {"url": rm_url, "key": rm_key, "created": time.time()}
-    _save_sessions()
+    _save_session(token, rm_url, rm_key, time.time())
     return JSONResponse({"ok": True, "user": user_data.get("user", {}).get("login", "")})
 
 @app.get("/api/issue/{issue_id}")
