@@ -973,7 +973,46 @@ body {
   color: #7cbf7c;
 }
 .ai-action-btn:hover { opacity: .85; }
-.ai-chart-sub {
+.ai-chart-sub {}
+/* ── 리포트 모달 체크박스 ── */
+.r-cb-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 0;
+  border-bottom: 0.5px solid #f0eeea;
+  cursor: pointer;
+}
+.r-cb-row:last-child { border-bottom: none; }
+.r-cb-row:hover .r-cb-box { border-color: #111111; }
+.r-cb-box {
+  width: 14px;
+  height: 14px;
+  border: 1.5px solid #cccccc;
+  flex-shrink: 0;
+  position: relative;
+}
+.r-cb-on {
+  background: #111111;
+  border-color: #111111;
+}
+.r-cb-on::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 1px;
+  width: 8px;
+  height: 4px;
+  border-left: 1.5px solid #ffffff;
+  border-bottom: 1.5px solid #ffffff;
+  transform: rotate(-45deg);
+}
+.r-cb-label {
+  font-size: 12px;
+  color: #111111;
+  flex: 1;
+  font-family: 'DM Mono', monospace;
+}
 </style>
 </head>
 <body>
@@ -2146,15 +2185,96 @@ function openAiSummary(){
   if(!aiSummaryText)generateAiSummary();
 }
 
-async function openReport(){
-  try{
-    var params=new URLSearchParams({project_id:currentProjectId,updated_after:currentUpdatedAfter});
-    var res=await fetch('/api/report/preview?'+params),html=await res.text();
-    if(aiSummaryText){var aiBlock='<div style="background:#f9f9f9;border-left:3px solid #c0392b;padding:12px 16px;margin:16px 0;font-size:13px;line-height:1.7;">'+escHtml(aiSummaryText)+'</div>';html=html.replace('<table',aiBlock+'<table');}
-    var blob=new Blob([html],{type:'text/html'}),url=URL.createObjectURL(blob);
-    var a=document.createElement('a');a.href=url;a.download='vantix-report-'+new Date().toISOString().slice(0,10)+'.html';a.click();URL.revokeObjectURL(url);
-  }catch(e){alert('리포트 생성 실패');}
+function openReport() {
+  var overlay = document.getElementById('report-modal-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('report-modal-project').textContent =
+    currentProjectId || 'ALL PROJECTS';
+  document.getElementById('report-memo-input').value = '';
+  reportUpdateCount();
 }
+
+function closeReportModal() {
+  document.getElementById('report-modal-overlay').style.display = 'none';
+}
+
+function reportToggleCb(row) {
+  var box = row.querySelector('.r-cb-box');
+  box.classList.toggle('r-cb-on');
+  reportUpdateCount();
+}
+
+function reportToggleAll() {
+  var boxes = document.querySelectorAll('#report-cb-list .r-cb-box');
+  var allOn = Array.from(boxes).every(function(b) {
+    return b.classList.contains('r-cb-on');
+  });
+  boxes.forEach(function(b) {
+    if (allOn) b.classList.remove('r-cb-on');
+    else b.classList.add('r-cb-on');
+  });
+  document.getElementById('report-select-all').textContent =
+    allOn ? '전체 선택' : '전체 해제';
+  reportUpdateCount();
+}
+
+function reportUpdateCount() {
+  var cnt = document.querySelectorAll('#report-cb-list .r-cb-on').length;
+  document.getElementById('report-count-label').textContent =
+    cnt + '개 섹션 선택됨';
+}
+
+async function doExportReport() {
+  var rows = document.querySelectorAll('#report-cb-list .r-cb-row');
+  var selected = [];
+  rows.forEach(function(row) {
+    if (row.querySelector('.r-cb-on')) {
+      selected.push(row.getAttribute('data-key'));
+    }
+  });
+
+  if (selected.length === 0) {
+    alert('최소 1개 섹션을 선택해주세요.');
+    return;
+  }
+
+  var memo = document.getElementById('report-memo-input').value.trim();
+
+  var params = new URLSearchParams({
+    project_id:    currentProjectId    || '',
+    updated_after: currentUpdatedAfter || '',
+    sections:      selected.join(','),
+    memo:          memo
+  });
+
+  var exportBtn = document.querySelector('[onclick="doExportReport()"]');
+  exportBtn.textContent = '생성 중...';
+  exportBtn.disabled = true;
+
+  try {
+    var res = await fetch('/api/report/preview?' + params);
+    if (!res.ok) throw new Error('서버 오류 ' + res.status);
+    var html = await res.text();
+    var blob = new Blob([html], { type: 'text/html' });
+    var url  = URL.createObjectURL(blob);
+    var a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'vantix-report-' + new Date().toISOString().slice(0, 10) + '.html';
+    a.click();
+    URL.revokeObjectURL(url);
+    closeReportModal();
+  } catch(e) {
+    alert('리포트 생성 실패: ' + e.message);
+  } finally {
+    exportBtn.textContent = 'EXPORT .HTML ↓';
+    exportBtn.disabled = false;
+  }
+}
+
+// 오버레이 바깥 클릭 시 모달 닫기
+document.addEventListener('click', function(e) {
+  if (e.target && e.target.id === 'report-modal-overlay') closeReportModal();
+});
 
 async function forceRefresh(){try{await fetch('/api/cache/clear');await loadData();}catch(e){console.error('forceRefresh error:',e);}}
 
@@ -2823,6 +2943,68 @@ function loadActionSignals(forceRefresh = false) {
 </div>
 <div id="site-footer" style="height:28px;border-top:1px solid #e4e2e2;display:flex;align-items:center;justify-content:center;background:#fbf9f8;margin-top:24px;">
   <span style="font-size:9px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:#555;">© 2026 VANTIX · AI RISK INTELLIGENCE FOR REDMINE</span>
+</div>
+
+<!-- ── 리포트 내보내기 모달 ── -->
+<div id="report-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.5);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:#ffffff;border:1px solid #e8e6e2;width:440px;max-width:95vw;font-family:'DM Mono',monospace;">
+
+    <div style="background:#111111;padding:18px 24px;display:flex;justify-content:space-between;align-items:center;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.2em;color:#ffffff;">EXPORT REPORT</div>
+      <div id="report-modal-project" style="font-size:11px;color:#888888;letter-spacing:0.05em;"></div>
+    </div>
+
+    <div style="padding:20px 24px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+        <div style="font-size:9px;font-weight:700;letter-spacing:0.18em;color:#999999;">포함할 섹션 선택</div>
+        <span id="report-select-all" style="font-size:10px;color:#888888;cursor:pointer;letter-spacing:0.05em;" onclick="reportToggleAll()">전체 선택</span>
+      </div>
+
+      <div id="report-cb-list">
+        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="signal">
+          <div class="r-cb-box r-cb-on"></div>
+          <div class="r-cb-label">WEEKLY SIGNAL <span style="color:#bbbbbb;">— AI 주간 요약</span></div>
+        </div>
+        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="metrics">
+          <div class="r-cb-box r-cb-on"></div>
+          <div class="r-cb-label">KEY METRICS <span style="color:#bbbbbb;">— 오픈 / 초과 / 인원</span></div>
+        </div>
+        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="critical">
+          <div class="r-cb-box r-cb-on"></div>
+          <div class="r-cb-label">CRITICAL ITEMS <span style="color:#bbbbbb;">— 즉시 처리 이슈</span></div>
+        </div>
+        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="risk">
+          <div class="r-cb-box r-cb-on"></div>
+          <div class="r-cb-label">RISK PROJECTS <span style="color:#bbbbbb;">— 위험 프로젝트 순위</span></div>
+        </div>
+        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="versions">
+          <div class="r-cb-box r-cb-on"></div>
+          <div class="r-cb-label">VERSION PROGRESS <span style="color:#bbbbbb;">— 버전별 진행상태</span></div>
+        </div>
+        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="assignee">
+          <div class="r-cb-box r-cb-on"></div>
+          <div class="r-cb-label">ASSIGNEE LOAD <span style="color:#bbbbbb;">— 담당자 부하 현황</span></div>
+        </div>
+      </div>
+
+      <div style="height:0.5px;background:#e8e6e2;margin:16px 0;"></div>
+
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.18em;color:#999999;margin-bottom:8px;">
+        REPORT MEMO <span style="color:#dddddd;font-weight:400;">— 선택사항</span>
+      </div>
+      <textarea id="report-memo-input"
+        style="width:100%;border:1px solid #e8e6e2;padding:10px 12px;font-family:'DM Mono',monospace;font-size:12px;color:#111111;resize:none;height:72px;outline:none;background:#f9f8f7;box-sizing:border-box;"
+        placeholder="이번 주 특이사항, 전달 메시지 등을 입력하세요.&#10;리포트 최하단에 PM 코멘트 형식으로 삽입됩니다."></textarea>
+      <div style="font-size:10px;color:#bbbbbb;margin-top:4px;font-family:'DM Sans',sans-serif;">입력 내용은 리포트 최하단에 삽입됩니다.</div>
+    </div>
+
+    <div style="padding:14px 24px;border-top:1px solid #e8e6e2;display:flex;gap:8px;align-items:center;">
+      <span id="report-count-label" style="font-size:10px;color:#bbbbbb;margin-right:auto;font-family:'DM Mono',monospace;">6개 섹션 선택됨</span>
+      <button onclick="closeReportModal()" style="font-size:11px;letter-spacing:0.1em;color:#888888;background:none;border:1px solid #e8e6e2;padding:9px 18px;cursor:pointer;font-family:'DM Mono',monospace;">취소</button>
+      <button onclick="doExportReport()" style="font-size:11px;letter-spacing:0.12em;color:#ffffff;background:#111111;border:none;padding:9px 22px;cursor:pointer;font-family:'DM Mono',monospace;font-weight:700;">EXPORT .HTML ↓</button>
+    </div>
+
+  </div>
 </div>
 </body>
 </html>

@@ -1290,13 +1290,97 @@ async def api_get_monitor(project_id: str = "", s: dict = Depends(_require_sessi
 
 
 @app.get("/api/report/preview")
-async def api_report_preview(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
+async def api_report_preview(
+    request: Request,
+    project_id:    str = "",
+    updated_after: str = "2026-03-01",
+    sections:      str = "",
+    memo:          str = "",
+    s: dict = Depends(_require_session),
+):
     from fastapi.responses import HTMLResponse
+
+    redmine_url = s.get("url")
+    api_key     = s.get("api_key")
+
     dashboard = get_cache(project_id, updated_after)
     if not dashboard:
-        dashboard = build_dashboard_data(project_id, updated_after)
-    report = build_report_data(dashboard, project_label=project_id or "전체 프로젝트")
-    html   = render_html_report(report)
+        dashboard = build_dashboard_data(
+            project_id, updated_after,
+            redmine_url=redmine_url, api_key=api_key
+        )
+
+    # identifier → display name 변환
+    proj_name = project_id
+    try:
+        projects_raw = fetch(
+            "/projects.json?limit=100",
+            redmine_url=redmine_url,
+            api_key=api_key
+        )
+        for p in projects_raw.get("projects", []):
+            if p.get("identifier") == project_id:
+                proj_name = p.get("name", project_id)
+                break
+    except Exception:
+        pass
+
+    # 버전 데이터 + 이슈 카운트 계산해서 dashboard에 주입
+    if "versions" not in dashboard or not dashboard.get("versions"):
+        try:
+            today_str = date.today().isoformat()
+            raw_versions = get_versions(
+                project_id,
+                redmine_url=redmine_url,
+                api_key=api_key
+            )
+            enriched = []
+            for v in raw_versions:
+                vid = v.get("id")
+                try:
+                    v_issues = get_version_issues(
+                        vid,
+                        redmine_url=redmine_url,
+                        api_key=api_key
+                    )
+                except Exception:
+                    v_issues = []
+                total   = len(v_issues)
+                closed  = len([i for i in v_issues
+                                if i.get("status", {}).get("name") in CLOSED_SET])
+                overdue = len([i for i in v_issues
+                                if i.get("due_date") and i["due_date"] < today_str
+                                and i.get("status", {}).get("name") not in CLOSED_SET])
+                v["_total"]   = total
+                v["_closed"]  = closed
+                v["_overdue"] = overdue
+                enriched.append(v)
+            dashboard["versions"] = enriched
+        except Exception:
+            dashboard["versions"] = []
+
+    section_list = [sec.strip() for sec in sections.split(",") if sec.strip()] if sections else None
+
+    # AI 요약 주입 — report-summary 캐시 우선, 없으면 직접 생성
+    if not dashboard.get("ai_summary"):
+        try:
+            cache_k = f"report-summary|{project_id}|{updated_after}"
+            cached_summary = _get_ai_cache(cache_k)
+            if cached_summary:
+                dashboard["ai_summary"] = cached_summary
+            else:
+                ai_resp = await api_ai_report_summary(
+                    project_id=project_id,
+                    updated_after=updated_after,
+                    s=s
+                )
+                summary_val = ai_resp.get("summary", "") if isinstance(ai_resp, dict) else ""
+                dashboard["ai_summary"] = summary_val
+        except Exception:
+            dashboard["ai_summary"] = ""
+
+    report = build_report_data(dashboard, project_label=proj_name)
+    html   = render_html_report(report, sections=section_list, memo=memo)
     return HTMLResponse(content=html)
 
 
