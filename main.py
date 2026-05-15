@@ -16,6 +16,7 @@ from collections import defaultdict
 from datetime import date, datetime, timedelta
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 # ==================== 서버 설정 ====================
@@ -147,6 +148,7 @@ SSL_CONTEXT.check_hostname = False
 SSL_CONTEXT.verify_mode = ssl.CERT_NONE
 
 app = FastAPI()
+app.mount("/devlog", StaticFiles(directory="etc"), name="devlog")
 
 # ==================== 캐시 ====================
 _cache = {}
@@ -1558,13 +1560,38 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
     if not risks:
         return {"signals": []}
 
-    # 담당자 편중도 계산
+    # 담당자별 이슈 수 및 편중도
     users_data = dashboard.get("users_data", {})
     assignee_counts = {u: len(v["issues"]) for u, v in users_data.items() if v["issues"]}
     total_issues = sum(assignee_counts.values()) or 1
     top_assignee = max(assignee_counts, key=assignee_counts.get) if assignee_counts else None
     top_count = assignee_counts.get(top_assignee, 0)
     top_pct = round(top_count / total_issues * 100)
+
+    # 담당자별 상세 (상위 5명)
+    assignee_lines = "\n".join([
+        f"  - {u}: {len(v['issues'])}건 (overdue={sum(1 for i in v['issues'] if i.get('_elapsed') is not None and i.get('_elapsed',0)<0)})"
+        for u, v in sorted(users_data.items(), key=lambda x: len(x[1]["issues"]), reverse=True)[:5]
+        if v["issues"]
+    ])
+
+    # 지연 이슈 상위 5개 추출
+    all_issues = []
+    for v in users_data.values():
+        all_issues.extend(v.get("issues", []))
+    overdue_issues = [i for i in all_issues if i.get("_elapsed") is not None and i.get("_elapsed", 0) < 0]
+    overdue_issues.sort(key=lambda i: i.get("_elapsed", 0))
+    overdue_lines = "\n".join([
+        f"  - [{i.get('status','?')}] {i.get('subject','?')} (D+{abs(i.get('_elapsed',0))}, 담당:{i.get('assigned_to','?')})"
+        for i in overdue_issues[:5]
+    ]) or "  없음"
+
+    # 마감 임박 이슈 상위 3개
+    urgent_issues = [i for i in all_issues if i.get("_elapsed") is not None and 0 <= i.get("_elapsed", 99) <= 7]
+    urgent_lines = "\n".join([
+        f"  - [{i.get('status','?')}] {i.get('subject','?')} (D-{i.get('_elapsed',0)}, 담당:{i.get('assigned_to','?')})"
+        for i in urgent_issues[:3]
+    ]) or "  없음"
 
     # 전주 대비 리스크 변화
     try:
@@ -1588,35 +1615,32 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
         for r in risks
     ])
 
-    context_lines = (
-        f"담당자 최대 집중도: {top_assignee if top_assignee else '없음'} "
-        f"({top_count}건/{total_issues}건, {top_pct}%)\n"
-        f"전주 대비 리스크 변화: {delta_str}점"
-    )
-
     prompt = (
-        "아래 프로젝트 리스크 데이터를 분석해서 JSON 배열만 반환해줘. 설명 없이 JSON만.\n"
-        "반드시 3~5개 액션을 생성해야 해.\n"
+        "아래 실제 프로젝트 데이터를 보고 JSON 배열만 반환해줘. 설명 없이 JSON만.\n"
+        "반드시 4~5개 액션을 생성해야 해.\n"
         "각 항목 형식:\n"
         "{\"priority\": \"P1\"|\"P2\"|\"P3\", "
         "\"timing\": \"IMMEDIATE\"|\"THIS WEEK\"|\"NEXT SPRINT\", "
         "\"action_type\": \"REASSIGN\"|\"ESCALATE\"|\"SCHEDULE\"|\"MONITOR\", "
-        "\"action\": \"구체적 처방 한 줄(한국어, 반드시 구체적 수치나 대상 명시, '~를 추천합니다' 또는 '~를 제안합니다' 형태)\", "
-        "\"reason\": \"원인 한 줄(한국어, 데이터 근거 포함)\", "
-        "\"who\": \"담당자 역할\"}\n"
-        f"리스크 데이터:\n{risk_lines}\n"
-        f"컨텍스트:\n{context_lines}\n"
+        "\"action\": \"구체적 처방 한 줄 (이슈명/담당자명/수치를 직접 언급)\", "
+        "\"reason\": \"원인 한 줄 (데이터 수치 근거 포함)\", "
+        "\"who\": \"담당자 역할\"}\n\n"
+        f"[프로젝트 리스크 현황]\n{risk_lines}\n\n"
+        f"[마감 초과 이슈 목록]\n{overdue_lines}\n\n"
+        f"[마감 임박 이슈 목록 (7일 이내)]\n{urgent_lines}\n\n"
+        f"[담당자별 이슈 현황]\n{assignee_lines}\n\n"
+        f"[전주 대비 리스크 변화]\n{delta_str}점\n\n"
+        "규칙:\n"
+        "1. 각 액션은 서로 다른 관점이어야 함 (중복 금지)\n"
+        "   - 하나는 특정 지연 이슈 처리, 하나는 담당자 재배분, 하나는 임박 이슈 대응, 하나는 리스크 모니터링, 하나는 예방 조치\n"
+        "2. action 필드에 반드시 이슈명 또는 담당자명을 직접 언급할 것\n"
+        "3. '분석이 필요합니다', '회의를 권장합니다' 같은 추상적 표현 금지\n"
+        "4. 실행 가능한 구체적 동사로 시작할 것 (예: '[이슈명]을 오늘 중 [담당자]와 해결 방안 확정', '[담당자]의 [N]건 중 [N]건을 [담당자2]에게 이전')\n"
         "우선순위 기준:\n"
-        "P1/IMMEDIATE: overdue > 0 이거나 담당자 집중도 70% 이상이거나 전주 대비 +20점 이상\n"
-        "P2/THIS WEEK: HIGH 리스크이거나 urgent > 0이거나 전주 대비 +10점 이상\n"
-        "P3/NEXT SPRINT: MEDIUM 이하, 예방 조치\n"
-        "액션 생성 순서:\n"
-        "1. 담당자 업무 편중 해소 (집중도 70% 이상이면 반드시 REASSIGN 포함)\n"
-        "2. 마감 초과 이슈 즉각 조치\n"
-        "3. 마감 임박 이슈 대응\n"
-        "4. 리스크 점수 급등 원인 분석\n"
-        "5. 다음 스프린트 예방 조치\n"
-        "JSON 배열만, 마크다운 코드블록 없이, 반드시 3개 이상"
+        "P1/IMMEDIATE: overdue > 0 이거나 담당자 집중도 70% 이상\n"
+        "P2/THIS WEEK: HIGH 리스크이거나 urgent > 0\n"
+        "P3/NEXT SPRINT: 예방 조치\n"
+        "JSON 배열만, 마크다운 코드블록 없이"
     )
 
     try:
