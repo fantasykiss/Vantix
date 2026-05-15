@@ -350,17 +350,19 @@ def render_html_report(report, sections=None, memo="") -> str:
     <div style='height:3px;background:{v["bar_color"]};width:{v["pct"]}%;'></div>
   </div>
   <div style='{F_MONO}font-size:10px;font-weight:700;color:{v["bar_color"]};min-width:28px;text-align:right;'>{v["pct"]}%</div>
-  <div style='display:flex;flex-direction:column;align-items:center;min-width:36px;'>
-    <span style='font-family:monospace;font-size:8px;color:#bbbbbb;'>완료</span>
-    <span style='font-family:monospace;font-size:11px;font-weight:700;color:#111111;'>{v["closed"]}</span>
-  </div>
-  <div style='display:flex;flex-direction:column;align-items:center;min-width:36px;'>
-    <span style='font-family:monospace;font-size:8px;color:#bbbbbb;'>오픈</span>
-    <span style='font-family:monospace;font-size:11px;font-weight:700;color:{MUTED};'>{v["total"]-v["closed"]}</span>
-  </div>
-  <div style='display:flex;flex-direction:column;align-items:center;min-width:36px;'>
-    <span style='font-family:monospace;font-size:8px;color:#bbbbbb;'>초과</span>
-    <span style='font-family:monospace;font-size:11px;font-weight:700;color:{overdue_color};'>{v["overdue"]}</span>
+  <div style='display:flex;gap:0;flex-shrink:0;'>
+    <div style='width:44px;text-align:center;'>
+      <div style='font-family:monospace;font-size:8px;color:#bbbbbb;letter-spacing:0.05em;'>완료</div>
+      <div style='font-family:monospace;font-size:12px;font-weight:700;color:#111111;'>{v["closed"]}</div>
+    </div>
+    <div style='width:44px;text-align:center;'>
+      <div style='font-family:monospace;font-size:8px;color:#bbbbbb;letter-spacing:0.05em;'>오픈</div>
+      <div style='font-family:monospace;font-size:12px;font-weight:700;color:{MUTED};'>{v["total"]-v["closed"]}</div>
+    </div>
+    <div style='width:44px;text-align:center;'>
+      <div style='font-family:monospace;font-size:8px;color:#bbbbbb;letter-spacing:0.05em;'>초과</div>
+      <div style='font-family:monospace;font-size:12px;font-weight:700;color:{overdue_color};'>{v["overdue"]}</div>
+    </div>
   </div>
 </div>"""
         s_versions = _section(
