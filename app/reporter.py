@@ -301,11 +301,15 @@ def render_html_report(report, sections=None, memo="") -> str:
             "Medium":   ("#f5f3f3", "#555555"),
             "Low":      ("#e8f5e9", GREEN),
         }
+        def _norm_score(p):
+            raw = p.get('risk_score', p.get('score', 0))
+            try: return min(round(float(raw) * 100 / 60), 100)
+            except: return 0
         rows = "".join(
             f"<tr>"
             f"{_td(p.get('name',''), bold=True)}"
             f"{_td(_badge(p.get('risk_level',p.get('level','')).upper(), *lv_map.get(p.get('risk_level',p.get('level','')), ('#f5f3f3','#555'))))}"
-            f"{_td(str(p.get('risk_score',p.get('score',''))), RED if p.get('risk_level',p.get('level',''))=='Critical' else AMBER, align='right', mono=True, bold=True)}"
+            f"{_td(str(_norm_score(p)), RED if p.get('risk_level',p.get('level',''))=='Critical' else AMBER, align='right', mono=True, bold=True)}"
             f"{_td(str(p.get('overdue',0)), RED, align='center', bold=True)}"
             f"{_td(str(p.get('open',0)), MUTED, align='center')}"
             f"</tr>"
@@ -346,9 +350,18 @@ def render_html_report(report, sections=None, memo="") -> str:
     <div style='height:3px;background:{v["bar_color"]};width:{v["pct"]}%;'></div>
   </div>
   <div style='{F_MONO}font-size:10px;font-weight:700;color:{v["bar_color"]};min-width:28px;text-align:right;'>{v["pct"]}%</div>
-  <div style='font-family:monospace;font-size:10px;color:#111111;min-width:48px;text-align:right;'>완료 {v["closed"]}</div>
-  <div style='font-family:monospace;font-size:10px;color:{MUTED};min-width:40px;text-align:right;'>오픈 {v["total"]-v["closed"]}</div>
-  <div style='font-family:monospace;font-size:10px;color:{overdue_color};min-width:40px;text-align:right;'>초과 {v["overdue"]}</div>
+  <div style='display:flex;flex-direction:column;align-items:center;min-width:36px;'>
+    <span style='font-family:monospace;font-size:8px;color:#bbbbbb;'>완료</span>
+    <span style='font-family:monospace;font-size:11px;font-weight:700;color:#111111;'>{v["closed"]}</span>
+  </div>
+  <div style='display:flex;flex-direction:column;align-items:center;min-width:36px;'>
+    <span style='font-family:monospace;font-size:8px;color:#bbbbbb;'>오픈</span>
+    <span style='font-family:monospace;font-size:11px;font-weight:700;color:{MUTED};'>{v["total"]-v["closed"]}</span>
+  </div>
+  <div style='display:flex;flex-direction:column;align-items:center;min-width:36px;'>
+    <span style='font-family:monospace;font-size:8px;color:#bbbbbb;'>초과</span>
+    <span style='font-family:monospace;font-size:11px;font-weight:700;color:{overdue_color};'>{v["overdue"]}</span>
+  </div>
 </div>"""
         s_versions = _section(
             _head(f"VERSION PROGRESS / 버전별 진행상태", f"{len(version_rows)} VERSIONS"),
