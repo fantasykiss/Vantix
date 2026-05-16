@@ -50,6 +50,25 @@
   --amber      : #b7770d;
   --blue       : #0047A0;
   --green      : #16a34a;
+
+  /* ── [A] 시맨틱 컬러 토큰 ── */
+  --critical     : #dc2626;
+  --critical-bg  : #fef2f2;
+  --warning      : #d97706;
+  --warning-bg   : #fffbeb;
+  --safe         : #16a34a;
+  --safe-bg      : #f0fdf4;
+  --info         : #2563eb;
+  --info-bg      : #eff6ff;
+
+  /* ── [A] 그림자 토큰 ── */
+  --shadow-sm : 0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+  --shadow-md : 0 4px 12px rgba(0,0,0,.07), 0 2px 4px rgba(0,0,0,.04);
+
+  /* ── [A] 반경 토큰 ── */
+  --radius-sm   : 4px;
+  --radius-md   : 6px;
+  --radius-pill : 100px;
 }
 
 /* ── Reset ── */
@@ -261,17 +280,21 @@ body {
   margin-bottom: var(--sp-2); font-family: var(--dm);
 }
 .sum-value {
-  font-size: 52px; font-weight: 800; letter-spacing: -0.02em;
+  font-size: 44px; font-weight: 800; letter-spacing: -0.03em;  /* [C] 52→44px */
   line-height: 1; color: var(--text);
 }
 .sum-value.amber { color: var(--amber); }
 .sum-value.red   { color: var(--red); }
 .sum-value.blue  { color: var(--blue); }
 .sum-spark { margin-top: var(--sp-2); display: flex; flex-direction: column; gap: 4px; }
-.sum-delta { font-size: 11px; color: var(--text-muted); }
-.sum-delta.up   { color: #8b1a1a; }
-.sum-delta.down { color: var(--green); }
+.sum-delta { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
+.sum-delta.up   { color: var(--critical); }  /* [C] 시맨틱 토큰으로 통일 */
+.sum-delta.down { color: var(--safe); }
 .sum-hint { font-size: 9px; color: var(--text-dim); letter-spacing: 0.08em; }
+
+/* [C] KPI 카드 accent border-top */
+.sum-card.accent-warning { border-top: 3px solid var(--warning); padding-top: calc(var(--sp-4) - 3px); }
+.sum-card.accent-critical { border-top: 3px solid var(--critical); padding-top: calc(var(--sp-4) - 3px); }
 
 /* ── Risk score card (wide, left of strip) ── */
 .risk-score-card {
@@ -414,8 +437,8 @@ body {
   font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; color: rgba(0,0,0,0.35); width: 28px; flex-shrink: 0;
 }
-.risk-member-bar-track { height: 3px; background: #f0f0f0; flex: 1; min-width: 0; max-width: 600px; overflow: hidden; }
-.risk-member-bar-fill { height: 100%; transition: width 0.4s ease; }
+.risk-member-bar-track { height: 4px; background: #eae8e4; flex: 1; min-width: 0; max-width: 600px; overflow: hidden; border-radius: 2px; }  /* [H] 3→4px, 통일된 색상 */
+.risk-member-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }  /* [H] ease→cubic-bezier */
 .risk-member-bar-val { font-size: 11px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
 .risk-member-avatar {
   width: 30px; height: 30px; border-radius: 0; display: flex;
@@ -630,9 +653,29 @@ body {
   text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap;
 }
 .data-table tbody tr { border-bottom: 1px solid var(--border); }
-.data-table tbody tr:hover { background: #f7f5f2; }
+.data-table tbody tr:hover { background: #f9f8f7; transition: background 0.08s; }  /* [G] hover bg 개선 */
 .tab-table tbody tr { border-left: 3px solid transparent; }
-.data-table tbody td { font-size: 11px; padding: 13px 12px; vertical-align: middle; }
+.data-table tbody td { font-size: 11px; padding: 0 12px; height: 44px; vertical-align: middle; }  /* [G] 44px 행 높이 통일 */
+
+/* [G] Priority dot */
+.priority-dot {
+  width: 8px; height: 8px; border-radius: 2px; display: inline-block; flex-shrink: 0;
+}
+.priority-dot.overdue  { background: var(--critical); }
+.priority-dot.imminent { background: var(--warning); }
+.priority-dot.normal   { background: #d0ceca; }
+
+/* [G] Due-date pill */
+.dday-pill {
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: var(--radius-sm);
+  font-size: 10px; font-weight: 700; white-space: nowrap;
+}
+.dday-pill.overdue  { background: var(--critical-bg); color: var(--critical); }
+.dday-pill.imminent { background: var(--warning-bg);  color: var(--warning); }
+.dday-pill.today    { background: var(--info-bg);     color: var(--info); }
+.dday-pill.normal   { color: var(--text-muted); background: transparent; }
+.dday-pill.closed   { color: var(--text-dim);   background: transparent; }
 .data-table tbody tr:last-child { border-bottom: none; }
 .td-subject { font-size: 11px; font-weight: 700; color: var(--text); margin-bottom: 2px; }
 .td-project { font-size: 10px; color: var(--text-dim); font-weight: 300; }
@@ -1013,6 +1056,33 @@ body {
   flex: 1;
   font-family: 'DM Mono', monospace;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   [J] SKELETON SHIMMER — 로딩 상태
+   ══════════════════════════════════════════════════════════════ */
+@keyframes shimmer {
+  0%   { background-position: -400% 0; }
+  100% { background-position:  400% 0; }
+}
+.skeleton {
+  background: linear-gradient(90deg, #f0eeec 25%, #e5e3e0 50%, #f0eeec 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 3px;
+  color: transparent !important;
+  user-select: none;
+  display: inline-block;
+  min-width: 2em;
+}
+/* KPI 숫자 로딩 전용 — 큰 숫자 크기에 맞춤 */
+.skeleton-kpi {
+  display: block;
+  height: 44px; width: 64px;
+  background: linear-gradient(90deg, #eeece9 25%, #e3e1de 50%, #eeece9 75%);
+  background-size: 400% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+  border-radius: 3px;
+}
 </style>
 </head>
 <body>
@@ -1176,38 +1246,38 @@ body {
 
   <div class="gc-3 sum-card" id="card-total">
     <div class="sum-label">Total Issues</div>
-    <div class="sum-value" id="val-total">—</div>
+    <div class="sum-value" id="val-total"><span class="skeleton-kpi"></span></div>
     <div class="sum-spark">
       <svg id="spark-total" width="60" height="18" viewBox="0 0 60 18"></svg>
-      <span class="sum-delta" id="delta-total">— No Change</span>
+      <span class="sum-delta" id="delta-total"><span class="skeleton" style="width:60px;height:11px;">.</span></span>
     </div>
   </div>
 
   <div class="gc-3 sum-card bg-muted clickable" id="card-open" onclick="goToTab('assignee')">
     <div class="sum-label">Open Issues</div>
-    <div class="sum-value amber" id="val-open">—</div>
+    <div class="sum-value amber" id="val-open"><span class="skeleton-kpi"></span></div>
     <div class="sum-spark">
       <svg id="spark-open" width="60" height="18" viewBox="0 0 60 18"></svg>
-      <span class="sum-delta" id="delta-open">—</span>
+      <span class="sum-delta" id="delta-open"><span class="skeleton" style="width:60px;height:11px;">.</span></span>
     </div>
     <div class="sum-hint">담당자별 현황 ↓</div>
   </div>
 
-  <div class="gc-3 sum-card clickable" id="card-imminent" onclick="goToTab('imminent')">
+  <div class="gc-3 sum-card accent-warning clickable" id="card-imminent" onclick="goToTab('imminent')">
     <div class="sum-label">Imminent</div>
-    <div class="sum-value blue" id="val-imminent">—</div>
+    <div class="sum-value blue" id="val-imminent"><span class="skeleton-kpi"></span></div>
     <div class="sum-spark">
       <span class="sum-delta" id="delta-imminent" style="color:#2980b9;">D-7 이내</span>
     </div>
     <div class="sum-hint">마감 임박 이슈 ↓</div>
   </div>
 
-  <div class="gc-3 sum-card bg-dark2 clickable" id="card-overdue" onclick="goToTab('overdue')">
+  <div class="gc-3 sum-card bg-dark2 accent-critical clickable" id="card-overdue" onclick="goToTab('overdue')">
     <div class="sum-label">Overdue</div>
-    <div class="sum-value red" id="val-overdue">—</div>
+    <div class="sum-value red" id="val-overdue"><span class="skeleton-kpi"></span></div>
     <div class="sum-spark">
       <svg id="spark-overdue" width="60" height="18" viewBox="0 0 60 18"></svg>
-      <span class="sum-delta" id="delta-overdue">—</span>
+      <span class="sum-delta" id="delta-overdue"><span class="skeleton" style="width:60px;height:11px;">.</span></span>
     </div>
     <div class="sum-hint">Overdue Issues ↓</div>
   </div>
@@ -1333,6 +1403,7 @@ body {
     <table class="data-table tab-table">
       <thead>
         <tr>
+          <th style="width:20px;padding:0 4px 0 12px;"></th>
           <th data-sort="id" onclick="setSort('id')" style="cursor:pointer;color:#bbb;">ID<span class="sort-icon"> ⇅</span></th>
           <th data-sort="subject" onclick="setSort('subject')" style="cursor:pointer;color:#bbb;">SUBJECT 이슈 제목<span class="sort-icon"> ⇅</span></th>
           <th data-sort="dept" onclick="setSort('dept')" style="cursor:pointer;color:#bbb;">그룹<span class="sort-icon"> ⇅</span></th>
@@ -1629,7 +1700,7 @@ async function renderGroupStatus(projectId) {
       var riskBg=g.risk==='Critical'?'#c0392b':g.risk==='High'?'#000':'#e4e2e2';
       var riskColor=g.risk==='Stable'?'#666':'#fff';
       var overdueColor=g.overdue_now>0?'#c0392b':'#000';
-      return '<div style="display:grid;grid-template-columns:100px 1fr 52px 72px;padding:11px var(--sp-2);border-bottom:1px solid #eae8e7;gap:10px;align-items:center;background:'+bg+';"><div><div style="font-size:12px;font-weight:700;color:#000;">'+g.name+'</div><div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.07em;margin-top:1px;">'+g.user_count+'명</div></div><div><div style="height:6px;background:#eae8e7;border-radius:3px;overflow:hidden;"><div style="height:6px;background:'+barColor+';width:'+overdueRatio+'%;border-radius:3px;"></div></div><div style="font-size:9px;color:#bbb;margin-top:3px;">'+overdueRatio+'% overdue</div></div><div style="font-size:12px;font-weight:600;text-align:right;color:'+overdueColor+';">'+g.overdue_now+'</div><div style="text-align:right;"><span style="font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:3px 7px;background:'+riskBg+';color:'+riskColor+';">'+g.risk+'</span></div></div>';
+      return '<div style="display:grid;grid-template-columns:100px 1fr 52px 72px;padding:11px var(--sp-2);border-bottom:1px solid #eae8e7;gap:10px;align-items:center;background:'+bg+';"><div><div style="font-size:12px;font-weight:700;color:#000;">'+g.name+'</div><div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.07em;margin-top:1px;">'+g.user_count+'명</div></div><div><div style="height:4px;background:#eae8e4;border-radius:2px;overflow:hidden;"><div style="height:4px;background:'+barColor+';width:'+overdueRatio+'%;border-radius:2px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);"></div></div><div style="font-size:9px;color:#bbb;margin-top:3px;">'+overdueRatio+'% overdue</div></div><div style="font-size:12px;font-weight:600;text-align:right;color:'+overdueColor+';">'+g.overdue_now+'</div><div style="text-align:right;"><span style="font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:3px 7px;background:'+riskBg+';color:'+riskColor+';">'+g.risk+'</span></div></div>';
     }).join('');
   } catch(e) { if(tbody) tbody.innerHTML='<div style="padding:20px var(--sp-2);font-size:11px;color:#ccc;text-align:center;">그룹 로드 실패</div>'; }
 }
@@ -2059,7 +2130,11 @@ function renderTab(){
     var priorityCls=(i.priority==='High'||i.priority==='높음')?'high':'';
     var priorityTxt=(i.priority==='High'||i.priority==='높음')?'HIGH':(i.priority==='Low'||i.priority==='낮음')?'LOW':'NORMAL';
     var dueTip=i.due_date?'마감 '+i.due_date:'마감일 없음';
-    return '<tr data-id="'+i.id+'" onclick="openIssue('+i.id+')" style="border-left:3px solid '+rowDeptColor+';"><td class="td-id">#'+i.id+'</td><td><div class="td-subject">'+escHtml(i.subject)+'</div><div class="td-project">'+escHtml(i.project)+'</div></td><td><span class="td-group-badge">'+escHtml(i._dept||'—')+'</span></td><td style="font-size:11px;font-weight:500;">'+escHtml(i._short)+'</td><td><span class="status-badge '+statusCls+'">'+escHtml(i.status)+'</span></td><td class="td-priority '+priorityCls+'">'+priorityTxt+'</td><td style="text-align:right;"><div class="dday-wrap"><span class="td-dday '+elapsedCls+'">'+elapsed+'</span><div class="dday-tooltip">'+dueTip+'</div></div></td></tr>';
+    // [G] priority dot class
+    var dotCls=isOverdue?'overdue':(!isClosed&&i._elapsed!==null&&i._elapsed<=7)?'imminent':'normal';
+    // [G] dday-pill class
+    var pillCls=isClosed?'closed':isOverdue?'overdue':(i._elapsed!==null&&i._elapsed===0)?'today':(i._elapsed!==null&&i._elapsed<=7)?'imminent':'normal';
+    return '<tr data-id="'+i.id+'" onclick="openIssue('+i.id+')" style="border-left:3px solid '+rowDeptColor+';"><td style="width:20px;padding:0 4px 0 12px;"><span class="priority-dot '+dotCls+'"></span></td><td class="td-id">#'+i.id+'</td><td><div class="td-subject">'+escHtml(i.subject)+'</div><div class="td-project">'+escHtml(i.project)+'</div></td><td><span class="td-group-badge">'+escHtml(i._dept||'—')+'</span></td><td style="font-size:11px;font-weight:500;">'+escHtml(i._short)+'</td><td><span class="status-badge '+statusCls+'">'+escHtml(i.status)+'</span></td><td class="td-priority '+priorityCls+'">'+priorityTxt+'</td><td style="text-align:right;"><div class="dday-wrap"><span class="dday-pill '+pillCls+'">'+elapsed+'</span><div class="dday-tooltip">'+dueTip+'</div></div></td></tr>';
   }).join('');
   var emptyRows=perPage-issues.length;
   if(emptyRows>0){var emptyHtml='';for(var e=0;e<emptyRows;e++){emptyHtml+='<tr style="border-bottom:0.5px solid #e8e6e2;"><td colspan="7" style="padding:0;height:51px;">&nbsp;</td></tr>';}tbody.innerHTML+=emptyHtml;}
