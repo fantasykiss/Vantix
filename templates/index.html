@@ -880,6 +880,15 @@ body {
   /* KPI row: 2+2 layout */
   .g-strip.kpi-row .gc-3 { grid-column: span 6; }
 
+  /* [C] 2×2일 때 accent: border-top → border-left 전환 */
+  .sum-card.accent-warning,
+  .sum-card.accent-critical {
+    border-top: none;
+    padding-top: var(--sp-4);  /* 원래 padding 복원 */
+  }
+  .sum-card.accent-warning { border-left: 3px solid var(--warning); padding-left: calc(var(--sp-5) - 3px); }
+  .sum-card.accent-critical { border-left: 3px solid var(--critical); padding-left: calc(var(--sp-5) - 3px); }
+
   /* AI section: 중간 단계 — 아직 나란히 유지 */
   .g-content.ai-row .gc-8 { grid-column: span 7; }
   .g-content.ai-row .gc-4 { grid-column: span 5; }
