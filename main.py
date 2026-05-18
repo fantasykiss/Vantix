@@ -178,12 +178,19 @@ def _call_claude(prompt: str, max_tokens: int = 256) -> str:
     except ImportError:
         raise RuntimeError("anthropic 패키지 없음. pip install anthropic 후 재시작하세요.")
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
-    msg = client.messages.create(
-        model="claude-haiku-4-5-20251001",
-        max_tokens=max_tokens,
-        messages=[{"role": "user", "content": prompt}],
-    )
-    return msg.content[0].text.strip()
+    try:
+        msg = client.messages.create(
+            model="claude-haiku-4-5-20251001",
+            max_tokens=max_tokens,
+            messages=[{"role": "user", "content": prompt}],
+        )
+        return msg.content[0].text.strip()
+    except anthropic.APIStatusError as e:
+        if e.status_code == 529:
+            raise RuntimeError("AI 서버가 일시적으로 혼잡합니다. 잠시 후 다시 시도해주세요.")
+        if e.status_code == 429:
+            raise RuntimeError("AI 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
+        raise RuntimeError(f"AI 오류 ({e.status_code}): {e.message}")
 
 # ==================== 접속자 관리 ====================
 _visitors = {}  # ip → last_seen
@@ -535,29 +542,36 @@ def get_issues(project_id="", updated_after="2026-03-01", redmine_url=None, api_
 def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=None, api_key=None):
     issues = get_issues(project_id, updated_after, redmine_url=redmine_url, api_key=api_key)
 
-    # 멤버십 API로 user_id → group_name 매핑 테이블 생성
+    # 멤버십 API로 user_name → group_name 매핑 테이블 생성
     user_group_map = {}  # {user_name: group_name}
     if project_id:
         try:
             memberships = fetch(f"/projects/{project_id}/memberships.json", redmine_url=redmine_url, api_key=api_key).get("memberships", [])
-            # 순서 기반 그룹↔유저 매핑
-            # Redmine API는 그룹 엔트리 바로 다음에 해당 그룹 소속 유저들을 반환
-            # inherited=true 유저는 직전에 나온 그룹에 소속
-            current_group = None
+            known_groups = {m["group"]["name"] for m in memberships if m.get("group")}
+            # 1차: 이름 prefix 매칭 (기획_홍길동, PM_ 권지용 등 언더스코어 기반)
             for m in memberships:
-                grp = m.get("group")
-                if grp:
-                    current_group = grp["name"]
-                    continue
                 user = m.get("user")
-                if not user or not current_group:
+                if not user:
                     continue
                 uname = user.get("name", "")
-                if not uname:
+                if not uname or "_" not in uname:
                     continue
-                inherited = any(r.get("inherited") for r in m.get("roles", []))
-                if inherited:
-                    user_group_map[uname] = current_group
+                prefix = uname.split("_")[0].strip()
+                if prefix in known_groups:
+                    user_group_map[uname] = prefix
+            # 2차: groups API로 언더스코어 없는 유저 매핑 (실패해도 무시)
+            for m in memberships:
+                grp = m.get("group")
+                if not grp:
+                    continue
+                gname, gid = grp["name"], grp["id"]
+                try:
+                    for u in fetch(f"/groups/{gid}.json?include=users", redmine_url=redmine_url, api_key=api_key).get("group", {}).get("users", []):
+                        uname = u.get("name", "")
+                        if uname and uname not in user_group_map:
+                            user_group_map[uname] = gname
+                except Exception:
+                    pass
         except Exception:
             pass
 
@@ -858,6 +872,7 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
                 "id":           ginfo["id"],
                 "name":         gname,
                 "user_count":   ginfo["user_count"],
+                "members":      ginfo.get("members", []),
                 "overdue_now":  overdue_now,
                 "overdue_wow":  wow,
                 "risk":         risk,
@@ -1075,6 +1090,156 @@ async def api_versions(request: Request, project_id: str = "", force: bool = Fal
     if data:  # 빈 결과는 캐시하지 않음
         _cache[vkey] = {"data": data, "fetched_at": datetime.now()}
     return data
+
+
+@app.get("/api/forecast")
+async def api_forecast(request: Request, project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
+    today = date.today()
+    today_str = today.strftime("%Y-%m-%d")
+
+    # 대시보드 캐시 우선 사용
+    dashboard = get_cache(project_id, updated_after)
+    if not dashboard:
+        dashboard = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
+        set_cache(project_id, updated_after, dashboard)
+
+    # ── 지표 1: 차주 지연 예상 이슈 수 (현재 overdue + D-3 이내 이슈)
+    project_risk = dashboard.get("project_risk", [])
+    delay_predicted = sum(p.get("overdue", 0) + p.get("urgent", 0) for p in project_risk)
+
+    # ── 지표 2: 완료 위험 마일스톤 수 (마감 14일 이내 & done_pct < 80%)
+    at_risk_milestones = 0
+    vkey = f"versions|{project_id}"
+    version_data = None
+    entry = _cache.get(vkey)
+    if entry and (datetime.now() - entry["fetched_at"]).total_seconds() < CACHE_TTL_SECONDS:
+        version_data = entry["data"]
+    if not version_data:
+        try:
+            version_data = build_version_data(project_id, redmine_url=s["url"], api_key=s["key"])
+            if version_data:
+                _cache[vkey] = {"data": version_data, "fetched_at": datetime.now()}
+        except Exception:
+            version_data = []
+    for v in (version_data or []):
+        due = v.get("due_date", "")
+        diff = days_diff(due) if due else None
+        if diff is not None and diff <= 14 and v.get("done_pct", 0) < 80:
+            at_risk_milestones += 1
+
+    # ── 지표 3: 전주 대비 리스크 변화
+    risk_change = None
+    try:
+        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+            hist = json.load(f)
+        proj_key = f"project_{project_id}" if project_id else "all"
+        proj_hist = hist.get(proj_key, hist.get("all", []))
+        if len(proj_hist) >= 2:
+            risk_change = round(proj_hist[-1]["score"] - proj_hist[-2]["score"], 1)
+    except Exception:
+        pass
+
+    # ── 담당자 과부하 (오픈 이슈 집중도 기준)
+    users_data = dashboard.get("users_data", {})
+    overload_raw = []
+    for uname, ud in users_data.items():
+        issues = ud.get("issues", [])
+        open_count = sum(1 for i in issues if i["status"] not in CLOSED_SET and i["status"] not in HOLD_SET)
+        if open_count > 0:
+            overload_raw.append({"name": ud.get("short_name", uname), "open": open_count})
+    overload_raw.sort(key=lambda x: -x["open"])
+    max_open = overload_raw[0]["open"] if overload_raw else 1
+    overload = []
+    for x in overload_raw[:5]:
+        pct = round(x["open"] / max_open * 100)
+        overload.append({
+            "name": x["name"], "open": x["open"], "pct": pct,
+            "level": "danger" if pct >= 70 else ("warning" if pct >= 40 else "ok"),
+            "label": "과부하" if pct >= 70 else ("주의" if pct >= 40 else "여유"),
+        })
+
+    metrics = {
+        "delay_predicted": delay_predicted,
+        "at_risk_milestones": at_risk_milestones,
+        "risk_change": risk_change,
+    }
+
+    if not project_id:
+        # ── 전체 프로젝트 뷰: 프로젝트별 차주 위험 예측 ──
+        items = []
+        for p in project_risk[:6]:
+            lvl = p["risk_level"]
+            parts = []
+            if p.get("overdue", 0) > 0:
+                parts.append(f"마감 초과 {p['overdue']}건")
+            if p.get("urgent", 0) > 0:
+                parts.append(f"D-3 이내 {p['urgent']}건")
+            items.append({
+                "name": p["name"],
+                "reason": " · ".join(parts) if parts else "이슈 없음, 안정",
+                "badge": "지연 위험" if lvl in ("Critical", "High") else ("주의 필요" if lvl == "Medium" else "안정"),
+                "badge_class": "danger" if lvl in ("Critical", "High") else ("warning" if lvl == "Medium" else "safe"),
+                "dot_class": "high" if lvl in ("Critical", "High") else ("medium" if lvl == "Medium" else "low"),
+                "done_pct": None,
+            })
+        return {
+            "type": "all",
+            "metrics": metrics,
+            "items_label": "프로젝트별 차주 위험 예측",
+            "items": items,
+            "overload": overload,
+        }
+    else:
+        # ── 단일 프로젝트 뷰: 마일스톤/버전별 위험 예측 ──
+        items = []
+        for v in (version_data or [])[:6]:
+            overdue = v.get("overdue", 0)
+            done = v.get("done_pct", 0)
+            due = v.get("due_date", "")
+            diff = days_diff(due) if due else None
+            total = v.get("total", 0)
+            open_count = total - v.get("closed", 0) - v.get("resolved", 0)
+
+            if overdue > 0 or (diff is not None and diff <= 3 and done < 80):
+                badge, badge_class, dot_class = "지연 위험", "danger", "high"
+            elif diff is not None and diff <= 14 and done < 80:
+                badge, badge_class, dot_class = "주의 필요", "warning", "medium"
+            else:
+                badge, badge_class, dot_class = "안정", "safe", "low"
+
+            parts = []
+            if due:
+                parts.append(f"마감 {due}")
+            parts.append(f"미완료 {open_count}/{total}건")
+
+            items.append({
+                "name": v["name"],
+                "reason": " · ".join(parts),
+                "badge": badge,
+                "badge_class": badge_class,
+                "dot_class": dot_class,
+                "done_pct": done,
+            })
+
+        if not items:
+            for p in project_risk[:4]:
+                lvl = p["risk_level"]
+                items.append({
+                    "name": p["name"],
+                    "reason": f"마감 초과 {p.get('overdue',0)}건 · D-3 {p.get('urgent',0)}건",
+                    "badge": "지연 위험" if lvl in ("Critical","High") else ("주의 필요" if lvl=="Medium" else "안정"),
+                    "badge_class": "danger" if lvl in ("Critical","High") else ("warning" if lvl=="Medium" else "safe"),
+                    "dot_class": "high" if lvl in ("Critical","High") else ("medium" if lvl=="Medium" else "low"),
+                    "done_pct": None,
+                })
+
+        return {
+            "type": "project",
+            "metrics": metrics,
+            "items_label": "마일스톤 / 버전별 차주 위험 예측",
+            "items": items,
+            "overload": overload,
+        }
 
 
 @app.get("/api/cache/clear")

@@ -2,7 +2,7 @@
 <html lang="ko">
 <head>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=DM+Sans:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link href="https://api.fontshare.com/v2/css?f[]=clash-display@600&display=swap" rel="stylesheet">
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +21,7 @@
   /* ── Grid tokens ── */
   --g-cols   : 12;
   --g-gap    : 32px;   /* column gutter */
-  --g-margin : 48px;   /* page edge margin */
+  --g-margin : 72px;   /* page edge margin */
   --g-base   : 8px;    /* baseline unit */
 
   /* ── Spacing scale (8px × n) ── */
@@ -33,20 +33,21 @@
   --sp-6 : 48px;
 
   /* ── Typography ── */
-  --sans   : 'Inter', 'Helvetica Neue', Helvetica, Arial, sans-serif;
-  --dm     : 'DM Sans', sans-serif;
+  --sans   : 'Plus Jakarta Sans', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+  --dm     : 'Plus Jakarta Sans', sans-serif;
+  --mono   : 'JetBrains Mono', 'Courier New', monospace;
 
   /* ── Colour palette ── */
-  --bg         : #faf9f7;
-  --bg-muted   : #f5f3f3;
-  --bg-white   : #ffffff;
-  --bg-dark    : #111111;
-  --border     : #e8e6e2;
-  --border-mid : rgba(207,196,197,0.35);
-  --text       : #111111;
-  --text-muted : #999999;
-  --text-dim   : #bbbbbb;
-  --red        : #c0392b;
+  --bg         : #f7f6f3;
+  --bg-muted   : #f0eeea;
+  --bg-white   : #f7f6f3;
+  --bg-dark    : #0e0e0e;
+  --border     : #e4e2de;
+  --border-mid : rgba(0,0,0,0.06);
+  --text       : #0e0e0e;
+  --text-muted : #aaa;
+  --text-dim   : #ccc;
+  --red        : #B40023;
   --amber      : #b7770d;
   --blue       : #0047A0;
   --green      : #16a34a;
@@ -78,10 +79,10 @@ body {
   font-family: var(--sans);
   background: var(--bg);
   color: var(--text);
-  min-height: 100vh;
+  height: 100vh;
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
-  overflow-x: hidden;
+  overflow: hidden;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -141,25 +142,23 @@ body {
    Height: 72px (9 × 8px baseline)
    ══════════════════════════════════════════════════════════════ */
 .navbar {
-  height: 72px;
-  background: rgba(255,255,255,0.88);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border-bottom: 1px solid var(--border-mid);
+  height: 52px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 var(--g-margin);
-  position: sticky;
-  top: 0;
+  padding: 0 32px;
+  position: fixed;
+  top: 0; left: 0; right: 0;
   z-index: 200;
 }
 
 .navbar-brand { display: flex; flex-direction: column; justify-content: center; flex-shrink: 0; }
 .navbar-logo {
-  font-family: 'Clash Display', var(--dm);
-  font-size: 18px; font-weight: 600;
-  letter-spacing: 0.02em; color: var(--text); line-height: 1;
+  font-family: var(--sans);
+  font-size: 14px; font-weight: 800;
+  letter-spacing: -0.02em; color: var(--text); line-height: 1;
 }
 .navbar-icon-btn { position: relative; padding: 6px 8px !important; }
 .navbar-icon-btn::after {
@@ -187,28 +186,28 @@ body {
 
 .navbar-center {
   display: flex; align-items: center;
-  gap: var(--sp-4); flex: 1; padding: 0 var(--sp-5);
+  gap: var(--sp-4); flex: 1; padding: 0 var(--sp-4);
 }
-.navbar-filter-item { display: flex; flex-direction: column; gap: 2px; }
-.since-dd-item{padding:9px 14px;font-size:11px;letter-spacing:0.05em;color:#111;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:0.5px solid #f0f0f0;}
+.navbar-filter-item { display: flex; align-items: center; gap: 8px; }
+.since-dd-item{padding:9px 14px;font-size:11px;letter-spacing:0.05em;color:#111;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
 .since-dd-item:last-child{border-bottom:none;}
-.since-dd-item:hover{background:#f5f3f3;}
-.since-dd-item.active{background:#111111;color:#ffffff;}
+.since-dd-item:hover{background:var(--bg-muted);}
+.since-dd-item.active{background:#0e0e0e;color:#ffffff;}
 .since-dd-item.active span{color:#888;}
 .since-dd-item span{font-size:9px;color:#aaa;letter-spacing:0.08em;}
 .navbar-filter-label {
-  font-size: 8px; letter-spacing: 0.18em;
-  text-transform: uppercase; color: #aaa; font-family: var(--dm);
+  font-size: 9px; letter-spacing: 0.14em;
+  text-transform: uppercase; color: var(--text-muted); font-family: var(--mono);
 }
 .navbar-filter-value {
-  font-size: 11px; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--text); font-weight: 500;
-  border-bottom: 1.5px solid var(--text); padding-bottom: 3px; font-family: var(--dm);
+  font-size: 11px; letter-spacing: 0.06em;
+  color: var(--text); font-weight: 600;
+  border-bottom: none; padding-bottom: 0; font-family: var(--mono);
 }
 .navbar-filter-value select,
 .navbar-filter-value input[type="date"] {
-  font-family: var(--dm); font-size: 11px; letter-spacing: 0.1em;
-  text-transform: uppercase; color: var(--text); font-weight: 500;
+  font-family: var(--mono); font-size: 11px; letter-spacing: 0.06em;
+  color: var(--text); font-weight: 600;
   background: transparent; border: none; outline: none; cursor: pointer;
   padding: 0; appearance: none; -webkit-appearance: none;
 }
@@ -217,12 +216,12 @@ body {
   background-image: url("data:image/svg+xml,%3Csvg width='8' height='5' viewBox='0 0 8 5' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l3 3 3-3' stroke='%23666' stroke-width='1.2' stroke-linecap='round'/%3E%3C/svg%3E");
   background-repeat: no-repeat; background-position: right 0 center;
 }
-.navbar-divider { width: 1px; height: 28px; background: rgba(207,196,197,0.4); flex-shrink: 0; }
-.navbar-live { display: flex; flex-direction: column; gap: 2px; }
+.navbar-divider { width: 1px; height: 20px; background: var(--border); flex-shrink: 0; }
+.navbar-live { display: flex; align-items: center; gap: 6px; }
 .navbar-live-val {
-  font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase;
-  color: #555; display: flex; align-items: center; gap: 5px;
-  font-family: var(--dm); white-space: nowrap; min-width: 120px;
+  font-size: 9px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--text-muted); display: flex; align-items: center; gap: 5px;
+  font-family: var(--mono); white-space: nowrap; min-width: auto;
 }
 .navbar-actions { display: flex; align-items: center; gap: var(--sp-1); flex-shrink: 0; }
 
@@ -256,61 +255,63 @@ body {
 /* ══════════════════════════════════════════════════════════════
    SECTION DIVIDER
    ══════════════════════════════════════════════════════════════ */
-.section-border { border-bottom: 1px solid var(--border); }
+.section-border { border-bottom: none; }
 
 /* ══════════════════════════════════════════════════════════════
    KPI STRIP  (g-strip · 4 cols · full-bleed)
    Each sum-card spans 3 of 12 columns
    ══════════════════════════════════════════════════════════════ */
 .sum-card {
-  padding: var(--sp-4) var(--sp-5);  /* 32px top/bottom, 40px left/right */
-  border-right: 1px solid var(--border);
+  padding: 40px 0 32px 48px;
+  border-right: none;
   position: relative;
-  background: var(--bg-white);
+  background: transparent;
+  display: flex;
+  flex-direction: column-reverse; /* value 위, label 아래 */
+  gap: 8px;
 }
 .sum-card:last-child { border-right: none; }
-.sum-card.bg-muted  { background: var(--bg-muted); }
-.sum-card.bg-dark2  { background: #e4e2e2; }
+.sum-card.bg-muted  { background: transparent; }
+.sum-card.bg-dark2  { background: transparent; }
 .sum-card.clickable { cursor: pointer; }
-.sum-card.clickable:hover { background: #f7f5f2; }
+.sum-card.clickable:hover .sum-value { opacity: 0.7; }
 
 .sum-label {
-  font-size: 10px; font-weight: 700; letter-spacing: 0.12em;
+  font-size: 9px; font-weight: 500; letter-spacing: 0.18em;
   text-transform: uppercase; color: var(--text-muted);
-  margin-bottom: var(--sp-2); font-family: var(--dm);
+  margin-bottom: 0; font-family: var(--mono);
 }
 .sum-value {
-  font-size: 44px; font-weight: 800; letter-spacing: -0.03em;  /* [C] 52→44px */
+  font-size: 64px; font-weight: 800; letter-spacing: -0.07em;
   line-height: 1; color: var(--text);
+  transition: opacity 0.15s;
 }
 .sum-value.amber { color: var(--amber); }
 .sum-value.red   { color: var(--red); }
-.sum-value.blue  { color: var(--blue); }
-.sum-spark { margin-top: var(--sp-2); display: flex; flex-direction: column; gap: 4px; }
-.sum-delta { font-size: 11px; color: var(--text-muted); display: flex; align-items: center; gap: 3px; }
-.sum-delta.up   { color: var(--critical); }  /* [C] 시맨틱 토큰으로 통일 */
-.sum-delta.down { color: var(--safe); }
-.sum-hint { font-size: 9px; color: var(--text-dim); letter-spacing: 0.08em; }
+.sum-value.blue  { color: var(--red); }
+.sum-spark { display: none; }
+.sum-delta { display: none; }
+.sum-hint  { display: none; }
 
-/* [C] KPI 카드 accent border-top */
-.sum-card.accent-warning { border-top: 3px solid var(--warning); padding-top: calc(var(--sp-4) - 3px); }
-.sum-card.accent-critical { border-top: 3px solid var(--critical); padding-top: calc(var(--sp-4) - 3px); }
+/* accent 제거 — 배경 없으니 불필요 */
+.sum-card.accent-warning { border-top: none; padding-top: 40px; }
+.sum-card.accent-critical { border-top: none; padding-top: 40px; }
 
-/* ── Risk score card (wide, left of strip) ── */
+/* ── Risk score card ── */
 .risk-score-card {
-  padding: var(--sp-4) var(--sp-5);
-  background: var(--bg-white);
-  border-right: 1px solid var(--border);
+  padding: 48px 0 40px 48px;
+  background: transparent;
+  border-right: none;
 }
 #risk-score-display {
-  font-family: var(--dm); font-weight: 800; font-size: 90px;
-  line-height: 1; letter-spacing: -2px; transition: color 0.4s ease;
+  font-family: var(--dm); font-weight: 800; font-size: 100px; letter-spacing: -0.07em;
+  line-height: 1; transition: color 0.4s ease;
 }
-.risk-sub { font-size: 10px; color: #aaa; margin-top: 6px; letter-spacing: 0.5px; }
+.risk-sub { font-family: var(--mono); font-size: 9px; color: var(--text-muted); margin-top: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
 
-/* ── Risk trend card (right of strip) ── */
+/* ── Risk trend card ── */
 .trend-card {
-  background: var(--bg-muted);
+  background: transparent;
   border-right: none;
   padding: 0;
 }
@@ -342,10 +343,10 @@ body {
   font-size: 13px; padding: 2px 4px; line-height: 1;
 }
 .ai-gear-btn:hover { background: #f5f3f0; color: #666; }
-.ai-gear-btn.active { color: #333; background: #f0eeeb; }
+.ai-gear-btn.active { color: #333; background: var(--bg-muted); }
 .ai-settings-panel {
   display: none; position: absolute; top: 44px; right: 20px;
-  background: #fff; border: 0.5px solid #e0ddd8; border-radius: 8px;
+  background: #fff; border: 1px solid var(--border); border-radius: 8px;
   padding: 14px 16px; z-index: 10; width: 220px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
 }
@@ -362,7 +363,7 @@ body {
 .ai-dow-btns { display: flex; gap: 4px; }
 .ai-dow-btn {
   flex: 1; padding: 5px 2px; font-family: var(--dm); font-size: 10px;
-  font-weight: 500; border: 0.5px solid #e0ddd8; border-radius: 4px;
+  font-weight: 500; border: 1px solid var(--border); border-radius: 4px;
   background: #fff; color: #666; cursor: pointer; text-align: center;
 }
 .ai-dow-btn.active { background: var(--text); color: #fff; border-color: var(--text); }
@@ -379,7 +380,7 @@ body {
   display: flex; flex-direction: column; justify-content: space-between;
   pointer-events: none;
 }
-.ai-gridline { width: 100%; border-top: 1px solid #f0eeeb; }
+.ai-gridline { width: 100%; border-top: 1px solid var(--border); }
 .ai-bars {
   position: absolute; bottom: 0; left: 0; right: 0; height: 100%;
   display: flex; align-items: flex-end; gap: 20px;
@@ -408,19 +409,20 @@ body {
 /* ══════════════════════════════════════════════════════════════
    AI ANALYSIS SECTION  (g-content · 8+4 cols)
    ══════════════════════════════════════════════════════════════ */
-.risk-members-section { background: var(--bg-white); border: 0.5px solid var(--border); }
+.risk-members-section { background: var(--bg-white); border: 1px solid var(--border); }
 .risk-members-header {
   display: flex; justify-content: space-between; align-items: flex-end;
   padding: var(--sp-2) var(--sp-3) var(--sp-2);
-  border-bottom: 1px solid rgba(0,0,0,0.1);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-muted);
 }
 .risk-members-label {
-  font-size: 10px; font-weight: 500; letter-spacing: 0.2em;
-  text-transform: uppercase; color: rgba(0,0,0,0.4); margin-bottom: 2px;
+  font-size: 9px; font-weight: 600; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;
 }
 .risk-members-title {
-  font-size: 12px; font-weight: 700; letter-spacing: 0.05em;
-  text-transform: uppercase; color: #000;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; color: var(--text);
 }
 .risk-member-row {
   display: block; border-bottom: 1px solid rgba(0,0,0,0.06);
@@ -437,7 +439,7 @@ body {
   font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
   text-transform: uppercase; color: rgba(0,0,0,0.35); width: 28px; flex-shrink: 0;
 }
-.risk-member-bar-track { height: 4px; background: #eae8e4; flex: 1; min-width: 0; max-width: 600px; overflow: hidden; border-radius: 2px; }  /* [H] 3→4px, 통일된 색상 */
+.risk-member-bar-track { height: 4px; background: var(--bg-muted); flex: 1; min-width: 0; max-width: 600px; overflow: hidden; border-radius: 2px; }  /* [H] 3→4px, 통일된 색상 */
 .risk-member-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }  /* [H] ease→cubic-bezier */
 .risk-member-bar-val { font-size: 11px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
 .risk-member-avatar {
@@ -456,40 +458,13 @@ body {
 }
 
 /* ── AI dark card ── */
-.ai-card-dark {
-  background: var(--bg-dark); border: none;
-  padding: var(--sp-3);
-  display: flex; flex-direction: column; justify-content: space-between;
-}
-.ai-label-mono {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.2em;
-  text-transform: uppercase; color: #fff; background: #1a5276;
-  padding: 4px 10px; display: inline-block; margin-bottom: var(--sp-2);
-}
-.ai-card-headline {
-  font-family: var(--dm); font-size: 18px; font-weight: 700;
-  color: #fff; line-height: 1.25; letter-spacing: -0.02em;
-  margin-bottom: var(--sp-2);
-  display: -webkit-box; -webkit-line-clamp: 3;
-  -webkit-box-orient: vertical; overflow: hidden;
-}
-.ai-card-body-text {
-  font-family: var(--dm); font-size: 11px; color: #888;
-  line-height: 1.6; margin-bottom: var(--sp-3); flex: 1;
-}
-.ai-refresh-btn {
-  background: #fff; color: var(--text); border: none; border-radius: 0;
-  padding: 10px 16px; font-family: var(--dm); font-size: 10px;
-  font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase;
-  cursor: pointer; width: 100%; margin-top: auto;
-}
 
 /* ══════════════════════════════════════════════════════════════
    CARD PANELS  (g-content · 6+6 cols)
    ══════════════════════════════════════════════════════════════ */
 .card-panel {
   background: var(--bg-white);
-  border: 0.5px solid var(--border);
+  border: 1px solid var(--border);
   min-height: 320px;
   display: flex; flex-direction: column;
   overflow: hidden;
@@ -499,10 +474,12 @@ body {
   display: flex; justify-content: space-between; align-items: center;
   padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-2);
   border-bottom: 1px solid var(--border); flex-shrink: 0;
+  background: transparent;
 }
 .card-header span:first-child {
-  font-size: 12px; text-transform: uppercase;
-  letter-spacing: 0.05em; font-weight: 700; color: var(--text);
+  font-size: 9px; text-transform: uppercase;
+  letter-spacing: 0.18em; font-weight: 500; color: var(--text-muted);
+  font-family: var(--mono);
 }
 .card-header-sub { font-size: 10px; color: var(--text-dim); font-weight: 400; letter-spacing: 0.5px; }
 .card-body {
@@ -518,7 +495,7 @@ body {
   grid-template-columns: 100px 1fr 52px 72px;
   padding: 7px var(--sp-2);
   background: var(--bg-muted);
-  border-bottom: 1px solid #e4e2e2;
+  border-bottom: 1px solid var(--border);
   gap: 10px;
 }
 #group-col-header div {
@@ -535,7 +512,7 @@ body {
 .tl-content { transition: transform 150ms linear; transform-origin: left center; }
 .tl-item:hover .tl-content { transform: scale(1.03); }
 .tl-item:hover .tl-passive { background: var(--bg-muted); }
-.tl-item:hover .tl-active-card { background: #eae8e7; }
+.tl-item:hover .tl-active-card { background: var(--bg-muted); }
 .tl-passive { display: flex; justify-content: space-between; align-items: flex-start; padding: 4px 0; transition: background 150ms; }
 .tl-dot {
   position: absolute; left: -20px; top: 6px; width: 12px; height: 12px;
@@ -558,8 +535,8 @@ body {
 .tl-passive-name.upcoming { color: var(--text-dim); }
 .tl-passive-sub { font-size: 9px; color: #ccc; margin-top: 2px; }
 .tl-passive-dday { font-size: 10px; white-space: nowrap; margin-left: 10px; }
-.tl-active-card { background: #e4e2e2; border-left: 3px solid var(--text); padding: 10px 12px; }
-.tl-active-card.overdue { background: #e4e2e2; border-left-color: var(--red); }
+.tl-active-card { background: var(--bg-muted); border-left: 3px solid var(--text); padding: 10px 12px; }
+.tl-active-card.overdue { background: var(--bg-muted); border-left-color: var(--red); }
 .tl-active-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
 .tl-active-name { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--text); }
 .tl-active-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 2px 6px; }
@@ -573,59 +550,65 @@ body {
 /* ══════════════════════════════════════════════════════════════
    ISSUE ROWS (cards 01/02)
    ══════════════════════════════════════════════════════════════ */
-.ci-row { padding: 10px var(--sp-2); border-bottom: 0.5px solid rgba(0,0,0,0.06); cursor: pointer; }
+.ci-row { padding: 18px 48px; border-bottom: 1px solid var(--border); cursor: pointer; background: transparent; }
 .ci-row:last-child { border-bottom: none; }
-.ci-row:hover { background: rgba(0,0,0,0.02); }
-.ci-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; flex-wrap: wrap; }
-.ci-num { font-size: 10px; color: rgba(0,0,0,0.3); font-weight: 400; }
-.ci-sep { font-size: 10px; color: rgba(0,0,0,0.15); }
-.ci-assignee { font-size: 10px; color: rgba(0,0,0,0.45); }
-.ci-group { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: rgba(0,0,0,0.4); }
-.ci-status { font-size: 9px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 5px; background: rgba(0,0,0,0.06); color: rgba(0,0,0,0.45); }
+.ci-row:hover .ci-title { color: var(--red); }
+.ci-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; flex-wrap: wrap; }
+.ci-num { font-size: 9px; color: var(--text-dim); font-weight: 400; font-family: var(--mono); }
+.ci-sep { font-size: 9px; color: var(--text-dim); }
+.ci-assignee { font-size: 9px; color: var(--text-muted); font-family: var(--mono); }
+.ci-group { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); font-family: var(--mono); }
+.ci-status { font-size: 9px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.06em; padding: 1px 5px; background: transparent; color: var(--text-dim); font-family: var(--mono); }
 .ci-bottom { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
-.ci-title { font-size: 11px; font-weight: 700; color: var(--text); flex: 1; line-height: 1.4; }
-.ci-elapsed { font-size: 11px; font-weight: 700; white-space: nowrap; }
+.ci-title { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; line-height: 1.4; letter-spacing: -0.01em; transition: color 0.1s; }
+.ci-elapsed { font-size: 11px; font-weight: 500; white-space: nowrap; font-family: var(--mono); }
 
 /* ══════════════════════════════════════════════════════════════
    BOTTOM TAB SECTION
    ══════════════════════════════════════════════════════════════ */
 .tab-bar {
-  border: 1px solid #aaa;
   display: inline-flex; align-items: center;
-  margin-bottom: 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 0; width: 100%;
+  padding: 0 48px;
 }
 .tab-item {
-  padding: var(--sp-2) 20px;
-  font-size: 9px; font-weight: 400; letter-spacing: 0.18em;
-  text-transform: uppercase; color: var(--text-dim);
+  padding: 14px 0;
+  margin-right: 28px;
+  font-size: 9px; font-weight: 500; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--text-muted);
   cursor: pointer; white-space: nowrap;
   display: flex; align-items: center; gap: 6px;
-  border-right: 1px solid var(--border);
+  border-bottom: 1px solid transparent; margin-bottom: -1px;
   transition: color 0.15s; user-select: none;
+  font-family: var(--mono);
 }
-.tab-item:last-child { border-right: none; }
-.tab-item:hover { color: #555; }
-.tab-item.active { color: var(--text); font-weight: 700; }
+.tab-item:hover { color: var(--text); }
+.tab-item.active { color: var(--text); font-weight: 700; border-bottom-color: var(--text); }
 .tab-item[data-tab="imminent"],
-.tab-item[data-tab="overdue"] { font-weight: 700; color: var(--text); }
-.tab-badge { font-size: 9px; font-weight: 600; }
+.tab-item[data-tab="overdue"] { font-weight: 600; color: var(--text); }
+.tab-badge { font-size: 9px; font-weight: 700; }
 .tab-badge.red  { color: var(--red); }
 .tab-badge.blue { color: var(--blue); }
 .tab-filters {
-  margin-top: var(--sp-1);
-  border: 1px solid #aaa;
+  margin-top: 0;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
   display: grid;
   grid-template-columns: 1fr 1fr 1fr 1fr;
+  padding: 0 48px;
 }
 .tab-filter-cell {
-  padding: 10px 14px;
-  border-right: 1px solid #aaa;
+  padding: 10px 0;
+  border-right: none;
   display: flex; flex-direction: column; gap: 4px;
+  margin-right: 32px;
 }
-.tab-filter-cell:last-child { border-right: none; }
+.tab-filter-cell:last-child { border-right: none; margin-right: 0; }
 .tab-filter-label {
-  font-size: 9px; font-weight: 500; letter-spacing: 0.18em;
-  text-transform: uppercase; color: var(--text-dim);
+  font-size: 8.5px; font-weight: 500; letter-spacing: 0.16em;
+  text-transform: uppercase; color: var(--text-muted); font-family: var(--mono);
 }
 .tab-filter-cell input {
   font-size: 11px; border: none; outline: none;
@@ -638,7 +621,7 @@ body {
   -webkit-appearance: none; appearance: none; cursor: pointer; width: 100%;
 }
 .tab-filter-cell input::placeholder { color: var(--text-dim); }
-.tab-content { overflow-x: auto; min-height: 320px; margin-top: var(--sp-2); }
+.tab-content { overflow-x: auto; min-height: 320px; margin-top: 0; padding: 0 24px 80px; }
 .tab-table { opacity: 1; transition: opacity 0.2s ease; }
 .tab-table.fading { opacity: 0; }
 .tab-table tbody tr { cursor: pointer; }
@@ -648,14 +631,16 @@ body {
    ══════════════════════════════════════════════════════════════ */
 .data-table { width: 100%; border-collapse: collapse; }
 .data-table thead th {
-  font-size: 9px; text-transform: uppercase; letter-spacing: 0.18em;
-  color: var(--text); font-weight: 700; padding: 10px 12px;
-  text-align: left; border-bottom: 1px solid var(--border); white-space: nowrap;
+  font-size: 8.5px; text-transform: uppercase; letter-spacing: 0.16em;
+  color: var(--text-muted); font-weight: 500; padding: 12px 16px;
+  text-align: left; border-bottom: 1px solid var(--text); white-space: nowrap;
+  background: transparent; font-family: var(--mono);
 }
 .data-table tbody tr { border-bottom: 1px solid var(--border); }
-.data-table tbody tr:hover { background: #f9f8f7; transition: background 0.08s; }  /* [G] hover bg 개선 */
+.data-table tbody tr:hover { background: transparent; transition: none; }
+.data-table tbody tr:hover .td-subject { color: var(--red); }
 .tab-table tbody tr { border-left: 3px solid transparent; }
-.data-table tbody td { font-size: 11px; padding: 0 12px; height: 44px; vertical-align: middle; }  /* [G] 44px 행 높이 통일 */
+.data-table tbody td { font-size: 11px; padding: 0 16px; height: 48px; vertical-align: middle; background: transparent; }
 
 /* [G] Priority dot */
 .priority-dot {
@@ -669,7 +654,8 @@ body {
 .dday-pill {
   display: inline-flex; align-items: center;
   padding: 2px 7px; border-radius: var(--radius-sm);
-  font-size: 10px; font-weight: 700; white-space: nowrap;
+  font-size: 10px; font-weight: 500; white-space: nowrap;
+  font-family: var(--mono);
 }
 .dday-pill.overdue  { background: var(--critical-bg); color: var(--critical); }
 .dday-pill.imminent { background: var(--warning-bg);  color: var(--warning); }
@@ -681,17 +667,19 @@ body {
 .td-project { font-size: 10px; color: var(--text-dim); font-weight: 300; }
 .td-group-badge {
   display: inline-block; font-size: 9px; font-weight: 500;
-  letter-spacing: 0.08em; padding: 2px 6px;
-  border: 0.5px solid #ccc; color: #555; text-transform: uppercase;
+  letter-spacing: 0.08em; padding: 2px 6px; border-radius: 3px;
+  background: var(--bg-muted); color: var(--text-muted); text-transform: uppercase; border: none;
 }
 .status-badge {
-  display: inline-block; font-size: 9px; font-weight: 500;
-  letter-spacing: 0.1em; text-transform: uppercase;
-  padding: 3px 8px; border: 1px solid var(--text); color: var(--text);
+  display: inline-flex; align-items: center;
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 3px; border: none;
+  background: var(--bg-muted); color: var(--text-muted);
 }
-.status-badge.progress { background: var(--text); color: #fff; border-color: var(--text); }
-.status-badge.wait { border-color: var(--amber); color: var(--amber); }
-.status-badge.done { border-color: var(--text-dim); color: var(--text-dim); }
+.status-badge.progress { background: #111; color: #fff; }
+.status-badge.wait { background: #fef3c7; color: #92400e; }
+.status-badge.done { background: transparent; color: var(--text-dim); }
 .td-priority { font-size: 10px; color: #999; text-transform: uppercase; letter-spacing: 0.08em; }
 .td-priority.high { color: var(--red); font-weight: 500; }
 .dday-wrap { position: relative; display: inline-block; }
@@ -714,13 +702,13 @@ body {
    ASSIGNEE ROWS
    ══════════════════════════════════════════════════════════════ */
 .dept-tag { font-size: 9px; font-weight: 500; white-space: nowrap; letter-spacing: 1px; text-transform: uppercase; }
-.assignee-row { padding: var(--sp-1) var(--sp-2) 7px; border-bottom: 1px solid #f0eeea; }
+.assignee-row { padding: var(--sp-1) var(--sp-2) 7px; border-bottom: 1px solid var(--border); }
 .assignee-row:last-child { border-bottom: none; }
 .assignee-row-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 5px; }
 .assignee-row-name { font-size: 11px; font-weight: 700; color: var(--text); }
 .assignee-row-name span { font-weight: 300; color: var(--text-dim); }
 .assignee-row-counts { font-size: 11px; color: var(--text); font-weight: 700; }
-.assignee-bar-track { height: 2px; background: #f0eeea; width: 100%; position: relative; margin-bottom: 4px; }
+.assignee-bar-track { height: 2px; background: var(--bg-muted); width: 100%; position: relative; margin-bottom: 4px; }
 .assignee-bar-fill { height: 2px; position: absolute; top: 0; left: 0; }
 .assignee-bar-normal   { background: var(--text); }
 .assignee-bar-critical { background: var(--red); }
@@ -736,7 +724,7 @@ body {
 .pagination {
   display: flex; align-items: center; justify-content: space-between;
   padding: var(--sp-2) var(--sp-2);
-  border-top: 0.5px solid var(--border);
+  border-top: 1px solid var(--border);
 }
 .pg-left { display: flex; align-items: center; gap: 12px; }
 .pg-info { font-size: 9px; font-weight: 500; letter-spacing: 0.15em; text-transform: uppercase; color: #555; }
@@ -869,6 +857,124 @@ body {
 }
 
 /* ══════════════════════════════════════════════════════════════
+   WEEKLY FORECAST SECTION
+   ══════════════════════════════════════════════════════════════ */
+.fc-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 12px var(--g-margin);
+  border-bottom: 1px solid var(--border);
+  background: var(--bg-white);
+}
+.fc-tag {
+  font-family: var(--dm); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  background: var(--text); color: #fff; padding: 3px 10px;
+}
+.fc-subtitle { font-size: 11px; color: var(--text-muted); margin-left: 10px; }
+.fc-refresh { font-size: 10px; color: var(--text-dim); letter-spacing: 0.08em; cursor: pointer; }
+.fc-refresh:hover { color: var(--text-muted); }
+
+.fc-body { display: grid; grid-template-columns: 5fr 7fr; }
+
+.fc-left { padding: 16px var(--g-margin); border-right: 1px solid var(--border); background: var(--bg-white); }
+.fc-right { display: grid; grid-template-rows: auto 1fr; }
+
+/* 지표 3개 */
+.fc-metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--sp-4); margin-bottom: 20px; }
+.fc-metric-label {
+  font-family: var(--dm); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;
+}
+.fc-metric-value {
+  font-family: var(--dm); font-size: 36px; font-weight: 800; letter-spacing: -0.05em;
+  letter-spacing: -1px; line-height: 1;
+}
+.fc-metric-sub { font-size: 10px; color: var(--text-muted); margin-top: 3px; }
+
+/* 아이템 리스트 (프로젝트/마일스톤) */
+.fc-list-label {
+  font-family: var(--dm); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); margin-bottom: 10px;
+}
+.fc-item {
+  display: grid; grid-template-columns: 8px 1fr auto;
+  align-items: center; gap: 10px;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+}
+.fc-item:last-child { border-bottom: none; }
+.fc-item-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.fc-item-dot.high   { background: var(--red); }
+.fc-item-dot.medium { background: var(--amber); }
+.fc-item-dot.low    { background: var(--green); }
+.fc-item-body { min-width: 0; }
+.fc-item-name { font-size: 12px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
+.fc-item-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
+.fc-progress { display: flex; align-items: center; gap: 5px; margin-top: 4px; }
+.fc-progress-track { flex: 1; height: 3px; background: var(--border); border-radius: 2px; }
+.fc-progress-fill { height: 3px; border-radius: 2px; }
+.fc-progress-pct { font-size: 9px; color: var(--text-dim); width: 28px; text-align: right; }
+
+/* 배지 */
+.fc-badge {
+  font-family: var(--dm); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.05em; padding: 2px 8px; white-space: nowrap; border: 1px solid;
+}
+.fc-badge.danger  { background: var(--critical-bg); color: var(--critical); border-color: #fecaca; }
+.fc-badge.warning { background: var(--warning-bg);  color: var(--warning);  border-color: #fde68a; }
+.fc-badge.safe    { background: var(--safe-bg);     color: var(--safe);     border-color: #bbf7d0; }
+
+/* 과부하 경보 */
+.fc-overload { padding: var(--sp-2) var(--sp-3); background: var(--bg-muted); border-bottom: 1px solid var(--border); }
+.fc-overload-label {
+  font-family: var(--dm); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
+}
+.fc-overload-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
+.fc-overload-row:last-child { margin-bottom: 0; }
+.fc-overload-name { font-size: 12px; font-weight: 700; width: 64px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fc-overload-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
+.fc-overload-fill { height: 4px; border-radius: 2px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+.fc-overload-pct { font-size: 10px; font-weight: 700; width: 32px; text-align: right; }
+.fc-overload-badge {
+  font-family: var(--dm); font-size: 9px; font-weight: 700;
+  padding: 1px 6px; border: 1px solid;
+}
+.fc-overload-badge.danger  { color: var(--critical); background: var(--critical-bg); border-color: #fecaca; }
+.fc-overload-badge.warning { color: var(--warning);  background: var(--warning-bg);  border-color: #fde68a; }
+.fc-overload-badge.ok      { color: var(--safe);     background: var(--safe-bg);     border-color: #bbf7d0; }
+
+/* D-7 마감 스트립 */
+.fc-deadlines {
+  display: flex; align-items: stretch;
+  border-top: 1px solid var(--border);
+  background: var(--bg-white);
+  padding: 0 var(--g-margin);
+}
+.fc-deadlines-label {
+  font-family: var(--dm); font-size: 9px; font-weight: 700;
+  letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim);
+  padding: 13px var(--sp-3) 13px 0; border-right: 1px solid var(--border);
+  display: flex; align-items: center; white-space: nowrap;
+}
+.fc-deadline-items { display: flex; flex: 1; }
+.fc-deadline-item {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 20px; border-right: 1px solid var(--border); flex: 1; min-width: 0;
+}
+.fc-dday {
+  font-family: var(--dm); font-size: 10px; font-weight: 700;
+  padding: 2px 7px; white-space: nowrap; border: 1px solid;
+}
+.fc-dday.urgent   { color: var(--red);   background: var(--critical-bg); border-color: #fecaca; }
+.fc-dday.imminent { color: var(--amber); background: var(--warning-bg);  border-color: #fde68a; }
+.fc-dday.normal   { color: var(--blue);  background: var(--info-bg);     border-color: #bfdbfe; }
+.fc-deadline-subject {
+  font-size: 11px; font-weight: 500; flex: 1;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--text);
+}
+.fc-deadline-who { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
+
+/* ══════════════════════════════════════════════════════════════
    RESPONSIVE — TABLET  768–1199px
    ══════════════════════════════════════════════════════════════ */
 @media (max-width: 1199px) {
@@ -889,19 +995,10 @@ body {
   .sum-card.accent-warning { border-left: 3px solid var(--warning); padding-left: calc(var(--sp-5) - 3px); }
   .sum-card.accent-critical { border-left: 3px solid var(--critical); padding-left: calc(var(--sp-5) - 3px); }
 
-  /* AI section: 중간 단계 — 아직 나란히 유지 */
-  .g-content.ai-row .gc-8 { grid-column: span 7; }
-  .g-content.ai-row .gc-4 { grid-column: span 5; }
-
   /* Cards: keep side by side but narrow gutter */
   .g-content.cards-row .gc-6 { grid-column: span 6; }
 }
 
-@media (max-width: 899px) {
-  /* AI section: 여기서 스택으로 전환 */
-  .g-content.ai-row .gc-8 { grid-column: span 12; }
-  .g-content.ai-row .gc-4 { grid-column: span 12; margin-top: 24px; }
-}
 
 /* ══════════════════════════════════════════════════════════════
    RESPONSIVE — MOBILE  <768px
@@ -938,7 +1035,7 @@ body {
   .tab-filter-cell:nth-child(2) { border-right: none; }
 
   /* Mobile card list */
-  #tab-card-list { display: flex !important; flex-direction: column; gap: 8px; padding: var(--sp-2); background: #f0efed; }
+  #tab-card-list { display: flex !important; flex-direction: column; gap: 8px; padding: var(--sp-2); background: var(--bg-muted); }
   .tab-table { display: none !important; }
   .tab-issue-card {
     background: #fff !important; border: none !important;
@@ -951,80 +1048,18 @@ body {
   .tab-card-date { font-size: 10px; color: var(--text-dim); }
   .tab-card-status { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 2px; }
 
-  .sum-card { padding: var(--sp-3) var(--sp-3); }
-  #risk-score-display { font-size: 64px; }
-  .sum-value { font-size: 40px; }
+  .sum-card { padding: 28px 0 20px 24px; }
+  #risk-score-display { font-size: 60px; }
+  .sum-value { font-size: 44px; letter-spacing: -0.06em; }
+  #view-header { padding: 32px 24px 0 !important; }
+  .ci-row { padding: 14px 24px; }
+  .tab-bar { padding: 0 24px; }
+  .tab-filters { padding: 0 24px; }
 }
 
 /* Always hide tab card list on desktop */
 #tab-card-list { display: none !important; }
 @media (max-width: 767px) { #tab-card-list { display: flex !important; } }
-#ai-cmd-panel {
-  width: 280px;
-  background: #111;
-  color: #fff;
-  position: fixed;
-  right: 0;
-  top: 60px;
-  bottom: 0;
-  z-index: 50;
-  display: none;
-  flex-direction: column;
-}
-#ai-cmd-panel.open {
-  display: flex;
-}
-#ai-cmd-toggle {
-  position: fixed;
-  right: 0;
-  top: 120px;
-  background: #111;
-  color: #fff;
-  width: 32px;
-  padding: 20px 0;
-  cursor: pointer;
-  z-index: 51;
-  text-align: center;
-  font-size: 9px;
-  letter-spacing: .1em;
-  writing-mode: vertical-rl;
-  max-width: 100vw;
-  box-sizing: border-box;
-}
-@media (min-width: 1400px) {
-  #ai-cmd-panel { width: 360px; }
-  #ai-cmd-toggle { width: 36px; }
-}
-@media (min-width: 1800px) {
-  #ai-cmd-panel { width: 420px; }
-  #ai-cmd-toggle { width: 40px; }
-}
-.ai-action-btn {
-  display: inline-block;
-  font-family: var(--dm);
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: .08em;
-  text-transform: uppercase;
-  padding: 6px 14px;
-  border: none;
-  cursor: pointer;
-  margin-top: 10px;
-  border-radius: 0;
-}
-.ai-action-btn.reassign {
-  background: #1a3a5c;
-  color: #fff;
-}
-.ai-action-btn.escalate {
-  background: #2a1a0e;
-  color: #e8a87c;
-}
-.ai-action-btn.monitor {
-  background: #1a2a1a;
-  color: #7cbf7c;
-}
-.ai-action-btn:hover { opacity: .85; }
 .ai-chart-sub {}
 /* ── 리포트 모달 체크박스 ── */
 .r-cb-row {
@@ -1032,7 +1067,7 @@ body {
   align-items: center;
   gap: 10px;
   padding: 9px 0;
-  border-bottom: 0.5px solid #f0eeea;
+  border-bottom: 1px solid var(--border);
   cursor: pointer;
 }
 .r-cb-row:last-child { border-bottom: none; }
@@ -1074,7 +1109,7 @@ body {
   100% { background-position:  400% 0; }
 }
 .skeleton {
-  background: linear-gradient(90deg, #f0eeec 25%, #e5e3e0 50%, #f0eeec 75%);
+  background: linear-gradient(90deg, #ebebeb 25%, #e0e0e0 50%, #ebebeb 75%);
   background-size: 400% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
   border-radius: 3px;
@@ -1092,6 +1127,369 @@ body {
   animation: shimmer 1.6s ease-in-out infinite;
   border-radius: 3px;
 }
+
+/* ══════════════════════════════════════════════════════════════
+   SIDEBAR
+   ══════════════════════════════════════════════════════════════ */
+:root { --sidebar-w: 232px; }
+
+.app-sidebar {
+  position: fixed;
+  top: 52px; left: 0;
+  width: var(--sidebar-w);
+  height: calc(100vh - 52px);
+  background: var(--bg);
+  border-right: 1px solid var(--border);
+  overflow-y: auto;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+}
+
+#page-main {
+  margin-left: var(--sidebar-w);
+  margin-top: 52px;
+  height: calc(100vh - 52px);
+  overflow-y: auto;
+}
+
+.sb-section-label {
+  font-size: 8px; font-weight: 500;
+  letter-spacing: 0.22em; color: var(--text-dim);
+  text-transform: uppercase;
+  padding: 20px 20px 8px;
+  font-family: var(--mono);
+}
+
+.sb-proj-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 20px 7px 16px;
+  cursor: pointer;
+  font-size: 11.5px; font-weight: 400;
+  color: var(--text-muted);
+  transition: color 0.1s;
+  border-left: 3px solid transparent;
+}
+.sb-proj-row:hover { color: var(--text); background: transparent; }
+.sb-proj-row.active { color: var(--text); font-weight: 600; background: transparent; }
+.sb-proj-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-proj-chevron {
+  font-size: 7px; color: var(--text-dim);
+  transition: transform 0.15s; flex-shrink: 0;
+}
+.sb-proj-row.active .sb-proj-chevron { transform: rotate(90deg); }
+
+.sb-views { display: none; flex-direction: column; }
+.sb-views.open { display: flex; }
+.sb-view-item {
+  padding: 6px 20px 6px 28px;
+  font-size: 11px; color: var(--text-muted);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: space-between;
+}
+.sb-view-item:hover { background: transparent; color: var(--text); }
+.sb-view-item.active { color: var(--text); font-weight: 600; }
+.sb-view-badge { font-family: var(--mono); font-size: 9px; font-weight: 500; padding: 1px 0; border-radius: 0; letter-spacing: 0.04em; min-width: 28px; text-align: right; display: inline-block; }
+.sb-view-badge.red   { background: transparent; color: var(--red); }
+.sb-view-badge.amber { background: transparent; color: var(--text-muted); }
+.sb-view-badge.gray  { background: transparent; color: var(--text-dim); border: none; }
+.sb-view-badge.weekly { background: transparent; color: var(--text-muted); letter-spacing: 0.08em; }
+
+.sb-divider { height: 1px; background: var(--border); margin: 8px 0; }
+
+/* ── Combined Issues View ── */
+.iss-group-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 40px 72px 14px;
+  border-bottom: 1px solid var(--text);
+}
+.iss-group-title {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text);
+  font-weight: 500;
+}
+.iss-group-count {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text-muted);
+}
+.iss-group-count.red { color: var(--red); }
+
+/* ── Issues KPI Nav ──────────────────────────────────────────── */
+.iss-kpi-nav { display: flex; border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.iss-kpi-item {
+  flex: 1;
+  padding: 14px 28px;
+  border-right: 1px solid var(--border);
+  cursor: pointer;
+  transition: background 0.1s;
+}
+.iss-kpi-item:last-child { border-right: none; }
+.iss-kpi-item:hover { background: rgba(0,0,0,0.025); }
+.iss-kpi-item:hover .iss-kpi-num { opacity: 0.7; }
+.iss-kpi-label {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+.iss-kpi-num {
+  font-size: 32px;
+  font-weight: 800;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  transition: opacity 0.1s;
+}
+
+/* ── iOS Card Deck (Issues View) ─────────────────────────────── */
+#sec-issues {
+  height: calc(100vh - 152px);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.deck-indicators {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  padding: 14px 0 10px;
+  flex-shrink: 0;
+}
+.deck-dot {
+  width: 4px; height: 4px;
+  border-radius: 50%;
+  background: var(--text-dim);
+  transition: all 0.3s ease;
+}
+.deck-dot.active {
+  width: 20px;
+  border-radius: 2px;
+  background: var(--text);
+}
+.deck-stage {
+  perspective: 1400px;
+  perspective-origin: 50% 40%;
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+}
+.deck-scroll {
+  display: flex;
+  overflow-x: scroll;
+  overflow-y: hidden;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  padding: 16px calc(50% - 240px);
+  gap: 20px;
+}
+.deck-scroll::-webkit-scrollbar { display: none; }
+.issue-card {
+  flex-shrink: 0;
+  width: 480px;
+  height: calc(100% - 32px);
+  scroll-snap-align: center;
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  transform-origin: center center;
+  will-change: transform;
+  box-shadow: 0 2px 40px rgba(0,0,0,0.06);
+}
+.card-accent { height: 3px; flex-shrink: 0; }
+.card-head {
+  padding: 20px 24px 14px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.card-head-top {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.card-type {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+.card-count {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+}
+.card-num {
+  font-size: 52px;
+  font-weight: 800;
+  letter-spacing: -0.07em;
+  line-height: 1;
+}
+.card-search { margin-top: 12px; }
+.card-search-input {
+  width: 100%;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  background: transparent;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  color: var(--text);
+  padding: 6px 0;
+  outline: none;
+}
+.card-search-input::placeholder { color: var(--text-dim); }
+.card-filters { margin-top: 8px; display: flex; gap: 14px; }
+.card-filter-select {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 0.06em;
+  border: none;
+  background: transparent;
+  color: var(--text-muted);
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  max-width: 140px;
+  text-overflow: ellipsis;
+}
+.card-body {
+  flex: 1;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #ddd transparent;
+}
+.card-issue {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding: 13px 24px;
+  border-bottom: 1px solid #f5f4f1;
+  cursor: pointer;
+}
+.card-issue:hover .card-issue-name { color: var(--red); }
+.card-issue-left { flex: 1; min-width: 0; }
+.card-issue-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 3px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transition: color 0.1s;
+  letter-spacing: -0.01em;
+}
+.card-issue-meta {
+  font-family: var(--mono);
+  font-size: 8.5px;
+  color: var(--text-muted);
+  letter-spacing: 0.04em;
+}
+.card-issue-dday {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 500;
+  flex-shrink: 0;
+  margin-left: 16px;
+}
+.card-nav-hint {
+  padding: 9px 24px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+.card-nav-btn {
+  font-family: var(--mono);
+  font-size: 8px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 4px 0;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.card-nav-btn:hover { color: var(--text); }
+.card-nav-btn svg { width: 12px; height: 12px; }
+.card-position {
+  font-family: var(--mono);
+  font-size: 8px;
+  color: var(--text-dim);
+  letter-spacing: 0.1em;
+}
+
+.sb-ai-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 7px 16px;
+  font-size: 12px; color: var(--text-muted);
+  cursor: pointer; transition: background 0.1s;
+}
+.sb-ai-item:hover { background: var(--bg-muted); color: var(--text); }
+.sb-ai-icon { font-size: 10px; color: var(--red); width: 14px; text-align: center; flex-shrink: 0; }
+
+/* ── Sidebar Calendar ── */
+.sb-cal { padding: 12px 14px 16px; }
+.sb-cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
+.sb-cal-title { font-size:11px; font-weight:700; letter-spacing:0.06em; color:var(--text); }
+.sb-cal-nav { background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:12px; padding:2px 5px; line-height:1; }
+.sb-cal-nav:hover { color:var(--text); }
+.sb-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
+.sb-cal-dow { font-size:9px; font-weight:600; letter-spacing:0.05em; color:var(--text-dim); text-align:center; padding-bottom:5px; }
+.sb-cal-day { font-size:10px; text-align:center; padding:3px 1px; color:var(--text-muted); cursor:default; border-radius:3px; }
+.sb-cal-day.other { color:var(--text-dim); }
+.sb-cal-day.today { background:var(--text); color:#fff; font-weight:700; border-radius:3px; }
+.sb-cal-day.holiday { color:#c0392b; font-weight:600; }
+.sb-cal-day.sat { color:#3b82f6; }
+.sb-cal-dow.holiday { color:#c0392b; }
+.sb-cal-day[data-tip] { position:relative; }
+.sb-cal-day[data-tip]:hover::after {
+  content: attr(data-tip);
+  position:absolute; bottom:calc(100% + 4px); left:50%; transform:translateX(-50%);
+  background:#111; color:#fff; font-size:9px; white-space:nowrap;
+  padding:3px 7px; border-radius:3px; pointer-events:none; z-index:999;
+  letter-spacing:0.03em;
+}
+.sb-cal-day.pin { color:#fff !important; font-weight:700; border-radius:50%; cursor:pointer; }
+.sb-cal-day:not(.pin):not(.other) { cursor:pointer; }
+.sb-cal-day:not(.pin):not(.other):hover { background:var(--bg-muted); border-radius:3px; }
+.sb-cal-pin-input { padding:8px 0 4px; display:flex; gap:4px; align-items:center; }
+.sb-cal-pin-input input { flex:1; border:1px solid var(--border); border-radius:4px; padding:4px 7px; font-size:10px; font-family:var(--sans); outline:none; background:var(--bg-white); color:var(--text); }
+.sb-cal-pin-input input:focus { border-color:#888; }
+.sb-cal-pin-input button { border:none; background:var(--text); color:#fff; border-radius:4px; padding:4px 8px; font-size:10px; cursor:pointer; flex-shrink:0; }
+.sb-cal-pin-list { margin-top:8px; display:flex; flex-direction:column; gap:3px; }
+.sb-cal-pin-item { display:flex; align-items:center; gap:6px; font-size:10px; color:var(--text-muted); }
+.sb-cal-pin-dot { width:7px; height:7px; border-radius:50%; flex-shrink:0; }
+.sb-cal-pin-label { flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sb-cal-pin-date { font-size:9px; color:var(--text-dim); flex-shrink:0; }
+.sb-cal-pin-del { font-size:10px; color:var(--text-dim); cursor:pointer; padding:0 2px; flex-shrink:0; }
+.sb-cal-pin-del:hover { color:var(--red); }
+
+@media (max-width: 768px) {
+  .app-sidebar { display: none; }
+  #page-main { margin-left: 0; }
+}
+
+/* footer가 있다면 page-main 안에서 흘러야 하므로 body footer 제거 */
+body > footer { display: none; }
 </style>
 </head>
 <body>
@@ -1106,7 +1504,7 @@ body {
   </a>
 
   <div class="navbar-center">
-    <div class="navbar-filter-item">
+    <div class="navbar-filter-item" style="display:none;">
       <div class="navbar-filter-label">Project</div>
       <div class="navbar-filter-value">
         <select id="projectSelect" onchange="onProjectChange()">
@@ -1114,23 +1512,22 @@ body {
         </select>
       </div>
     </div>
-    <div class="navbar-divider"></div>
     <div class="navbar-filter-item" style="position:relative;" id="since-wrap">
       <div class="navbar-filter-label">Since</div>
       <div class="navbar-filter-value" onclick="toggleSinceDD()" style="cursor:pointer;display:flex;align-items:center;gap:4px;">
         <span id="filterDateDisplay">2026-03-01</span>
         <span style="font-size:8px;color:#aaa;" id="since-chevron">▾</span>
       </div>
-      <div id="since-dd" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid #e4e2e2;width:180px;z-index:999;box-shadow:0 8px 24px rgba(0,0,0,0.10);">
+      <div id="since-dd" style="display:none;position:absolute;top:calc(100% + 4px);left:0;background:#fff;border:1px solid var(--border);width:180px;z-index:999;box-shadow:0 4px 16px rgba(0,0,0,0.08);">
         <div class="since-dd-item" onclick="pickSince(this,30)">1개월<span>30 DAYS</span></div>
         <div class="since-dd-item active" onclick="pickSince(this,90)">3개월<span>90 DAYS</span></div>
         <div class="since-dd-item" onclick="pickSince(this,180)">6개월<span>180 DAYS</span></div>
         <div class="since-dd-item" onclick="pickSince(this,365)">1년<span>365 DAYS</span></div>
         <div class="since-dd-item" onclick="pickSince(this,730)">2년<span>730 DAYS</span></div>
-        <div style="height:1px;background:#e4e2e2;"></div>
+        <div style="height:1px;background:var(--border);"></div>
         <div class="since-dd-item" id="since-custom-btn" onclick="toggleSinceCustom()">직접 입력<span>CUSTOM</span></div>
-        <div id="since-custom-row" style="display:none;padding:8px 12px;background:#f5f3f3;">
-          <input type="date" id="filterDateInput" style="width:100%;border:1px solid #e4e2e2;padding:5px 8px;font-size:11px;font-family:inherit;outline:none;" onchange="pickSinceCustom(this.value)">
+        <div id="since-custom-row" style="display:none;padding:8px 12px;background:var(--bg-muted);">
+          <input type="date" id="filterDateInput" style="width:100%;border:1px solid var(--border);padding:5px 8px;font-size:11px;font-family:inherit;outline:none;" onchange="pickSinceCustom(this.value)">
         </div>
       </div>
     </div>
@@ -1163,6 +1560,38 @@ body {
     </button>
   </div>
 </nav>
+
+<!-- ══ SIDEBAR ════════════════════════════════════════════════════ -->
+<aside class="app-sidebar" id="app-sidebar">
+  <div class="sb-section-label">PROJECTS</div>
+  <div id="sb-project-list"></div>
+
+  <div style="margin-top:auto;">
+    <div class="sb-divider"></div>
+    <div class="sb-cal" id="sb-calendar"></div>
+  </div>
+</aside>
+
+<!-- ══ PAGE MAIN ══════════════════════════════════════════════════ -->
+<div id="page-main">
+
+<!-- ══ OVERVIEW WRAPPER ══════════════════════════════════════════ -->
+<!-- ══ UNIFIED VIEW HEADER ══════════════════════════════════════ -->
+<div id="view-header" style="display:none;padding:48px 72px 0;">
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;">
+    <div>
+      <div id="vh-eyebrow" style="font-size:9px;font-weight:700;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-muted);font-family:var(--mono);margin-bottom:4px;"></div>
+      <span id="vh-title" style="font-size:20px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1;"></span>
+    </div>
+    <div style="display:flex;align-items:center;gap:16px;padding-bottom:2px;">
+      <span id="vh-sub" style="font-size:10px;font-family:var(--mono);color:var(--text-muted);"></span>
+      <span id="vh-badge" style="font-size:10px;font-family:var(--mono);font-weight:500;color:var(--text-muted);"></span>
+    </div>
+  </div>
+  <div style="height:1px;background:var(--border);margin-top:14px;"></div>
+</div>
+
+<div id="sec-overview">
 
 <!-- ══ RISK SCORE + TREND STRIP  (4 + 8 cols) ═══════════════════ -->
 <div class="g-strip section-border" style="margin-bottom:0;">
@@ -1293,28 +1722,68 @@ body {
 
 </div>
 
-<!-- ══ AI ANALYSIS  (8 + 4 cols) ═══════════════════════════════ -->
-<div class="g-content ai-row mb-4" id="sec-ai-summary">
 
-  <!-- Risk-Heavy Members — 8/12 -->
-  <div class="gc-8 risk-members-section">
-    <div class="risk-members-header">
+<!-- ══ AI ANALYSIS  (8 + 4 cols) ═══════════════════════════════ -->
+<!-- ══ WEEKLY FORECAST ════════════════════════════════════════ -->
+<div id="forecast-section" class="section-border" style="display:none;">
+
+  <!-- 헤더 -->
+  <div class="fc-header">
+    <span class="fc-subtitle" id="forecast-subtitle"></span>
+    <span class="fc-refresh" onclick="loadForecast()">↺ 새로고침</span>
+  </div>
+
+  <!-- 바디: 좌(5) · 우(7) -->
+  <div class="fc-body">
+
+    <!-- LEFT -->
+    <div class="fc-left">
+      <div class="fc-metrics" id="forecast-metrics"></div>
+    </div>
+
+    <!-- RIGHT -->
+    <div class="fc-right">
+      <div class="fc-overload" id="forecast-overload"></div>
+    </div>
+
+  </div>
+
+</div>
+
+<div id="sec-ai-summary">
+
+  <!-- ── AI 섹션 ── -->
+  <div style="padding:40px var(--g-margin) 32px;border-bottom:1px solid var(--border);">
+
+    <!-- 헤더 -->
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;">
       <div>
-        <div class="risk-members-title">Risk-Heavy Members / 위험 노출 담당자</div>
+        <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">AI Analysis</div>
+        <div id="aiHeadline" style="font-size:20px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1;">분석 중...</div>
       </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <span id="ai-timestamp" style="font-family:var(--mono);font-size:9px;color:var(--text-dim);">LAST ANALYZED —</span>
+        <button onclick="generateAiSummary()" style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;cursor:pointer;">↻ 요약 갱신</button>
+        <button onclick="loadActionSignals(true)" style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;cursor:pointer;">↻ RE-ANALYZE</button>
+        <button onclick="openEscalateModal()" style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:var(--text);color:#fff;border:none;padding:5px 12px;cursor:pointer;">보고서 생성</button>
+      </div>
+    </div>
+
+    <!-- AI 요약 텍스트 -->
+    <div id="aiSummaryText" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.04em;line-height:1.8;margin-bottom:28px;">데이터를 불러오는 중입니다.</div>
+
+    <!-- AI 시그널 리스트 -->
+    <div id="ai-signals-list" style="border-top:1px solid var(--border);"></div>
+
+  </div>
+
+  <!-- ── Risk-Heavy Members ── -->
+  <div style="padding:32px var(--g-margin);">
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;">
+      <div class="risk-members-title">Risk-Heavy Members / 위험 노출 담당자</div>
       <div onclick="goToTab('assignee')" style="font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(0,0,0,0.4);cursor:pointer;">View All ↓</div>
     </div>
     <div id="risk-members-body"></div>
-  </div>
-
-  <!-- AI Card — 4/12 -->
-  <div class="gc-4 ai-card-dark">
-    <div>
-      <div class="ai-label-mono">AI Analysis</div>
-      <div class="ai-card-headline" id="aiHeadline">분석 중...</div>
-      <div class="ai-card-body-text" id="aiSummaryText">데이터를 불러오는 중입니다.</div>
-    </div>
-    <button class="ai-refresh-btn" onclick="generateAiSummary()">&#8635; &nbsp; REFRESH ANALYSIS</button>
   </div>
 
 </div>
@@ -1324,10 +1793,6 @@ body {
 
   <!-- Group Status — 6/12 -->
   <div class="gc-6 card-panel" id="sec-group">
-    <div class="card-header">
-      <span>Group Status · 그룹 현황</span>
-      <span class="card-header-sub" id="group-header-sub">—</span>
-    </div>
     <div class="card-body" style="padding:0;">
       <div id="group-col-header" style="display:none;">
         <div>Group</div>
@@ -1336,39 +1801,26 @@ body {
         <div style="text-align:right;">Risk</div>
       </div>
       <div id="group-tbody"></div>
+      <div id="group-detail-panel" style="display:none;border-top:2px solid var(--border);padding:16px;"></div>
       <div id="group-hidden-msg" style="padding:20px var(--sp-2);font-size:11px;color:#ccc;text-align:center;">프로젝트를 선택하면 그룹 현황이 표시됩니다.</div>
     </div>
   </div>
 
   <!-- Milestones — 6/12 -->
   <div class="gc-6 card-panel bg-muted" id="sec-version">
-    <div class="card-header">
-      <span>Milestones · 버전 / 마일스톤</span>
-      <span class="card-header-sub" id="version-project-name">—</span>
-    </div>
-    <div class="card-body" id="version-body" style="overflow-y:auto;flex:1;min-height:0;max-height:340px;">
+    <div class="card-body" id="version-body" style="overflow-y:auto;flex:1;min-height:0;max-height:600px;max-width:720px;margin:0 auto;width:100%;">
       <div style="padding:var(--sp-2);text-align:center;font-size:11px;color:#ccc;">로딩 중...</div>
     </div>
   </div>
 
-</div>
+</div><!-- /cards-row -->
+
+</div><!-- /sec-overview -->
+
 
 <!-- ══ BOTTOM TAB SECTION ════════════════════════════════════════ -->
-<div class="g-padded pb-4">
+<div id="sec-issue-table" class="g-padded pb-4" style="display:none;">
 
-  <div style="display:flex;align-items:center;gap:var(--sp-2);margin-bottom:var(--sp-1);">
-    <div class="tab-bar">
-      <div class="tab-item active" data-tab="imminent" onclick="switchTab('imminent')">
-        마감 임박 <span class="tab-badge blue" id="badge-imminent">0</span>
-      </div>
-      <div class="tab-item" data-tab="overdue" onclick="switchTab('overdue')">
-        마감 초과 <span class="tab-badge red" id="badge-overdue">0</span>
-      </div>
-      <div class="tab-item" data-tab="assignee" onclick="switchTab('assignee')">담당자별</div>
-      <div class="tab-item" data-tab="all" onclick="switchTab('all')">전체 이슈</div>
-    </div>
-    <span id="tabCount" style="font-size:13px;font-weight:700;color:var(--text);white-space:nowrap;">0건</span>
-  </div>
 
   <div class="tab-filters">
     <div class="tab-filter-cell">
@@ -1441,6 +1893,112 @@ body {
 
 </div>
 
+<!-- ══ COMBINED ISSUES VIEW — iOS CARD DECK ══════════════════════ -->
+<div id="sec-issues" style="display:none;">
+
+  <!-- ── 컴팩트 KPI 네비게이션 ── -->
+  <div class="iss-kpi-nav">
+    <div class="iss-kpi-item" onclick="scrollToDeckCard(0)">
+      <div class="iss-kpi-label">IMMINENT</div>
+      <div class="iss-kpi-num" id="iss-kpi-imminent" style="color:var(--red);">—</div>
+    </div>
+    <div class="iss-kpi-item" onclick="scrollToDeckCard(1)">
+      <div class="iss-kpi-label">OVERDUE</div>
+      <div class="iss-kpi-num" id="iss-kpi-overdue" style="color:var(--red);">—</div>
+    </div>
+    <div class="iss-kpi-item" onclick="scrollToDeckCard(2)">
+      <div class="iss-kpi-label">OPEN</div>
+      <div class="iss-kpi-num" id="iss-kpi-open" style="color:var(--text);">—</div>
+    </div>
+  </div>
+
+  <div class="deck-indicators" id="deckIndicators">
+    <div class="deck-dot active" data-idx="0"></div>
+    <div class="deck-dot" data-idx="1"></div>
+    <div class="deck-dot" data-idx="2"></div>
+  </div>
+
+  <div class="deck-stage">
+    <div class="deck-scroll" id="deckScroll">
+
+      <!-- ── Card 1: 임박 이슈 ── -->
+      <div class="issue-card" data-idx="0">
+        <div class="card-accent" style="background:var(--red)"></div>
+        <div class="card-head">
+          <div class="card-head-top">
+            <span class="card-type">Imminent · 임박 이슈</span>
+            <span class="card-count" id="deck-count-imminent" style="color:var(--red)"></span>
+          </div>
+          <div class="card-num" id="deck-num-imminent" style="color:var(--red)">—</div>
+          <div class="card-search">
+            <input class="card-search-input" id="deck-search-imminent" placeholder="SEARCH ISSUES..." oninput="filterDeckCard('imminent')">
+          </div>
+          <div class="card-filters">
+            <select class="card-filter-select" id="deck-filter-assignee-imminent" onchange="filterDeckCard('imminent')"><option value="">ALL ASSIGNEES</option></select>
+          </div>
+        </div>
+        <div class="card-body" id="deck-body-imminent"></div>
+        <div class="card-nav-hint">
+          <div class="card-nav-btn" style="opacity:0;">prev</div>
+          <div class="card-position">1 / 3</div>
+          <div class="card-nav-btn" onclick="scrollToDeckCard(1)">지연 이슈 <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2l4 4-4 4"/></svg></div>
+        </div>
+      </div>
+
+      <!-- ── Card 2: 지연 이슈 ── -->
+      <div class="issue-card" data-idx="1">
+        <div class="card-accent" style="background:var(--red)"></div>
+        <div class="card-head">
+          <div class="card-head-top">
+            <span class="card-type">Overdue · 지연 이슈</span>
+            <span class="card-count" id="deck-count-overdue" style="color:var(--red)"></span>
+          </div>
+          <div class="card-num" id="deck-num-overdue" style="color:var(--red)">—</div>
+          <div class="card-search">
+            <input class="card-search-input" id="deck-search-overdue" placeholder="SEARCH ISSUES..." oninput="filterDeckCard('overdue')">
+          </div>
+          <div class="card-filters">
+            <select class="card-filter-select" id="deck-filter-assignee-overdue" onchange="filterDeckCard('overdue')"><option value="">ALL ASSIGNEES</option></select>
+          </div>
+        </div>
+        <div class="card-body" id="deck-body-overdue"></div>
+        <div class="card-nav-hint">
+          <div class="card-nav-btn" onclick="scrollToDeckCard(0)"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l-4 4 4 4"/></svg> 임박 이슈</div>
+          <div class="card-position">2 / 3</div>
+          <div class="card-nav-btn" onclick="scrollToDeckCard(2)">전체 이슈 <svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 2l4 4-4 4"/></svg></div>
+        </div>
+      </div>
+
+      <!-- ── Card 3: 전체 이슈 ── -->
+      <div class="issue-card" data-idx="2">
+        <div class="card-accent" style="background:var(--text)"></div>
+        <div class="card-head">
+          <div class="card-head-top">
+            <span class="card-type">All Issues · 전체 이슈</span>
+            <span class="card-count" id="deck-count-all"></span>
+          </div>
+          <div class="card-num" id="deck-num-all">—</div>
+          <div class="card-search">
+            <input class="card-search-input" id="deck-search-all" placeholder="SEARCH ISSUES..." oninput="filterDeckCard('all')">
+          </div>
+          <div class="card-filters">
+            <select class="card-filter-select" id="deck-filter-assignee-all" onchange="filterDeckCard('all')"><option value="">ALL ASSIGNEES</option></select>
+            <select class="card-filter-select" id="deck-filter-status-all" onchange="filterDeckCard('all')"><option value="">ALL STATUS</option></select>
+          </div>
+        </div>
+        <div class="card-body" id="deck-body-all"></div>
+        <div class="card-nav-hint">
+          <div class="card-nav-btn" onclick="scrollToDeckCard(1)"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M8 2l-4 4 4 4"/></svg> 지연 이슈</div>
+          <div class="card-position">3 / 3</div>
+          <div class="card-nav-btn" style="opacity:0;">next</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+</div>
+
 <!-- ══ MODALS ═════════════════════════════════════════════════════ -->
 <div class="settings-overlay" id="settingsModal">
   <div class="settings-box">
@@ -1488,7 +2046,7 @@ body {
       <p style="font-size:12px;color:#555;line-height:1.7;margin-bottom:var(--sp-2);">레드마인 로드맵 상세페이지로 이동하여 전체 현황을 확인합니다.<br><br><span id="confirmUrl" style="color:#0047A0;font-size:11px;word-break:break-all;"></span></p>
       <div style="display:flex;gap:8px;">
         <button class="btn btn-black" style="flex:1;justify-content:center;" onclick="confirmRedmineGo()">확인</button>
-        <button class="btn" style="flex:1;justify-content:center;border:1px solid #e4e2e2;" onclick="closeConfirmModal()">취소</button>
+        <button class="btn" style="flex:1;justify-content:center;border:1px solid var(--border);" onclick="closeConfirmModal()">취소</button>
       </div>
     </div>
   </div>
@@ -1539,6 +2097,7 @@ var allData = null;
 var currentProjectId = localStorage.getItem('vantix_last_project') || '';
 var currentUpdatedAfter = localStorage.getItem('vantix_since') || '__DEFAULT_UPDATED_AFTER__';
 var currentTab = 'imminent';
+var currentView = 'overview';
 var currentModalIssueId = null;
 var aiSummaryText = '';
 var REDMINE_BASE = '__REDMINE_BASE_URL__';
@@ -1622,24 +2181,261 @@ function escHtml(str) {
 // ============================================================
 function getShortName(uname) { return (uname||'').split(' ')[0]||uname; }
 
+async function loadAllProjectRisks(){
+  try {
+    var NEWEST_TOKEN_SESSION = document.cookie.replace(/(?:(?:^|.*;\s*)vx_session\s*=\s*([^;]*).*$)|^.*$/,'$1');
+    var params=new URLSearchParams({project_id:'',updated_after:currentUpdatedAfter});
+    var res=await fetch('/api/data?'+params,{signal:AbortSignal.timeout(15000)});
+    if(!res.ok)return;
+    var d=await res.json();
+    window._allProjectRisks=d.project_risk||[];
+    updateSbRiskColors();
+  } catch(e){}
+}
+
+function updateSbRiskColors(){
+  if(!allData)return;
+  var pidToColor={};
+  var nameMap=window._sbNameToPid||{};
+  var riskSource=(window._allProjectRisks||[]).length>0?window._allProjectRisks:(allData.project_risk||[]);
+  riskSource.forEach(function(p){
+    var pid=nameMap[p.name];
+    if(pid)pidToColor[pid]=p.risk_color||'transparent';
+  });
+  document.querySelectorAll('.sb-proj-row[data-pid]').forEach(function(row){
+    var pid=row.dataset.pid;
+    row.style.borderLeftColor=pid&&pidToColor[pid]?pidToColor[pid]:'transparent';
+  });
+}
+
+var _calYear, _calMonth, _calHolidays={};
+var _PIN_COLORS=['#c0392b','#e57300','#b7770d','#2563eb','#6366f1'];
+var _calPins=JSON.parse(localStorage.getItem('vantix_cal_pins')||'[]');
+
+function _savePins(){ localStorage.setItem('vantix_cal_pins',JSON.stringify(_calPins)); }
+
+function _nextPinColor(){
+  var used=_calPins.map(function(p){return p.color;});
+  return _PIN_COLORS.find(function(c){return !used.includes(c);})||_PIN_COLORS[_calPins.length%5];
+}
+
+function calDayClick(dateKey){
+  var existing=_calPins.findIndex(function(p){return p.date===dateKey;});
+  if(existing>=0){
+    _calPins.splice(existing,1);
+    _savePins();
+    renderSbCalendar(_calYear,_calMonth);
+    return;
+  }
+  if(_calPins.length>=5){ alert('핀은 최대 5개까지 등록할 수 있어요.'); return; }
+  // 인라인 입력창 표시
+  var inp=document.getElementById('sb-cal-input-wrap');
+  if(inp){ inp.remove(); }
+  var color=_nextPinColor();
+  var parts=dateKey.split('-');
+  var label=parts[1]+'월 '+parseInt(parts[2])+'일';
+  var wrap=document.createElement('div');
+  wrap.id='sb-cal-input-wrap';
+  wrap.className='sb-cal-pin-input';
+  wrap.innerHTML='<span style="width:7px;height:7px;border-radius:50%;background:'+color+';flex-shrink:0;display:inline-block;"></span>'
+    +'<input id="sb-pin-text" placeholder="'+label+' 일정 제목" maxlength="20" autofocus>'
+    +'<button onclick="calPinConfirm(\''+dateKey+'\',\''+color+'\')">+</button>';
+  document.getElementById('sb-calendar').appendChild(wrap);
+  var input=document.getElementById('sb-pin-text');
+  input.focus();
+  input.onkeydown=function(e){
+    if(e.key==='Enter') calPinConfirm(dateKey,color);
+    if(e.key==='Escape'){ wrap.remove(); }
+  };
+}
+
+function calPinConfirm(dateKey,color){
+  var title=(document.getElementById('sb-pin-text')||{}).value||'';
+  if(!title.trim()) return;
+  _calPins.push({date:dateKey,title:title.trim(),color:color});
+  _calPins.sort(function(a,b){return a.date>b.date?1:-1;});
+  _savePins();
+  renderSbCalendar(_calYear,_calMonth);
+}
+
+function calPinDelete(dateKey){
+  _calPins=_calPins.filter(function(p){return p.date!==dateKey;});
+  _savePins();
+  renderSbCalendar(_calYear,_calMonth);
+}
+
+function _getCountryCode(){
+  var lang=navigator.language||'ko-KR';
+  var map={'ko':'KR','en-US':'US','en-GB':'GB','ja':'JP','zh':'CN','de':'DE','fr':'FR','es':'ES'};
+  return map[lang]||map[lang.split('-')[0]]||lang.split('-')[1]||'KR';
+}
+
+async function _loadHolidays(y){
+  if(_calHolidays[y])return;
+  var cc=_getCountryCode();
+  try{
+    var res=await fetch('https://date.nager.at/api/v3/PublicHolidays/'+y+'/'+cc);
+    if(!res.ok)return;
+    var list=await res.json();
+    _calHolidays[y]={};
+    list.forEach(function(h){ _calHolidays[y][h.date]=h.localName||h.name; });
+  }catch(e){}
+}
+
+async function renderSbCalendar(y, m) {
+  var now = new Date();
+  if(y===undefined) y = now.getFullYear();
+  if(m===undefined) m = now.getMonth();
+  _calYear=y; _calMonth=m;
+
+  await _loadHolidays(y);
+  var holidays=_calHolidays[y]||{};
+
+  var today = now.getDate();
+  var isThisMonth = (y===now.getFullYear() && m===now.getMonth());
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var dows = ['S','M','T','W','T','F','S'];
+  var firstDay = new Date(y, m, 1).getDay();
+  var daysInMonth = new Date(y, m+1, 0).getDate();
+  var daysInPrev = new Date(y, m, 0).getDate();
+
+  var cells = '';
+  dows.forEach(function(d,i){
+    cells += '<div class="sb-cal-dow'+(i===0||i===6?' holiday':'')+'">'+d+'</div>';
+  });
+  for(var i=0; i<firstDay; i++){
+    cells += '<div class="sb-cal-day other">'+(daysInPrev-firstDay+1+i)+'</div>';
+  }
+  for(var d=1; d<=daysInMonth; d++){
+    var mm=String(m+1).padStart(2,'0');
+    var dd=String(d).padStart(2,'0');
+    var dateKey=y+'-'+mm+'-'+dd;
+    var dow=new Date(y,m,d).getDay();
+    var isHoliday=!!holidays[dateKey];
+    var isSun=dow===0;
+    var isSat=dow===6;
+    var isToday=isThisMonth&&d===today;
+    var pin=_calPins.find(function(p){return p.date===dateKey;});
+    var cls='sb-cal-day';
+    var extraStyle='';
+    if(pin){ cls+=' pin'; extraStyle='background:'+pin.color+';'; }
+    else if(isToday) cls+=' today';
+    else if(isHoliday||isSun) cls+=' holiday';
+    else if(isSat) cls+=' sat';
+    var tip=pin?' data-tip="'+pin.title+'"':(isHoliday?' data-tip="'+holidays[dateKey]+'"':'');
+    cells += '<div class="'+cls+'" style="'+extraStyle+'" onclick="calDayClick(\''+dateKey+'\')"'+tip+'>'+d+'</div>';
+  }
+  var rem=(firstDay+daysInMonth)%7;
+  if(rem>0){for(var n=1;n<=7-rem;n++) cells+='<div class="sb-cal-day other">'+n+'</div>';}
+
+  var prevY=m===0?y-1:y, prevM=m===0?11:m-1;
+  var nextY=m===11?y+1:y, nextM=m===11?0:m+1;
+  var pinList='';
+  if(_calPins.length>0){
+    pinList='<div class="sb-cal-pin-list">'
+      +_calPins.map(function(p){
+        var parts=p.date.split('-');
+        var label=parseInt(parts[1])+'/'+(parseInt(parts[2]));
+        return '<div class="sb-cal-pin-item">'
+          +'<span class="sb-cal-pin-dot" style="background:'+p.color+';"></span>'
+          +'<span class="sb-cal-pin-label">'+p.title+'</span>'
+          +'<span class="sb-cal-pin-date">'+label+'</span>'
+          +'<span class="sb-cal-pin-del" onclick="calPinDelete(\''+p.date+'\')">✕</span>'
+          +'</div>';
+      }).join('')
+      +'</div>';
+  }
+
+  document.getElementById('sb-calendar').innerHTML =
+    '<div class="sb-cal-header">'
+    +'<button class="sb-cal-nav" onclick="renderSbCalendar('+prevY+','+prevM+')">‹</button>'
+    +'<span class="sb-cal-title">'+months[m]+' '+y+'</span>'
+    +'<button class="sb-cal-nav" onclick="renderSbCalendar('+nextY+','+nextM+')">›</button>'
+    +'</div>'
+    +'<div class="sb-cal-grid">'+cells+'</div>'
+    +pinList;
+}
+
+function updateSbBadges(){
+  if(!allData)return;
+  var d=allData;
+  var immVal=(d.imminent_count!==undefined)?d.imminent_count:(d.imminent_issues||[]).length;
+  var ovrVal=d.overdue||0;
+  var issuesTotal=(immVal||0)+(ovrVal||0);
+  document.querySelectorAll('[id^="sb-badge-issues"]').forEach(function(el){
+    el.textContent=issuesTotal>0?issuesTotal:'';
+  });
+}
+
 // ============================================================
 // Init
 // ============================================================
 async function init() {
+  showView('forecast');
+  renderSbCalendar();
   await loadProjects();
   await loadData();
+  loadAllProjectRisks();
+  loadForecast();
 }
 
 async function loadProjects() {
   try {
     var res = await fetch('/api/projects');
     var projects = await res.json();
+    window._sbNameToPid={};
+    projects.forEach(function(p){ window._sbNameToPid[p.name]=p.identifier; });
     var sel = document.getElementById('projectSelect');
     sel.innerHTML = '<option value="">전체 프로젝트</option>';
     projects.forEach(function(p){
       var opt=document.createElement('option'); opt.value=p.identifier; opt.textContent=p.name; sel.appendChild(opt);
     });
     if (currentProjectId) { sel.value=currentProjectId; if(sel.value!==currentProjectId) currentProjectId=''; }
+
+    // Populate sidebar project list
+    var sbList=document.getElementById('sb-project-list');
+    if(sbList){
+      sbList.innerHTML='';
+      var views0=['forecast:Pulse','issues:이슈','assignee:부서별 현황'];
+      var views1=['forecast:Pulse','issues:이슈','assignee:부서별 현황','milestone:마일스톤'];
+      var sbBadgeCfg={'issues':'red','forecast':'weekly'};
+      var sbBadgeLabel={'forecast':'PULSE'};
+      function makeViewsHtml(list){
+        return list.map(function(v){
+          var p=v.split(':');
+          var badgeCls=sbBadgeCfg[p[0]];
+          var badgeText=sbBadgeLabel[p[0]]||'';
+          var badge=badgeCls?'<span class="sb-view-badge '+badgeCls+'" id="sb-badge-'+p[0]+'">'+badgeText+'</span>':'';
+          return '<div class="sb-view-item'+(currentTab===p[0]||currentView===p[0]?' active':'')+'" data-view="'+p[0]+'" onclick="sbSwitchView(\''+p[0]+'\')"><span>'+p[1]+'</span>'+badge+'</div>';
+        }).join('');
+      }
+      // 전체 프로젝트 row
+      var allRow=document.createElement('div');
+      allRow.className='sb-proj-row'+(currentProjectId===''?' active':'');
+      allRow.dataset.pid='';
+      allRow.innerHTML='<span class="sb-proj-name">전체 프로젝트</span><span class="sb-proj-chevron">▶</span>';
+      allRow.querySelector('.sb-proj-name').onclick=function(e){e.stopPropagation();sbToggle('');};
+      allRow.querySelector('.sb-proj-chevron').onclick=function(e){e.stopPropagation();sbToggle('');};
+      var allViews=document.createElement('div');
+      allViews.className='sb-views'+(currentProjectId===''?' open':'');
+      allViews.dataset.pid='';
+      allViews.innerHTML=makeViewsHtml(views0);
+      sbList.appendChild(allRow); sbList.appendChild(allViews);
+      // Per-project rows
+      projects.forEach(function(p){
+        var row=document.createElement('div');
+        row.className='sb-proj-row'+(currentProjectId===p.identifier?' active':'');
+        row.dataset.pid=p.identifier;
+        row.innerHTML='<span class="sb-proj-name">'+p.name+'</span><span class="sb-proj-chevron">▶</span>';
+        row.querySelector('.sb-proj-name').onclick=(function(pid){return function(e){e.stopPropagation();sbToggle(pid);};})(p.identifier);
+        row.querySelector('.sb-proj-chevron').onclick=(function(pid){return function(e){e.stopPropagation();sbToggle(pid);};})(p.identifier);
+        var views=document.createElement('div');
+        views.className='sb-views'+(currentProjectId===p.identifier?' open':'');
+        views.dataset.pid=p.identifier;
+        views.innerHTML=makeViewsHtml(views1);
+        sbList.appendChild(row); sbList.appendChild(views);
+      });
+    }
   } catch(e) { console.error('loadProjects error:',e); }
 }
 
@@ -1656,12 +2452,85 @@ async function loadData() {
       b.classList.toggle('active',b.getAttribute('onclick').includes(','+_riskWeeks+')'));
     });
     loadRiskHistory();
+    loadForecast();
   } catch(e) {
     console.error('loadData error:',e);
     setServerStatus('offline');
     if (allData) renderAll();
   }
 }
+
+// ============================================================
+// WEEKLY FORECAST
+// ============================================================
+async function loadForecast() {
+  var params = new URLSearchParams({project_id:currentProjectId, updated_after:currentUpdatedAfter});
+  try {
+    var res = await fetch('/api/forecast?'+params, {signal:AbortSignal.timeout(20000)});
+    if (!res.ok) return;
+    var data = await res.json();
+    renderForecast(data);
+  } catch(e) { console.error('loadForecast error:', e); }
+}
+
+function renderForecast(d) {
+  var sec = document.getElementById('forecast-section');
+  if (!d || (!d.items.length && !d.deadlines.length)) { return; }
+
+  // 서브타이틀
+  var today = new Date().toISOString().slice(0,10);
+  document.getElementById('forecast-subtitle').textContent = d.type==='project'
+    ? currentProjectId + ' · 차주 지연 사전 감지'
+    : today.replace(/-/g,'.').slice(0,7) + ' 기준 · 차주 지연 사전 감지';
+
+  // ── 지표 3개 ──
+  var rc = d.metrics.risk_change;
+  var rcStr = rc===null ? '—' : (rc>0 ? '↑+'+rc : rc<0 ? '↓'+rc : '→ 0');
+  var rcCls = rc===null ? '' : (rc>0 ? 'red' : rc<0 ? 'green' : '');
+  document.getElementById('forecast-metrics').innerHTML =
+    _fcMetric('차주 지연 예상', d.metrics.delay_predicted,    '이슈',       'red') +
+    _fcMetric('완료 위험',     d.metrics.at_risk_milestones, '마일스톤',   'amber') +
+    _fcMetric('리스크 변화',   rcStr,                        '전주 대비',  rcCls);
+
+  // ── overload 영역: 전체=프로젝트별 위험 예측 / 개별=담당자 과부하 ──
+  if (d.type === 'all') {
+    document.getElementById('forecast-overload').innerHTML =
+      '<div class="fc-overload-label">프로젝트별 차주 위험 예측</div>'
+      + (d.items||[]).map(function(item) {
+          var badgeCls = item.badge_class==='danger' ? 'danger' : item.badge_class==='warning' ? 'warning' : 'ok';
+          return '<div class="fc-overload-row" style="flex-direction:column;align-items:flex-start;gap:3px;">'
+            + '<div style="display:flex;align-items:center;gap:8px;width:100%;">'
+            + '<span class="fc-overload-name" style="width:auto;max-width:140px;overflow:hidden;text-overflow:ellipsis;">'+escHtml(item.name)+'</span>'
+            + '<span class="fc-overload-badge '+badgeCls+'" style="margin-left:auto;">'+escHtml(item.badge)+'</span>'
+            + '</div>'
+            + '<span style="font-size:10px;color:var(--text-dim);">'+escHtml(item.reason)+'</span>'
+            + '</div>';
+        }).join('');
+  } else {
+    document.getElementById('forecast-overload').innerHTML =
+      '<div class="fc-overload-label">담당자 과부하 경보</div>'
+      + (d.overload||[]).map(function(o) {
+          return '<div class="fc-overload-row">'
+            + '<span class="fc-overload-name">'+escHtml(o.name)+'</span>'
+            + '<div class="fc-overload-track"><div class="fc-overload-fill" style="width:'+o.pct+'%;background:'+(o.level==='danger'?'var(--red)':o.level==='warning'?'var(--amber)':'var(--green)')+'"></div></div>'
+            + '<span class="fc-overload-pct" style="color:'+(o.level==='danger'?'var(--red)':o.level==='warning'?'var(--amber)':'var(--green)')+'">'+o.pct+'%</span>'
+            + '<span class="fc-overload-badge '+o.level+'">'+escHtml(o.label)+'</span>'
+            + '</div>';
+        }).join('');
+  }
+
+}
+
+function _fcMetric(label, val, sub, colorCls) {
+  var colorMap = {red:'var(--red)', blue:'var(--blue)', green:'var(--green)', amber:'var(--amber)'};
+  var color = colorMap[colorCls] || 'var(--text)';
+  return '<div>'
+    + '<div class="fc-metric-label">'+label+'</div>'
+    + '<div class="fc-metric-value" style="color:'+color+'">'+val+'</div>'
+    + '<div class="fc-metric-sub">'+sub+'</div>'
+    + '</div>';
+}
+
 
 function setServerStatus(status) {
   var liveEl=document.querySelector('.live-indicator');
@@ -1679,39 +2548,172 @@ function renderAll() {
   renderSummaryCards(); renderImminentCard(); renderAssigneeCard();
   renderOverdueCard(); renderVersionCard();
   renderGroupStatus(currentProjectId); renderTab(); updateCacheAge(); populateTabFilters();
+  updateSbBadges(); updateSbRiskColors();
+}
+
+function _groupCard(name, userCount, overdue, total, risk){
+  var ratio=Math.min(100,Math.round(((overdue||0)/(total||1))*100));
+  var barColor=risk==='Critical'?'#c0392b':risk==='High'?'#e57300':'#d1d5db';
+  var riskBg=risk==='Critical'?'#fee2e2':risk==='High'?'#fff7ed':risk==='Medium'?'#fefce8':'#f3f4f6';
+  var riskColor=risk==='Critical'?'#c0392b':risk==='High'?'#92400e':risk==='Medium'?'#854d0e':'#6b7280';
+  var overdueColor=overdue>0?'#c0392b':'var(--text)';
+  var safeN=name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+  return '<div class="grp-card" data-grp="'+escHtml(name)+'" onclick="toggleGroupCard(\''+safeN+'\')" style="background:var(--bg-white);border:1px solid var(--border);border-radius:0;padding:16px 18px;cursor:pointer;transition:border-left-color 0.15s,border-left-width 0.15s;">'
+    +'<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'
+    +'<div><div style="font-size:13px;font-weight:700;color:var(--text);">'+escHtml(name)+'</div>'
+    +(userCount?'<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">'+userCount+'명</div>':'')
+    +'</div>'
+    +'<span style="font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:3px 8px;border-radius:0;background:'+riskBg+';color:'+riskColor+';">'+risk+'</span>'
+    +'</div>'
+    +'<div style="height:5px;background:var(--bg-muted);border-radius:0;overflow:hidden;margin-bottom:6px;">'
+    +'<div style="height:5px;background:'+barColor+';width:'+ratio+'%;border-radius:0;transition:width 0.6s;"></div>'
+    +'</div>'
+    +'<div style="display:flex;justify-content:space-between;align-items:baseline;">'
+    +'<span style="font-size:10px;color:var(--text-dim);">'+ratio+'% overdue</span>'
+    +'<span style="font-size:18px;font-weight:800;letter-spacing:-0.03em;color:'+overdueColor+';">'+overdue+'<span style="font-size:10px;font-weight:400;color:var(--text-dim);margin-left:2px;">건</span></span>'
+    +'</div>'
+    +'</div>';
+}
+
+function toggleGroupCard(groupName) {
+  var cards=document.querySelectorAll('.grp-card');
+  var wasSelected=false;
+  cards.forEach(function(c){if(c.dataset.grp===groupName&&c.classList.contains('grp-selected'))wasSelected=true;});
+  cards.forEach(function(c){
+    c.classList.remove('grp-selected');
+    c.style.borderLeft='1px solid var(--border)';
+  });
+  var panel=document.getElementById('group-detail-panel');
+  if(wasSelected){if(panel)panel.style.display='none';return;}
+  cards.forEach(function(c){
+    if(c.dataset.grp===groupName){c.classList.add('grp-selected');c.style.borderLeft='3px solid var(--text)';}
+  });
+  renderGroupDetail(groupName);
+}
+
+function renderGroupDetail(groupName) {
+  var panel=document.getElementById('group-detail-panel');
+  if(!panel)return;
+  if(!allData||!allData.users_data){panel.style.display='none';return;}
+  var today=new Date();today.setHours(0,0,0,0);
+  var doneStatuses=['완료','해결됨','closed','resolved'];
+
+  // _groupsCache에 멤버 목록이 있으면 전체 멤버 기준, 없으면 users_data 기준
+  var cachedMembers=(window._groupsCache||{})[groupName]||null;
+  var members=[];
+  if(cachedMembers&&cachedMembers.length>0){
+    cachedMembers.forEach(function(uname){
+      var u=allData.users_data[uname]||{issues:[],group:groupName,short_name:''};
+      members.push({uname:uname,u:u});
+    });
+  } else {
+    Object.entries(allData.users_data).forEach(function(entry){
+      var uname=entry[0],u=entry[1];
+      var grp=u.group||(uname.includes('_')?uname.split('_')[0].trim():'')||'기타';
+      if(grp===groupName)members.push({uname:uname,u:u});
+    });
+  }
+  if(members.length===0){panel.style.display='none';return;}
+
+  // 이슈 있는 사람 먼저, 그 안에서 지연 건수 내림차순
+  members.sort(function(a,b){
+    var aIssues=(a.u.issues||[]).filter(function(i){return!doneStatuses.some(function(s){return(i.status||'').includes(s);});});
+    var bIssues=(b.u.issues||[]).filter(function(i){return!doneStatuses.some(function(s){return(i.status||'').includes(s);});});
+    var aOv=aIssues.filter(function(i){return i.due_date&&new Date(i.due_date)<today;}).length;
+    var bOv=bIssues.filter(function(i){return i.due_date&&new Date(i.due_date)<today;}).length;
+    if(bOv!==aOv)return bOv-aOv;
+    return bIssues.length-aIssues.length;
+  });
+
+  var html='<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:14px;font-family:var(--mono,monospace);">'+escHtml(groupName)+' &nbsp;·&nbsp; '+members.length+'명</div>'
+    +'<div style="display:flex;flex-direction:column;gap:16px;">';
+  members.forEach(function(m){
+    var shortN=m.u.short_name||(m.uname.includes('_')?m.uname.split('_').slice(1).join('_').trim():m.uname)||m.uname;
+    var issues=m.u.issues||[];
+    var activeIssues=issues.filter(function(i){return!doneStatuses.some(function(s){return(i.status||'').includes(s);});});
+    var overdueIssues=activeIssues.filter(function(i){return i.due_date&&new Date(i.due_date)<today;});
+    var hasOv=overdueIssues.length>0;
+    var badgeBg=hasOv?'#c0392b':'#333';
+    html+='<div>'
+      +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
+      +'<div style="width:26px;height:26px;border-radius:50%;background:'+badgeBg+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">'+escHtml(shortN.slice(0,1))+'</div>'
+      +'<div style="flex:1;font-size:12px;font-weight:600;">'+escHtml(shortN)+'</div>'
+      +'<div style="font-size:10px;color:var(--text-dim);">전체 <b style="color:var(--text);">'+activeIssues.length+'</b>건</div>'
+      +(hasOv?'<div style="font-size:10px;color:#c0392b;font-weight:600;margin-left:8px;">지연 '+overdueIssues.length+'건</div>':'')
+      +'</div>';
+    if(activeIssues.length===0){
+      html+='<div style="font-size:10px;color:var(--text-dim);padding:4px 0 4px 36px;">진행 중인 이슈 없음</div>';
+    } else {
+      activeIssues.forEach(function(i){
+        var isOv=i.due_date&&new Date(i.due_date)<today;
+        var dLabel=i.due_date?dday(i.due_date):'';
+        var dColor=isOv?'#c0392b':'var(--text-dim)';
+        html+='<div onclick="openIssue('+i.id+')" style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0 5px 36px;border-top:1px solid var(--border);cursor:pointer;gap:8px;">'
+          +'<div style="display:flex;gap:5px;align-items:baseline;min-width:0;overflow:hidden;">'
+          +'<span style="font-size:9px;color:var(--text-dim);flex-shrink:0;font-family:var(--mono,monospace);">#'+i.id+'</span>'
+          +'<span style="font-size:10px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+escHtml(i.subject)+'</span>'
+          +'</div>'
+          +(dLabel?'<span style="font-size:9px;font-weight:600;color:'+dColor+';white-space:nowrap;flex-shrink:0;">'+dLabel+'</span>':'')
+          +'</div>';
+      });
+    }
+    html+='</div>';
+  });
+  html+='</div>';
+  panel.innerHTML=html;
+  panel.style.display='block';
 }
 
 async function renderGroupStatus(projectId) {
   var tbody=document.getElementById('group-tbody');
   var hiddenMsg=document.getElementById('group-hidden-msg');
-  var headerSub=document.getElementById('group-header-sub');
   var colHeader=document.getElementById('group-col-header');
+  var detailPanel=document.getElementById('group-detail-panel');
+  if(detailPanel)detailPanel.style.display='none';
+  if(colHeader)colHeader.style.display='none';
+  var grid='display:grid;grid-template-columns:repeat(2,1fr);gap:12px;padding:16px;';
+
   if (!projectId||projectId==='') {
-    if(tbody) tbody.innerHTML='';
-    if(hiddenMsg) hiddenMsg.style.display='block';
-    if(colHeader) colHeader.style.display='none';
+    if(!allData||!allData.users_data){if(hiddenMsg)hiddenMsg.style.display='block';return;}
+    if(hiddenMsg)hiddenMsg.style.display='none';
+    var today=new Date(); today.setHours(0,0,0,0);
+    var doneStatuses=['완료','해결됨','closed','resolved'];
+    var groupMap={};
+    Object.entries(allData.users_data).forEach(function(entry){
+      var uname=entry[0], u=entry[1];
+      var grp=u.group||(uname.includes('_')?uname.split('_')[0].trim():'')||'기타';
+      if(!groupMap[grp])groupMap[grp]={name:grp,total:0,overdue:0};
+      (u.issues||[]).forEach(function(i){
+        groupMap[grp].total++;
+        var isDone=doneStatuses.some(function(s){return(i.status||'').includes(s);});
+        if(!isDone&&i.due_date&&new Date(i.due_date)<today)groupMap[grp].overdue++;
+      });
+    });
+    var groups=Object.values(groupMap).sort(function(a,b){return b.overdue-a.overdue;});
+    if(!tbody)return;
+    if(groups.length===0){tbody.innerHTML='<div style="padding:20px;font-size:11px;color:#ccc;text-align:center;">그룹 정보 없음</div>';return;}
+    tbody.innerHTML='<div style="'+grid+'">'+groups.map(function(g){
+      var ratio=Math.min(100,Math.round((g.overdue/(g.total||1))*100));
+      var risk=ratio>=60?'Critical':ratio>=30?'High':ratio>=10?'Medium':'Stable';
+      return _groupCard(g.name,null,g.overdue,g.total,risk);
+    }).join('')+'</div>';
     return;
   }
-  if(hiddenMsg) hiddenMsg.style.display='none';
-  if(colHeader) colHeader.style.display='grid';
+
+  if(hiddenMsg)hiddenMsg.style.display='none';
   try {
     var res=await fetch('/api/groups?project_id='+encodeURIComponent(projectId));
     var data=await res.json();
     var groups=data.groups||[];
-    if(headerSub) headerSub.textContent=groups.length+' groups';
-    if(!tbody) return;
-    if(groups.length===0){tbody.innerHTML='<div style="padding:20px var(--sp-2);font-size:11px;color:#ccc;text-align:center;">그룹 정보 없음</div>';return;}
-    tbody.innerHTML=groups.map(function(g,idx){
-      var bg=idx%2===1?'#f5f3f3':'#fff';
-      var totalIssues=g.total_issues||1;
-      var overdueRatio=Math.min(100,Math.round((g.overdue_now/totalIssues)*100));
-      var barColor=g.risk==='Critical'?'#c0392b':g.risk==='High'?'#000':'#bbb';
-      var riskBg=g.risk==='Critical'?'#c0392b':g.risk==='High'?'#000':'#e4e2e2';
-      var riskColor=g.risk==='Stable'?'#666':'#fff';
-      var overdueColor=g.overdue_now>0?'#c0392b':'#000';
-      return '<div style="display:grid;grid-template-columns:100px 1fr 52px 72px;padding:11px var(--sp-2);border-bottom:1px solid #eae8e7;gap:10px;align-items:center;background:'+bg+';"><div><div style="font-size:12px;font-weight:700;color:#000;">'+g.name+'</div><div style="font-size:9px;color:#bbb;text-transform:uppercase;letter-spacing:0.07em;margin-top:1px;">'+g.user_count+'명</div></div><div><div style="height:4px;background:#eae8e4;border-radius:2px;overflow:hidden;"><div style="height:4px;background:'+barColor+';width:'+overdueRatio+'%;border-radius:2px;transition:width 0.6s cubic-bezier(0.4,0,0.2,1);"></div></div><div style="font-size:9px;color:#bbb;margin-top:3px;">'+overdueRatio+'% overdue</div></div><div style="font-size:12px;font-weight:600;text-align:right;color:'+overdueColor+';">'+g.overdue_now+'</div><div style="text-align:right;"><span style="font-size:9px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;padding:3px 7px;background:'+riskBg+';color:'+riskColor+';">'+g.risk+'</span></div></div>';
-    }).join('');
-  } catch(e) { if(tbody) tbody.innerHTML='<div style="padding:20px var(--sp-2);font-size:11px;color:#ccc;text-align:center;">그룹 로드 실패</div>'; }
+    if(!tbody)return;
+    if(groups.length===0){tbody.innerHTML='<div style="padding:20px;font-size:11px;color:#ccc;text-align:center;">그룹 정보 없음</div>';return;}
+    // 그룹별 멤버 목록 저장 (이슈 없는 멤버 포함)
+    window._groupsCache={};
+    groups.forEach(function(g){window._groupsCache[g.name]=g.members||[];});
+    tbody.innerHTML='<div style="'+grid+'">'+groups.map(function(g){
+      return _groupCard(g.name,g.user_count,g.overdue_now,g.total_issues,g.risk);
+    }).join('')+'</div>';
+  } catch(e){if(tbody)tbody.innerHTML='<div style="padding:20px;font-size:11px;color:#ccc;text-align:center;">그룹 로드 실패</div>';}
 }
 
 // ============================================================
@@ -1792,8 +2794,226 @@ function renderSummaryCards() {
 }
 
 // ============================================================
-// Imminent / Overdue cards
+// iOS Card Deck — Issue View
 // ============================================================
+var _deckData = { imminent: [], overdues: [], all: [] };
+
+function renderCombinedIssues(){
+  if(!allData)return;
+  var todayStr=new Date().toISOString().slice(0,10);
+  var usersData=allData.users_data||{};
+
+  // ── 임박 이슈
+  var imminent=allData.imminent_issues||[];
+  _deckData.imminent=imminent.map(function(i){
+    return Object.assign({},i,{
+      _short:i.assignee_short||i.assignee||'',
+      _dept:i.dept||''
+    });
+  });
+
+  // ── 지연 이슈
+  var overdues=[];
+  for(var uname in usersData){
+    var ud=usersData[uname];
+    (ud.issues||[]).forEach(function(i){
+      if(i.due_date&&i.due_date<todayStr&&!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status)){
+        overdues.push(Object.assign({},i,{_short:ud.short_name||getShortName(uname),_dept:ud.group||getDept(uname),_elapsed:dday(i.due_date)}));
+      }
+    });
+  }
+  overdues.sort(function(a,b){return a._elapsed-b._elapsed;});
+  _deckData.overdues=overdues;
+
+  // ── 전체 이슈 (open)
+  var all=[];
+  for(var un in usersData){
+    var u=usersData[un];
+    (u.issues||[]).forEach(function(i){
+      if(!CLOSED_SET_JS.has(i.status)&&!HOLD_SET_JS.has(i.status)){
+        all.push(Object.assign({},i,{_short:u.short_name||getShortName(un),_dept:u.group||getDept(un)}));
+      }
+    });
+  }
+  all.sort(function(a,b){return (a.due_date||'9999')>(b.due_date||'9999')?1:-1;});
+  _deckData.all=all;
+
+  // 컴팩트 KPI 네비 업데이트
+  var el_i=document.getElementById('iss-kpi-imminent');
+  var el_o=document.getElementById('iss-kpi-overdue');
+  var el_p=document.getElementById('iss-kpi-open');
+  if(el_i)el_i.textContent=imminent.length||0;
+  if(el_o)el_o.textContent=overdues.length||0;
+  if(el_p)el_p.textContent=all.length||0;
+
+  // 카운트 표시
+  var imCnt=document.getElementById('deck-count-imminent');
+  var imNum=document.getElementById('deck-num-imminent');
+  if(imCnt)imCnt.textContent=imminent.length+'건';
+  if(imNum)imNum.textContent=imminent.length||'0';
+
+  var ovCnt=document.getElementById('deck-count-overdue');
+  var ovNum=document.getElementById('deck-num-overdue');
+  if(ovCnt)ovCnt.textContent=overdues.length+'건';
+  if(ovNum)ovNum.textContent=overdues.length||'0';
+
+  var allCnt=document.getElementById('deck-count-all');
+  var allNum=document.getElementById('deck-num-all');
+  if(allCnt)allCnt.textContent=all.length+'건';
+  if(allNum)allNum.textContent=all.length||'0';
+
+  // 담당자 필터 옵션 구성
+  function buildAssigneeSelect(elId, items){
+    var sel=document.getElementById(elId);
+    if(!sel)return;
+    var seen={};
+    items.forEach(function(i){ if(i._short)seen[i._short]=1; });
+    var names=Object.keys(seen).sort();
+    var prev=sel.value;
+    sel.innerHTML='<option value="">ALL ASSIGNEES</option>'+names.map(function(n){
+      return '<option value="'+escHtml(n)+'"'+(n===prev?' selected':'')+'>'+escHtml(n)+'</option>';
+    }).join('');
+  }
+  buildAssigneeSelect('deck-filter-assignee-imminent', _deckData.imminent);
+  buildAssigneeSelect('deck-filter-assignee-overdue', _deckData.overdues);
+  buildAssigneeSelect('deck-filter-assignee-all', _deckData.all);
+
+  // 상태 필터 (전체 카드에만)
+  var statusSel=document.getElementById('deck-filter-status-all');
+  if(statusSel){
+    var seenStatus={};
+    all.forEach(function(i){if(i.status)seenStatus[i.status]=1;});
+    var statuses=Object.keys(seenStatus).sort();
+    var prevStatus=statusSel.value;
+    statusSel.innerHTML='<option value="">ALL STATUS</option>'+statuses.map(function(s){
+      return '<option value="'+escHtml(s)+'"'+(s===prevStatus?' selected':'')+'>'+escHtml(s)+'</option>';
+    }).join('');
+  }
+
+  // vh-sub 업데이트
+  var vhSub=document.getElementById('vh-sub');
+  if(vhSub)vhSub.textContent='임박 '+imminent.length+' · 지연 '+overdues.length+' · 전체 '+all.length;
+
+  // 각 카드 본문 렌더
+  renderDeckBody('imminent');
+  renderDeckBody('overdues');
+  renderDeckBody('all');
+
+  // 사이드바 배지
+  var total=(imminent.length||0)+(overdues.length||0);
+  document.querySelectorAll('[id^="sb-badge-issues"]').forEach(function(el){el.textContent=total||'';});
+
+  // 덱 애니메이션 초기화
+  setTimeout(initDeckAnim, 0);
+}
+
+function renderDeckBody(type){
+  var bodyId = type==='overdues' ? 'deck-body-overdue' : 'deck-body-'+type;
+  var el=document.getElementById(bodyId);
+  if(!el)return;
+
+  var items=_deckData[type]||[];
+
+  // 검색어 필터
+  var searchId = type==='overdues' ? 'deck-search-overdue' : 'deck-search-'+type;
+  var searchEl=document.getElementById(searchId);
+  var q=(searchEl&&searchEl.value||'').toLowerCase();
+
+  // 담당자 필터
+  var assigneeId = type==='overdues' ? 'deck-filter-assignee-overdue' : 'deck-filter-assignee-'+type;
+  var assigneeEl=document.getElementById(assigneeId);
+  var filterAssignee=assigneeEl?assigneeEl.value:'';
+
+  // 상태 필터 (전체만)
+  var filterStatus='';
+  if(type==='all'){
+    var statusEl=document.getElementById('deck-filter-status-all');
+    filterStatus=statusEl?statusEl.value:'';
+  }
+
+  var filtered=items.filter(function(i){
+    if(q&&i.subject.toLowerCase().indexOf(q)<0)return false;
+    if(filterAssignee&&i._short!==filterAssignee)return false;
+    if(filterStatus&&i.status!==filterStatus)return false;
+    return true;
+  });
+
+  if(filtered.length===0){
+    el.innerHTML='<div style="padding:32px 24px;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--text-dim);text-align:center;">NO ISSUES</div>';
+    return;
+  }
+
+  el.innerHTML=filtered.map(function(i){
+    var label,color;
+    if(type==='overdues'){
+      var abs=Math.abs(i._elapsed);
+      label='D+'+abs;
+      color=abs>7?'var(--red)':'var(--amber)';
+    } else {
+      label=i.due_date?ddayLabel(i.due_date):'—';
+      color=i.due_date?ddayColor(i.due_date):'var(--text-dim)';
+    }
+    return '<div class="card-issue" onclick="openIssue('+i.id+')">'
+      +'<div class="card-issue-left">'
+      +'<div class="card-issue-name">'+escHtml(i.subject)+'</div>'
+      +'<div class="card-issue-meta">'+escHtml(i._short||'')+(i._dept?' · '+escHtml(i._dept):'')+'</div>'
+      +'</div>'
+      +'<div class="card-issue-dday" style="color:'+color+';">'+label+'</div>'
+      +'</div>';
+  }).join('');
+}
+
+function filterDeckCard(type){
+  var dataType=type==='imminent'?'imminent':type==='overdue'?'overdues':'all';
+  renderDeckBody(dataType);
+}
+
+// ── Deck scroll animation
+var _deckEl=null, _deckCards=null, _deckDots=null;
+var DECK_CARD_W=480, DECK_GAP=20;
+
+function initDeckAnim(){
+  _deckEl=document.getElementById('deckScroll');
+  if(!_deckEl)return;
+  _deckCards=document.querySelectorAll('#sec-issues .issue-card');
+  _deckDots=document.querySelectorAll('#sec-issues .deck-dot');
+  _deckEl.removeEventListener('scroll', updateDeckTransforms);
+  _deckEl.addEventListener('scroll', updateDeckTransforms, {passive:true});
+  updateDeckTransforms();
+}
+
+function updateDeckTransforms(){
+  if(!_deckEl||!_deckCards)return;
+  var scrollLeft=_deckEl.scrollLeft;
+  var viewW=_deckEl.clientWidth;
+  var centerX=scrollLeft+viewW/2;
+  _deckCards.forEach(function(card){
+    var cardCenterX=card.offsetLeft+DECK_CARD_W/2;
+    var offset=(cardCenterX-centerX)/(DECK_CARD_W+DECK_GAP);
+    var rotY=offset*28;
+    var scale=1-Math.min(Math.abs(offset)*0.1,0.12);
+    var tz=-Math.abs(offset)*60;
+    var opacity=1-Math.min(Math.abs(offset)*0.35,0.5);
+    card.style.transform='rotateY('+rotY+'deg) scale('+scale+') translateZ('+tz+'px)';
+    card.style.opacity=opacity;
+  });
+  var activeIdx=Math.round(scrollLeft/(DECK_CARD_W+DECK_GAP));
+  if(_deckDots)_deckDots.forEach(function(dot,i){dot.classList.toggle('active',i===activeIdx);});
+}
+
+function scrollToDeckCard(idx){
+  if(!_deckEl)return;
+  _deckEl.scrollTo({left:idx*(DECK_CARD_W+DECK_GAP),behavior:'smooth'});
+}
+
+document.addEventListener('keydown',function(e){
+  var sec=document.getElementById('sec-issues');
+  if(!_deckEl||!sec||sec.style.display==='none')return;
+  var active=Math.round(_deckEl.scrollLeft/(DECK_CARD_W+DECK_GAP));
+  if(e.key==='ArrowRight'&&active<2)scrollToDeckCard(active+1);
+  if(e.key==='ArrowLeft'&&active>0)scrollToDeckCard(active-1);
+});
+
 function renderImminentCard() {
   var issues=allData.imminent_issues||[];
   var imminentHeaderSub=document.getElementById('imminent-header-sub');
@@ -1916,9 +3136,7 @@ async function renderVersionCard(){
     return;
   }
   if(cardsRow)cardsRow.style.display='';
-  document.getElementById('sec-version').style.display='block';
-  var card=document.getElementById('sec-version'); card.style.display='block';
-  document.getElementById('version-project-name').textContent=currentProjectId;
+  var vpn=document.getElementById('version-project-name');if(vpn)vpn.textContent=currentProjectId;
   var body=document.getElementById('version-body');
   body.innerHTML='<div style="padding:var(--sp-2);text-align:center;font-size:11px;color:#ccc;">로딩 중...</div>';
   try {
@@ -1997,19 +3215,13 @@ function selectMemberFromCard(el){
 }
 
 function switchTab(tab){
-  var table=document.querySelector('.tab-table');
-  if(table)table.classList.add('fading');
-  setTimeout(function(){
-    currentTab=tab;
-    document.querySelectorAll('.tab-item').forEach(function(el){el.classList.toggle('active',el.dataset.tab===tab);});
-    if(tab!=='assignee'){
-      var assigneeSelect=document.getElementById('tabAssigneeFilter');
-      if(assigneeSelect)assigneeSelect.selectedIndex=0;
-      document.querySelectorAll('.risk-member-row').forEach(function(row){row.classList.remove('selected');});
-    }
-    renderTab();
-    if(table)table.classList.remove('fading');
-  },200);
+  currentTab=tab;
+  if(tab!=='assignee'){
+    var assigneeSelect=document.getElementById('tabAssigneeFilter');
+    if(assigneeSelect)assigneeSelect.selectedIndex=0;
+    document.querySelectorAll('.risk-member-row').forEach(function(row){row.classList.remove('selected');});
+  }
+  renderTab();
 }
 
 function populateTabFilters(){
@@ -2101,12 +3313,13 @@ function goPage(p){var total=getTabIssues().length,totalPages=Math.ceil(total/pe
 
 function renderTab(){
   var issues=getTabIssues();
-  document.getElementById('tabCount').textContent=issues.length+'건';
+  var vhBadgeEl=document.getElementById('vh-badge');
+  if(vhBadgeEl)vhBadgeEl.textContent=issues.length+'건';
   var todayStr=new Date().toISOString().slice(0,10);
   var tbody=document.getElementById('tab-tbody');
   if(issues.length===0){
     var emptyHtml='<tr><td colspan="7" style="padding:13px 12px;color:#bbb;font-size:11px;">이슈 없음</td></tr>';
-    for(var e=0;e<perPage-1;e++)emptyHtml+='<tr style="border-bottom:0.5px solid #e8e6e2;"><td colspan="7" style="padding:0;height:51px;"></td></tr>';
+    for(var e=0;e<perPage-1;e++)emptyHtml+='<tr style="border-bottom:1px solid var(--border);"><td colspan="7" style="padding:0;height:44px;"></td></tr>';
     tbody.innerHTML=emptyHtml;renderPagination(0);return;
   }
   var cardList=document.getElementById('tab-card-list');
@@ -2143,10 +3356,11 @@ function renderTab(){
     var dotCls=isOverdue?'overdue':(!isClosed&&i._elapsed!==null&&i._elapsed<=7)?'imminent':'normal';
     // [G] dday-pill class
     var pillCls=isClosed?'closed':isOverdue?'overdue':(i._elapsed!==null&&i._elapsed===0)?'today':(i._elapsed!==null&&i._elapsed<=7)?'imminent':'normal';
-    return '<tr data-id="'+i.id+'" onclick="openIssue('+i.id+')" style="border-left:3px solid '+rowDeptColor+';"><td style="width:20px;padding:0 4px 0 12px;"><span class="priority-dot '+dotCls+'"></span></td><td class="td-id">#'+i.id+'</td><td><div class="td-subject">'+escHtml(i.subject)+'</div><div class="td-project">'+escHtml(i.project)+'</div></td><td><span class="td-group-badge">'+escHtml(i._dept||'—')+'</span></td><td style="font-size:11px;font-weight:500;">'+escHtml(i._short)+'</td><td><span class="status-badge '+statusCls+'">'+escHtml(i.status)+'</span></td><td class="td-priority '+priorityCls+'">'+priorityTxt+'</td><td style="text-align:right;"><div class="dday-wrap"><span class="dday-pill '+pillCls+'">'+elapsed+'</span><div class="dday-tooltip">'+dueTip+'</div></div></td></tr>';
+    var rowRiskColor=isOverdue?'var(--critical)':(!isClosed&&i._elapsed!==null&&i._elapsed<=7)?'var(--warning)':'transparent';
+    return '<tr data-id="'+i.id+'" onclick="openIssue('+i.id+')" style="border-left:3px solid '+rowRiskColor+';"><td style="width:20px;padding:0 4px 0 12px;"><span class="priority-dot '+dotCls+'"></span></td><td class="td-id">#'+i.id+'</td><td><div class="td-subject">'+escHtml(i.subject)+'</div><div class="td-project">'+escHtml(i.project)+'</div></td><td><span class="td-group-badge">'+escHtml(i._dept||'—')+'</span></td><td style="font-size:11px;font-weight:500;">'+escHtml(i._short)+'</td><td><span class="status-badge '+statusCls+'">'+escHtml(i.status)+'</span></td><td class="td-priority '+priorityCls+'">'+priorityTxt+'</td><td style="text-align:right;"><div class="dday-wrap"><span class="dday-pill '+pillCls+'">'+elapsed+'</span><div class="dday-tooltip">'+dueTip+'</div></div></td></tr>';
   }).join('');
   var emptyRows=perPage-issues.length;
-  if(emptyRows>0){var emptyHtml='';for(var e=0;e<emptyRows;e++){emptyHtml+='<tr style="border-bottom:0.5px solid #e8e6e2;"><td colspan="7" style="padding:0;height:51px;">&nbsp;</td></tr>';}tbody.innerHTML+=emptyHtml;}
+  if(emptyRows>0){var emptyHtml='';for(var e=0;e<emptyRows;e++){emptyHtml+='<tr style="border-bottom:1px solid var(--border);"><td colspan="7" style="padding:0;height:44px;">&nbsp;</td></tr>';}tbody.innerHTML+=emptyHtml;}
 }
 
 function updateCacheAge(){
@@ -2273,8 +3487,11 @@ async function generateAiSummary(){
         var valColor=isS1?'#e05a4e':isS2?'#d4824a':'#fff';
         return'<div style="display:flex;gap:8px;margin-bottom:10px;align-items:baseline;"><span style="font-family:DM Mono,monospace;font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">'+key+'</span><span style="font-size:11px;color:'+valColor+';line-height:1.5;">'+escHtml(val)+'</span></div>';
       }).join('');
-    }else if(data.error){if(headEl)headEl.textContent='AI 오류';el.textContent=data.error;}
-  }catch(e){if(headEl)headEl.textContent='요청 실패';el.textContent='서버에 연결할 수 없습니다.';}
+    }else if(data.error){
+      if(headEl)headEl.textContent='';
+      el.innerHTML='<div style="font-size:10px;color:#888;line-height:1.6;">'+escHtml(data.error)+'<br><button onclick="generateAiSummary()" style="margin-top:8px;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;background:none;border:1px solid #555;color:#aaa;padding:4px 10px;cursor:pointer;">↻ 다시 시도</button></div>';
+    }
+  }catch(e){if(headEl)headEl.textContent='';el.innerHTML='<div style="font-size:10px;color:#888;">서버에 연결할 수 없습니다.<br><button onclick="generateAiSummary()" style="margin-top:8px;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;background:none;border:1px solid #555;color:#aaa;padding:4px 10px;cursor:pointer;">↻ 다시 시도</button></div>';}
 }
 function openAiSummary(){
   var el=document.getElementById('sec-ai-summary');
@@ -2434,7 +3651,7 @@ function renderUserSuggestions(query) {
   if (filtered.length === 0) { list.style.display = 'none'; return; }
   list.innerHTML = filtered.map(function(u) {
     var added = _previewRecipients.includes(u.email);
-    return '<div onclick="' + (added ? '' : 'addRecipient(\'' + u.email + '\',\'' + u.name.replace(/'/g,'') + '\')') + '" style="padding:9px 14px;cursor:' + (added ? 'default' : 'pointer') + ';display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid #f0eeeb;opacity:' + (added ? '0.4' : '1') + ';">' +
+    return '<div onclick="' + (added ? '' : 'addRecipient(\'' + u.email + '\',\'' + u.name.replace(/'/g,'') + '\')') + '" style="padding:9px 14px;cursor:' + (added ? 'default' : 'pointer') + ';display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);opacity:' + (added ? '0.4' : '1') + ';">' +
       '<span style="font-size:12px;font-family:\'DM Sans\',sans-serif;">' + u.name + '</span>' +
       '<span style="font-size:11px;color:#999;font-family:\'DM Mono\',monospace;">' + u.email + (added ? ' ✓' : '') + '</span></div>';
   }).join('');
@@ -2513,6 +3730,116 @@ function onProjectChange(){
   loadData();loadRiskHistory();
 }
 
+function showView(view){
+  var isOverview=(view==='overview');
+  var isIssue=['imminent','overdue','all'].includes(view);
+  var isIssues=(view==='issues');
+  var isAssignee=(view==='assignee');
+  var isForecast=(view==='forecast');
+  var isMilestone=(view==='milestone');
+
+  // 최상위 섹션 on/off
+  document.getElementById('sec-overview').style.display=(isOverview||isAssignee||isMilestone||isForecast)?'':'none';
+  document.getElementById('sec-issue-table').style.display=isIssue?'':'none';
+  document.getElementById('forecast-section').style.display=isForecast?'':'none';
+  var secIssues=document.getElementById('sec-issues');
+  if(secIssues)secIssues.style.display=isIssues?'':'none';
+
+  // overview 내부 요소 제어
+  var kpiRow=document.querySelector('.g-strip.kpi-row');
+  var secGroup=document.getElementById('sec-group');
+  var secVersion=document.getElementById('sec-version');
+  var cardRisk=document.getElementById('card-risk');
+  if(cardRisk){var cr=cardRisk.closest('.g-strip,.g-content');if(cr)cr.style.display=(isOverview||isForecast)?'':'none';}
+  var secAi=document.getElementById('sec-ai-summary');
+  if(secAi)secAi.style.display=(isOverview||isForecast)?'':'none';
+  if(kpiRow)kpiRow.style.display=isOverview?'':'none';
+  if(secGroup){
+    secGroup.style.display=isAssignee?'':'none';
+    secGroup.className='gc-12 card-panel';
+  }
+  if(secVersion){
+    secVersion.style.display=isMilestone?'':'none';
+    secVersion.className='gc-12 card-panel bg-muted';
+  }
+
+  // 이슈 테이블 탭 전환
+  // 공통 뷰 헤더
+  var vhCfg={
+    'issues':   {eyebrow:'Issues',    title:'이슈',      sub:'임박 · 지연 · 전체'},
+    'assignee': {eyebrow:'Team',      title:'부서별 현황',sub:'담당자별 분류'},
+    'milestone':{eyebrow:'Timeline',  title:'마일스톤',   sub:'버전 진행률'},
+    'forecast': {eyebrow:'Pulse',     title:'Pulse',     sub:'프로젝트 핵심 현황'}
+  };
+  var vh=document.getElementById('view-header');
+  var vhTitle=document.getElementById('vh-title');
+  var vhSub=document.getElementById('vh-sub');
+  var vhBadge=document.getElementById('vh-badge');
+  var vhEyebrow=document.getElementById('vh-eyebrow');
+  if(vh){
+    var cfg=vhCfg[view];
+    if(cfg){
+      vh.style.display='';
+      if(vhEyebrow)vhEyebrow.textContent=cfg.eyebrow;
+      if(vhTitle)vhTitle.textContent=cfg.title;
+      if(vhSub)vhSub.textContent=cfg.sub;
+      if(vhBadge)vhBadge.textContent='';
+    } else {
+      vh.style.display='none';
+    }
+  }
+
+  if(isIssue){ if(allData)renderTab(); }
+  if(isIssues){ if(allData)renderCombinedIssues(); }
+  if(isForecast){ loadActionSignals(); }
+
+  if(isAssignee){
+    var cardsRow=document.getElementById('sec-group')&&document.getElementById('sec-group').closest('.cards-row');
+    if(cardsRow)cardsRow.style.display='';
+    renderGroupStatus(currentProjectId);
+  }
+  if(isMilestone){renderVersionCard();}
+
+  // 현재 뷰 추적 + 사이드바 active 동기화
+  currentView=view;
+  document.querySelectorAll('.sb-view-item').forEach(function(el){
+    el.classList.toggle('active', el.dataset.view===view);
+  });
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function sbToggle(id){
+  var isOpen=document.querySelector('.sb-views[data-pid="'+id+'"].open')!==null;
+  document.querySelectorAll('.sb-proj-row').forEach(function(r){ r.classList.toggle('active', !isOpen&&r.dataset.pid===id); });
+  document.querySelectorAll('.sb-views').forEach(function(v){ v.classList.toggle('open', !isOpen&&v.dataset.pid===id); });
+  // 새 프로젝트를 펼칠 때 자동 선택 + Pulse 이동
+  if(!isOpen && id!==currentProjectId){
+    var sel=document.getElementById('projectSelect');
+    if(sel)sel.value=id;
+    currentProjectId=id;
+    localStorage.setItem('vantix_last_project',id);
+    showView('forecast');
+    loadData(); loadRiskHistory(); loadForecast();
+  }
+}
+
+
+function sbSwitchView(view){
+  if(view==='forecast'){
+    showView('forecast');
+    loadForecast();
+  } else if(view==='issues'){
+    showView('issues');
+  } else if(view==='milestone'){
+    showView('milestone');
+  } else if(view==='assignee'){
+    showView('assignee');
+  } else {
+    showView(view);
+    switchTab(view);
+  }
+}
+
 document.addEventListener('click',function(e){
   if(!e.target.closest('#since-wrap'))closeSinceDD();
 });
@@ -2571,9 +3898,8 @@ function onDateChange() {
 // Tab navigation helper
 // ============================================================
 function goToTab(tabName) {
+  showView(tabName);
   switchTab(tabName);
-  var el = document.querySelector('.g-padded.pb-4');
-  if (el) { var y = el.getBoundingClientRect().top + window.pageYOffset - 80; window.scrollTo({ top: y, behavior: 'smooth' }); }
 }
 
 // ============================================================
@@ -2686,8 +4012,6 @@ if (card) {
   if (actionEl) signalText = actionEl.textContent || '';
 }
   }
-  var panel = document.getElementById('ai-cmd-panel');
-  if (panel) panel.classList.remove('open');
   setTimeout(function() {
 switchTab('overdue');
 setTimeout(function() { applyAiFocus(signalText); }, 300);
@@ -2951,27 +4275,6 @@ document.getElementById('monitor-status-text').textContent = '';
   modal.style.display = 'flex';
 }
 
-function toggleAiPanel() {
-  var p = document.getElementById('ai-cmd-panel');
-  var opening = !p.classList.contains('open');
-  p.classList.toggle('open');
-  if (opening) {
-    loadActionSignals();
-    setTimeout(function() {
-      document.addEventListener('click', _aiPanelOutsideClick);
-    }, 0);
-  } else {
-    document.removeEventListener('click', _aiPanelOutsideClick);
-  }
-}
-function _aiPanelOutsideClick(e) {
-  var panel = document.getElementById('ai-cmd-panel');
-  var toggle = document.getElementById('ai-cmd-toggle');
-  if (!panel.contains(e.target) && !toggle.contains(e.target)) {
-    panel.classList.remove('open');
-    document.removeEventListener('click', _aiPanelOutsideClick);
-  }
-}
 
 var _aiFocusIds = [];
 var _aiFocusDone = {};
@@ -2986,8 +4289,6 @@ function applyAiFocus(signalText) {
   if (banner) { banner.style.display = 'flex'; }
   var txt = document.getElementById('ai-focus-text');
   if (txt) txt.textContent = signalText.length > 60 ? signalText.slice(0,60) + '…' : signalText;
-  var prog = document.getElementById('ai-prog-wrap');
-  if (prog) prog.style.display = 'block';
   updateAiFocusProgress();
   setTimeout(function() {
 _aiFocusIds.forEach(function(id) {
@@ -3031,11 +4332,7 @@ function updateAiFocusProgress() {
   var done = Object.keys(_aiFocusDone).length;
   var total = _aiFocusIds.length;
   var pct = total ? Math.round(done / total * 100) : 0;
-  var fill = document.getElementById('ai-prog-fill');
-  var txt = document.getElementById('ai-prog-txt');
   var cnt = document.getElementById('ai-focus-count');
-  if (fill) fill.style.width = pct + '%';
-  if (txt) txt.textContent = done + ' / ' + total;
   if (cnt) cnt.textContent = done + '/' + total + ' 확인';
 }
 
@@ -3055,25 +4352,26 @@ if (lastTd) {
   _aiFocusDone = {};
   var banner = document.getElementById('ai-focus-banner');
   if (banner) banner.style.display = 'none';
-  var prog = document.getElementById('ai-prog-wrap');
-  if (prog) prog.style.display = 'none';
 }
 
 function loadActionSignals(forceRefresh = false) {
   var pid = currentProjectId || '';
-  var list = document.getElementById('ai-cmd-list');
-  list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">분석 중...</div>';
+  var list = document.getElementById('ai-signals-list');
+  if (!list) return;
+  var emptyStyle = 'padding:20px 0;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--text-dim);text-align:center;';
+  list.innerHTML = '<div style="'+emptyStyle+'">분석 중...</div>';
+
+  var PRIORITY_COLOR = {'P1': 'var(--red)', 'P2': 'var(--amber)', 'P3': 'var(--text-muted)'};
 
   function attempt(retryCount) {
     fetch('/api/ai/action-signals?project_id=' + encodeURIComponent(pid) + '&force=' + forceRefresh)
       .then(r => r.json())
       .then(data => {
         if (data.no_cache) {
-          list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">RE-ANALYZE를 눌러 분석을 시작하세요.</div>';
+          list.innerHTML = '<div style="'+emptyStyle+'">RE-ANALYZE를 눌러 분석을 시작하세요.</div>';
           return;
         }
         var signals = data.signals || [];
-        // P1 → P2 → P3 순서 정렬
         var priorityOrder = {'P1': 1, 'P2': 2, 'P3': 3};
         signals.sort(function(a, b) {
           return (priorityOrder[a.priority] || 9) - (priorityOrder[b.priority] || 9);
@@ -3083,71 +4381,39 @@ function loadActionSignals(forceRefresh = false) {
           return;
         }
         if (!signals.length) {
-          list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">액션 시그널 없음</div>';
+          list.innerHTML = '<div style="'+emptyStyle+'">액션 시그널 없음</div>';
           return;
         }
-        var dotColor = {'P1':'#B40023','P2':'#e67e22','P3':'#27ae60'};
-        list.innerHTML = signals.map(s => {
-          var dc = dotColor[s.priority] || '#888';
-          var bl = s.priority === 'P1' ? 'border-left:2px solid #B40023;' : '';
-          return '<div style="padding:11px 16px;border-bottom:1px solid #1a1a1a;' + bl + '">' +
-            '<div style="font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:#888;margin-bottom:3px;display:flex;align-items:center;gap:5px;">' +
-            '<span style="width:5px;height:5px;border-radius:50%;background:' + dc + ';display:inline-block;flex-shrink:0;"></span>' +
-            s.priority + ' · ' + s.timing + '</div>' +
-            '<div style="font-size:11px;font-weight:500;color:#ffffff;line-height:1.3;margin-bottom:3px;">' + escHtml(s.action) + '</div>' +
-            '<div style="font-size:10px;color:#aaa;line-height:1.4;margin-bottom:3px;">' + escHtml(s.reason) + '</div>' +
-            '<div style="font-size:9px;color:#888;">→ ' + escHtml(s.who) + '</div>' +
-            (function() {
-              var actionBtn = '';
-              if (s.action_type === 'REASSIGN') {
-                actionBtn = '<button class="ai-action-btn reassign" onclick="openRedmineModal(this)">✏️ Redmine 수정</button>';
-              } else if (s.action_type === 'ESCALATE') {
-                actionBtn = '<button class="ai-action-btn escalate" onclick="openEscalateModal()">📄 보고서 생성</button>';
-              } else if (s.action_type === 'MONITOR') {
-                actionBtn = '<button class="ai-action-btn monitor" onclick="openMonitorModal()">🔔 알림 설정</button>';
-              }
-              return actionBtn;
-            })() +
-            '</div>';
+        list.innerHTML = signals.map(function(s) {
+          var pc = PRIORITY_COLOR[s.priority] || 'var(--text-muted)';
+          var bl = s.priority === 'P1' ? 'border-left:2px solid var(--red);padding-left:20px;' : 'padding-left:22px;';
+          return '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px;padding:18px 0;border-bottom:1px solid var(--border);'+bl+'">'
+            + '<div style="flex:1;min-width:0;">'
+            + '<div style="font-family:var(--mono);font-size:8.5px;letter-spacing:0.15em;text-transform:uppercase;color:'+pc+';margin-bottom:5px;">'
+            + s.priority + ' · ' + escHtml(s.timing) + '</div>'
+            + '<div style="font-size:13px;font-weight:600;letter-spacing:-0.01em;color:var(--text);margin-bottom:4px;">' + escHtml(s.action) + '</div>'
+            + '<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.04em;line-height:1.6;">'
+            + escHtml(s.reason) + ' · → ' + escHtml(s.who) + '</div>'
+            + '</div>'
+            + '<span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);flex-shrink:0;">'
+            + escHtml(s.action_type || '') + '</span>'
+            + '</div>';
         }).join('');
-        document.getElementById('ai-cmd-timestamp').textContent =
-          'LAST ANALYZED · ' + new Date().toTimeString().slice(0,5) + ' KST';
+        var ts = document.getElementById('ai-timestamp');
+        if (ts) ts.textContent = 'LAST ANALYZED · ' + new Date().toTimeString().slice(0,5) + ' KST';
       })
-      .catch(() => {
+      .catch(function() {
         if (retryCount > 0) {
           setTimeout(function() { attempt(retryCount - 1); }, 2000);
         } else {
-          list.innerHTML = '<div style="padding:20px 16px;font-size:11px;color:#B40023;">분석 실패 — 재시도</div>';
+          list.innerHTML = '<div style="'+emptyStyle+'color:var(--red);">분석 실패 — 재시도</div>';
         }
       });
   }
 
-  attempt(4); // 최대 4회 재시도 (2초 간격)
+  attempt(4);
 }
 </script>
-<div id="ai-cmd-panel">
-  <div style="padding:20px 16px;border-bottom:1px solid #222;">
-<div style="display:inline-block;background:#1a5276;padding:4px 10px;">
-  <span style="font-size:11px;font-weight:700;color:#ffffff;letter-spacing:.08em;text-transform:uppercase;">✦ VANTIX AI COMMAND PANEL</span>
-</div>
-  </div>
-  <div id="ai-cmd-list" style="flex:1;overflow-y:auto;">
-<div style="padding:20px 16px;font-size:11px;color:#555;text-align:center;">프로젝트를 선택하면<br>액션 시그널이 표시됩니다.</div>
-  </div>
-  <div style="padding:10px 16px;border-top:1px solid #1e1e1e;">
-<div style="font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#555;" id="ai-cmd-timestamp">LAST ANALYZED —</div>
-<div id="ai-prog-wrap" style="display:none;margin-bottom:8px;padding:8px 10px;background:#0f1e2e;border:1px solid #1a3a54;">
-  <div style="font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:#3a7ca8;margin-bottom:6px;display:flex;justify-content:space-between;">
-    <span>✦ 확인 현황</span><span id="ai-prog-txt">0 / 0</span>
-  </div>
-  <div style="height:2px;background:#1a3a54;">
-    <div id="ai-prog-fill" style="height:2px;background:#1a5276;width:0%;transition:width .3s;"></div>
-  </div>
-</div>
-<button onclick="loadActionSignals(true)" style="font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:#888;padding:5px 10px;border:1px solid #2a2a2a;cursor:pointer;display:inline-block;margin-top:4px;background:none;position:relative;z-index:999;">↻ RE-ANALYZE</button>
-  </div>
-</div>
-<div id="ai-cmd-toggle" onclick="toggleAiPanel()">✦ AI</div>
 <div id="escalate-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;">
   <div style="background:#1a1a1a;width:300px;border:1px solid #333;">
 <div style="padding:14px 16px;border-bottom:1px solid #222;display:flex;justify-content:space-between;align-items:center;">
@@ -3170,8 +4436,8 @@ function loadActionSignals(forceRefresh = false) {
 </div>
 </div>
 </div>
-<div id="site-footer" style="height:28px;border-top:1px solid #e4e2e2;display:flex;align-items:center;justify-content:center;background:#fbf9f8;margin-top:24px;">
-  <span style="font-size:9px;font-weight:500;letter-spacing:0.18em;text-transform:uppercase;color:#555;">© 2026 VANTIX · AI RISK INTELLIGENCE FOR REDMINE</span>
+<div id="site-footer" style="position:fixed;bottom:0;left:var(--sidebar-w);right:0;height:24px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:center;background:var(--bg);z-index:50;">
+  <span style="font-family:'JetBrains Mono',monospace;font-size:8px;font-weight:400;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-dim);">© 2026 Vantix · AI Risk Intelligence</span>
 </div>
 
 <!-- ── 리포트 미리보기 모달 ── -->
@@ -3269,5 +4535,7 @@ function loadActionSignals(forceRefresh = false) {
 
   </div>
 </div>
+
+</div><!-- /page-main -->
 </body>
 </html>
