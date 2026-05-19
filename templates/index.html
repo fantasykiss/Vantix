@@ -1838,18 +1838,18 @@ body > footer { display: none; }
     <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;">
       <div>
         <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">AI Analysis</div>
-        <div id="aiHeadline" style="font-size:20px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1;">분석 중...</div>
+        <div id="aiHeadline" style="font-size:20px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1;">—</div>
       </div>
       <div style="display:flex;align-items:center;gap:14px;">
-        <span id="ai-timestamp" style="font-family:var(--mono);font-size:9px;color:var(--text-dim);">LAST ANALYZED —</span>
-        <button onclick="generateAiSummary()" style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;cursor:pointer;">↻ 요약 갱신</button>
-        <button onclick="loadActionSignals(true)" style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;cursor:pointer;">↻ RE-ANALYZE</button>
-        <button onclick="openEscalateModal()" style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:var(--text);color:var(--bg);border:none;padding:5px 12px;cursor:pointer;">보고서 생성</button>
+        <span id="ai-timestamp" style="font-family:var(--mono);font-size:9px;color:var(--text-dim);display:none;">LAST ANALYZED —</span>
+        <button id="ai-analyze-btn" onclick="runAiAnalysis()" style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:var(--text);color:var(--bg);border:none;padding:5px 14px;cursor:pointer;">✦ AI 분석하기</button>
+        <button id="ai-reanalyze-btn" onclick="runAiAnalysis()" style="display:none;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;cursor:pointer;">↻ 재분석</button>
+        <button onclick="openEscalateModal()" style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;cursor:pointer;">보고서 생성</button>
       </div>
     </div>
 
     <!-- AI 요약 텍스트 -->
-    <div id="aiSummaryText" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.04em;line-height:1.8;margin-bottom:28px;">데이터를 불러오는 중입니다.</div>
+    <div id="aiSummaryText" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.04em;line-height:1.8;margin-bottom:28px;">프로젝트 데이터 기반으로 AI가 리스크를 분석합니다. 버튼을 눌러 시작하세요.</div>
 
     <!-- AI 시그널 리스트 -->
     <div id="ai-signals-list" style="border-top:1px solid var(--border);"></div>
@@ -2615,7 +2615,7 @@ async function loadData() {
     if (!res.ok) throw new Error('HTTP '+res.status);
     allData = await res.json();
     setServerStatus('online');
-    renderAll(); generateAiSummary();
+    renderAll();
     _riskWeeks = parseInt(localStorage.getItem('riskWeeks')||'12');
     document.querySelectorAll('#weeksBtns .ai-dow-btn').forEach(function(b){
       b.classList.toggle('active',b.getAttribute('onclick').includes(','+_riskWeeks+')'));
@@ -2935,10 +2935,13 @@ function renderSummaryCards() {
     var gaugeFill=document.getElementById('risk-gauge-fill');
     if(gaugeFill){var s=topRisk.risk_score,pct;if(s<5)pct=(s/5)*25;else if(s<15)pct=25+((s-5)/10)*25;else if(s<30)pct=50+((s-15)/15)*25;else pct=75+Math.min((s-30)/70,1)*25;gaugeFill.style.width=pct.toFixed(1)+'%';gaugeFill.style.background=rc.dot;}
     var commentEl=document.getElementById('risk-ai-comment-text');
-    if(commentEl&&topRisk.name){
-      commentEl.textContent='분석 중...';
-      var topIssues=(topRisk.issues_overdue||[]).slice(0,3).map(function(i){return i.subject;}).join(', ');
-      fetch('/api/ai/risk-comment?name='+encodeURIComponent(topRisk.name)+'&score='+topRisk.risk_score+'&overdue='+(d.overdue||0)+'&urgent='+((d.imminent_issues||[]).length)+'&open_issues='+(d.open_issues||0)+'&top_issues='+encodeURIComponent(topIssues)).then(function(r){return r.json();}).then(function(data){if(data.comment)commentEl.textContent=data.comment;else commentEl.textContent='—';}).catch(function(){commentEl.textContent='—';});
+    if(commentEl){
+      var parts=[];
+      var ov=d.overdue||0, urg=(d.imminent_issues||[]).length, op=d.open_issues||0;
+      if(ov>0) parts.push('마감 초과 '+ov+'건');
+      if(urg>0) parts.push('임박 '+urg+'건');
+      if(op>0) parts.push('진행중 '+op+'건');
+      commentEl.textContent=parts.length?parts.join(' · '):'이슈 없음';
     }
   } else {
     if(dotEl) dotEl.style.background='#34d399';
@@ -3641,6 +3644,24 @@ function renderRiskChart(history){
 }
 
 // ============================================================
+// AI Analysis (unified entry point)
+// ============================================================
+async function runAiAnalysis() {
+  var btn     = document.getElementById('ai-analyze-btn');
+  var reBtn   = document.getElementById('ai-reanalyze-btn');
+  var ts      = document.getElementById('ai-timestamp');
+  if (btn) { btn.textContent = '분석 중...'; btn.disabled = true; }
+  await generateAiSummary();
+  await new Promise(function(resolve) { loadActionSignals(true, resolve); });
+  if (btn) { btn.style.display = 'none'; }
+  if (reBtn) { reBtn.style.display = ''; }
+  if (ts) {
+    ts.style.display = '';
+    ts.textContent = 'ANALYZED ' + new Date().toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
+  }
+}
+
+// ============================================================
 // AI Summary
 // ============================================================
 async function generateAiSummary(){
@@ -3986,7 +4007,7 @@ function showView(view){
 
   if(isIssue){ if(allData)renderTab(); }
   if(isIssues){ if(allData)renderCombinedIssues(); }
-  if(isForecast){ loadActionSignals(); loadForecast(); }
+  if(isForecast){ loadForecast(); }
 
   if(isAssignee){
     var cardsRow=document.getElementById('sec-group')&&document.getElementById('sec-group').closest('.cards-row');
@@ -4566,10 +4587,10 @@ if (lastTd) {
   if (banner) banner.style.display = 'none';
 }
 
-function loadActionSignals(forceRefresh = false) {
+function loadActionSignals(forceRefresh = false, onDone) {
   var pid = currentProjectId || '';
   var list = document.getElementById('ai-signals-list');
-  if (!list) return;
+  if (!list) { if(onDone) onDone(); return; }
   var emptyStyle = 'padding:20px 0;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--text-dim);text-align:center;';
   list.innerHTML = '<div style="'+emptyStyle+'">분석 중...</div>';
 
@@ -4611,14 +4632,14 @@ function loadActionSignals(forceRefresh = false) {
             + escHtml(s.action_type || '') + '</span>'
             + '</div>';
         }).join('');
-        var ts = document.getElementById('ai-timestamp');
-        if (ts) ts.textContent = 'LAST ANALYZED · ' + new Date().toTimeString().slice(0,5) + ' KST';
+        if(onDone) onDone();
       })
       .catch(function() {
         if (retryCount > 0) {
           setTimeout(function() { attempt(retryCount - 1); }, 2000);
         } else {
           list.innerHTML = '<div style="'+emptyStyle+'color:var(--red);">분석 실패 — 재시도</div>';
+          if(onDone) onDone();
         }
       });
   }
