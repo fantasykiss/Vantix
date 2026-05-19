@@ -1414,11 +1414,11 @@ def api_get_issue(issue_id: int, request: Request):
     issue = issue_data.get("issue", {})
     pid = issue.get("project", {}).get("identifier") or str(issue.get("project", {}).get("id", ""))
 
-    def get_statuses(): return fetch("/issue_statuses.json").get("issue_statuses", [])
+    def get_statuses(): return fetch("/issue_statuses.json", redmine_url=s["url"], api_key=s["key"]).get("issue_statuses", [])
     def get_members():
         items, offset = [], 0
         while True:
-            data = fetch(f"/projects/{pid}/memberships.json", {"limit": 100, "offset": offset})
+            data = fetch(f"/projects/{pid}/memberships.json", {"limit": 100, "offset": offset}, redmine_url=s["url"], api_key=s["key"])
             batch = data.get("memberships", [])
             items += batch
             total = data.get("total_count", len(batch))
@@ -1426,7 +1426,7 @@ def api_get_issue(issue_id: int, request: Request):
                 break
             offset += 100
         return items
-    def get_versions_fn(): return fetch(f"/projects/{pid}/versions.json").get("versions", [])
+    def get_versions_fn(): return fetch(f"/projects/{pid}/versions.json", redmine_url=s["url"], api_key=s["key"]).get("versions", [])
 
     with ThreadPoolExecutor(max_workers=3) as ex:
         f_statuses = ex.submit(get_statuses)
