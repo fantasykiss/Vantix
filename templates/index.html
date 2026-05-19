@@ -1091,6 +1091,19 @@ body {
   .ci-row { padding: 14px 24px; }
   .tab-bar { padding: 0 24px; }
   .tab-filters { padding: 0 24px; }
+
+  /* Overview 2×2 grid: 모바일에서 세로 스택 */
+  .ov-grid { grid-template-columns: 1fr; }
+  .ov-cell { border-right: none !important; }
+  .ov-cell.no-bottom { border-bottom: 1px solid var(--border); }
+  .ov-cell:last-child { border-bottom: none; }
+
+  /* fc-metrics: 3열 → 가로 스크롤 없이 1열 */
+  .fc-metrics { grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .fc-metric-value { font-size: 28px; }
+
+  /* 푸터: 사이드바 없으므로 left:0 */
+  #site-footer { left: 0 !important; }
 }
 
 /* Always hide tab card list on desktop */
