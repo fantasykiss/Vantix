@@ -2635,7 +2635,7 @@ async function loadForecast() {
 
 function renderForecast(d) {
   var sec = document.getElementById('forecast-section');
-  if (!d || (!d.items.length && !d.deadlines.length)) { return; }
+  if (!d || (!(d.items||[]).length && !(d.deadlines||[]).length)) { return; }
 
   // 서브타이틀
   var today = new Date().toISOString().slice(0,10);
@@ -2824,6 +2824,7 @@ function renderGroupDetail(groupName) {
   html+='</div>';
   panel.innerHTML=html;
   panel.style.display='block';
+  panel.scrollIntoView({behavior:'smooth',block:'nearest'});
 }
 
 async function renderGroupStatus(projectId) {
