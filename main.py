@@ -196,9 +196,10 @@ def _call_claude(prompt: str, max_tokens: int = 256) -> str:
 _visitors = {}  # ip → last_seen
 VISITOR_TTL = 300  # 5분
 
-CACHE_TTL_SECONDS = 300       # 5분 캐시 유효시간
+CACHE_TTL_SECONDS = 900       # 15분 캐시 유효시간 (stale-while-revalidate 적용으로 늘림)
 AUTO_REFRESH_INTERVAL = 1800  # 30분마다 백그라운드 자동갱신
-_auto_refresh_params = {}
+_auto_refresh_params = {}     # key → {project_id, updated_after, redmine_url, api_key}
+_bg_refresh_lock: set = set() # 중복 백그라운드 갱신 방지
 
 
 def get_active_visitors():
@@ -206,29 +207,39 @@ def get_active_visitors():
     return {ip: t for ip, t in _visitors.items() if (now - t).total_seconds() < VISITOR_TTL}
 
 
-def cache_key(project_id, updated_after):
-    return f"{project_id}|{updated_after}"
+def cache_key(project_id, updated_after, redmine_url=""):
+    # Redmine URL별로 캐시 분리 — 다른 유저의 Redmine 데이터 혼용 방지
+    url_tag = (redmine_url or "").rstrip("/")
+    return f"{url_tag}|{project_id}|{updated_after}"
 
 
-def get_cache(project_id, updated_after):
-    key = cache_key(project_id, updated_after)
-    entry = _cache.get(key)
+def get_cache_entry(project_id, updated_after, redmine_url=""):
+    """full entry {data, fetched_at} 반환 — stale 포함. api_data에서만 사용."""
+    key = cache_key(project_id, updated_after, redmine_url)
+    return _cache.get(key)
+
+
+def get_cache(project_id, updated_after, redmine_url=""):
+    """data만 반환. 데이터 없으면 None, stale이어도 data 반환 (즉시 응답 우선)."""
+    entry = get_cache_entry(project_id, updated_after, redmine_url)
+    return entry["data"] if entry else None
+
+
+def is_cache_fresh(entry) -> bool:
     if not entry:
-        return None
+        return False
     age = (datetime.now() - entry["fetched_at"]).total_seconds()
-    if age > CACHE_TTL_SECONDS:
-        return None
-    return entry["data"]
+    return age <= CACHE_TTL_SECONDS
 
 
-def set_cache(project_id, updated_after, data):
-    key = cache_key(project_id, updated_after)
+def set_cache(project_id, updated_after, data, redmine_url=""):
+    key = cache_key(project_id, updated_after, redmine_url)
     _cache[key] = {"data": data, "fetched_at": datetime.now()}
     print(f"  캐시 저장: {key} ({datetime.now().strftime('%H:%M:%S')})")
 
 
-def cache_age_str(project_id, updated_after):
-    key = cache_key(project_id, updated_after)
+def cache_age_str(project_id, updated_after, redmine_url=""):
+    key = cache_key(project_id, updated_after, redmine_url)
     entry = _cache.get(key)
     if not entry:
         return None
@@ -327,12 +338,14 @@ def _job_refresh_cache():
     if not _auto_refresh_params:
         return
     for key, params in list(_auto_refresh_params.items()):
-        pid  = params["project_id"]
-        uaft = params["updated_after"]
+        pid   = params["project_id"]
+        uaft  = params["updated_after"]
+        r_url = params.get("redmine_url", "")
+        r_key = params.get("api_key", "")
         print(f"  자동갱신: {key}")
         try:
-            data = build_dashboard_data(pid, uaft)
-            set_cache(pid, uaft, data)
+            data = build_dashboard_data(pid, uaft, redmine_url=r_url, api_key=r_key)
+            set_cache(pid, uaft, data, redmine_url=r_url)
         except Exception as e:
             print(f"  자동갱신 실패: {e}")
 
@@ -1050,17 +1063,39 @@ async def api_projects(request: Request, s: dict = Depends(_require_session)):
 
 @app.get("/api/data")
 async def api_data(request: Request, project_id: str = "", updated_after: str = "2026-03-01", force: bool = False, s: dict = Depends(_require_session)):
-    key = cache_key(project_id, updated_after)
-    _auto_refresh_params[key] = {"project_id": project_id, "updated_after": updated_after}
+    r_url = s["url"]
+    r_key = s["key"]
+    key = cache_key(project_id, updated_after, r_url)
+    _auto_refresh_params[key] = {"project_id": project_id, "updated_after": updated_after, "redmine_url": r_url, "api_key": r_key}
+
     if not force:
-        cached = get_cache(project_id, updated_after)
-        if cached:
-            age = cache_age_str(project_id, updated_after)
-            print(f"  캐시 히트: {key} ({age})")
-            return {**cached, "cached": True, "cache_age": age}
+        entry = get_cache_entry(project_id, updated_after, r_url)
+        if entry:
+            age = cache_age_str(project_id, updated_after, r_url)
+            if is_cache_fresh(entry):
+                print(f"  캐시 히트(신선): {key} ({age})")
+                return {**entry["data"], "cached": True, "cache_age": age}
+            # 만료됐지만 데이터 있음 → 즉시 반환 + 백그라운드 갱신 (stale-while-revalidate)
+            if key not in _bg_refresh_lock:
+                _bg_refresh_lock.add(key)
+                import threading as _t
+                def _bg_refresh(pid, uaft, ru, rk, ckey):
+                    try:
+                        print(f"  백그라운드 갱신 시작: {ckey}")
+                        fresh = build_dashboard_data(pid, uaft, redmine_url=ru, api_key=rk)
+                        set_cache(pid, uaft, fresh, redmine_url=ru)
+                        print(f"  백그라운드 갱신 완료: {ckey}")
+                    except Exception as e:
+                        print(f"  백그라운드 갱신 실패 {ckey}: {e}")
+                    finally:
+                        _bg_refresh_lock.discard(ckey)
+                _t.Thread(target=_bg_refresh, args=(project_id, updated_after, r_url, r_key, key), daemon=True).start()
+            print(f"  캐시 히트(stale): {key} ({age})")
+            return {**entry["data"], "cached": True, "cache_age": age, "stale": True}
+
     print(f"  Redmine fetch: {key}")
-    data = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
-    set_cache(project_id, updated_after, data)
+    data = build_dashboard_data(project_id, updated_after, redmine_url=r_url, api_key=r_key)
+    set_cache(project_id, updated_after, data, redmine_url=r_url)
 
     import threading as _threading
     def _bg_generate_signals(pid):
@@ -1113,7 +1148,7 @@ async def api_groups(request: Request, project_id: str = "", s: dict = Depends(_
 
 @app.get("/api/versions")
 async def api_versions(request: Request, project_id: str = "", force: bool = False, s: dict = Depends(_require_session)):
-    vkey = f"versions|{project_id}"
+    vkey = f"versions|{s['url'].rstrip('/')}|{project_id}"
     if not force:
         entry = _cache.get(vkey)
         if entry:
@@ -1132,10 +1167,10 @@ async def api_forecast(request: Request, project_id: str = "", updated_after: st
     today_str = today.strftime("%Y-%m-%d")
 
     # 대시보드 캐시 우선 사용
-    dashboard = get_cache(project_id, updated_after)
+    dashboard = get_cache(project_id, updated_after, s["url"])
     if not dashboard:
         dashboard = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
-        set_cache(project_id, updated_after, dashboard)
+        set_cache(project_id, updated_after, dashboard, redmine_url=s["url"])
 
     # ── 지표 1: 차주 지연 예상 이슈 수 (현재 overdue + D-3 이내 이슈)
     project_risk = dashboard.get("project_risk", [])
@@ -1143,7 +1178,7 @@ async def api_forecast(request: Request, project_id: str = "", updated_after: st
 
     # ── 지표 2: 완료 위험 마일스톤 수 (마감 14일 이내 & done_pct < 80%)
     at_risk_milestones = 0
-    vkey = f"versions|{project_id}"
+    vkey = f"versions|{s['url'].rstrip('/')}|{project_id}"
     version_data = None
     entry = _cache.get(vkey)
     if entry and (datetime.now() - entry["fetched_at"]).total_seconds() < CACHE_TTL_SECONDS:
@@ -1589,7 +1624,7 @@ async def api_report_preview(
     redmine_url = s.get("url")
     api_key     = s.get("key")
 
-    dashboard = get_cache(project_id, updated_after)
+    dashboard = get_cache(project_id, updated_after, redmine_url)
     if not dashboard:
         dashboard = build_dashboard_data(
             project_id, updated_after,
@@ -1672,9 +1707,9 @@ async def api_report_preview(
 
 @app.post("/api/report/send")
 async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
-    dashboard = get_cache(project_id, updated_after)
+    dashboard = get_cache(project_id, updated_after, s["url"])
     if not dashboard:
-        dashboard = build_dashboard_data(project_id, updated_after)
+        dashboard = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
     report  = build_report_data(dashboard, project_label=project_id or "전체 프로젝트")
     html    = render_html_report(report)
     subject = f"[Vantix] 주간 리포트 {report.period_label}"
@@ -1761,18 +1796,14 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
         if parsed:
             return {"signals": parsed}
 
-    # _cache에서 project_id 매칭되는 항목 찾기 (updated_after 무관)
-    dashboard = None
-    for k, entry in list(_cache.items()):
-        if k.split("|")[0] == project_id:
-            age = (datetime.now() - entry["fetched_at"]).total_seconds()
-            if age < CACHE_TTL_SECONDS:
-                dashboard = entry["data"]
-                break
+    # 캐시에서 해당 유저+프로젝트 항목 찾기 (캐시 키: url|project_id|updated_after)
+    r_url = s["url"].rstrip("/")
+    dashboard = get_cache(project_id, updated_after, r_url)
     if not dashboard:
-        # 직접 빌드 후 캐시 저장
-        dashboard = build_dashboard_data(project_id, DEFAULT_UPDATED_AFTER)
-        set_cache(project_id, DEFAULT_UPDATED_AFTER, dashboard)
+        dashboard = get_cache(project_id, DEFAULT_UPDATED_AFTER, r_url)
+    if not dashboard:
+        dashboard = build_dashboard_data(project_id, DEFAULT_UPDATED_AFTER, redmine_url=s["url"], api_key=s["key"])
+        set_cache(project_id, DEFAULT_UPDATED_AFTER, dashboard, redmine_url=s["url"])
 
     risks = dashboard.get("project_risk", [])[:5]
     if not risks:
@@ -1879,9 +1910,9 @@ async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026
     cached = _get_ai_cache(cache_k)
     if cached:
         return {"summary": cached}
-    dashboard = get_cache(project_id, updated_after)
+    dashboard = get_cache(project_id, updated_after, s["url"])
     if not dashboard:
-        dashboard = build_dashboard_data(project_id, updated_after)
+        dashboard = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
     top_risk  = dashboard.get("project_risk", [])[:3]
     top_names = ", ".join(f"{p['name']}({p['risk_level']}, score {min(round(p['risk_score'] * 100 / 60), 100)})" for p in top_risk) or "없음"
     users_data = dashboard.get("users_data", {})
@@ -1972,9 +2003,9 @@ async def api_ai_delay_prediction(s: dict = Depends(_require_session),
     cached = _get_ai_cache(cache_k)
     if cached:
         return cached
-    dashboard = get_cache(project_id, updated_after)
+    dashboard = get_cache(project_id, updated_after, s["url"])
     if not dashboard:
-        dashboard = build_dashboard_data(project_id, updated_after)
+        dashboard = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
     risk_list  = dashboard.get("project_risk", [])
     p = next((x for x in risk_list if x["name"] == project_name), None)
     if not p:
