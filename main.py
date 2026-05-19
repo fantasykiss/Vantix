@@ -1098,9 +1098,9 @@ async def api_data(request: Request, project_id: str = "", updated_after: str = 
     set_cache(project_id, updated_after, data, redmine_url=r_url)
 
     import threading as _threading
-    def _bg_generate_signals(pid):
+    def _bg_generate_signals(pid, ru):
         try:
-            cache_k = f"action-signals|{pid}"
+            cache_k = f"action-signals|{ru.rstrip('/')}|{pid}"
             if _get_ai_cache(cache_k):
                 return
             risks = data.get("project_risk", [])[:5]
@@ -1133,7 +1133,7 @@ async def api_data(request: Request, project_id: str = "", updated_after: str = 
         except Exception as e:
             print(f"  action-signals 프리생성 실패 {pid}: {e}")
 
-    _threading.Thread(target=_bg_generate_signals, args=(project_id,), daemon=True).start()
+    _threading.Thread(target=_bg_generate_signals, args=(project_id, r_url), daemon=True).start()
 
     return {**data, "cached": False, "cache_age": None}
 
@@ -1685,7 +1685,7 @@ async def api_report_preview(
     # AI 요약 주입 — report-summary 캐시 우선, 없으면 직접 생성
     if not dashboard.get("ai_summary"):
         try:
-            cache_k = f"report-summary|{project_id}|{updated_after}"
+            cache_k = f"report-summary|{redmine_url.rstrip('/')}|{project_id}|{updated_after}"
             cached_summary = _get_ai_cache(cache_k)
             if cached_summary:
                 dashboard["ai_summary"] = cached_summary
@@ -1783,7 +1783,7 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
     updated_after: str = "2026-01-01",
     force: bool = False
 ):
-    cache_k = f"action-signals|{project_id}"
+    cache_k = f"action-signals|{s['url'].rstrip('/')}|{project_id}"
 
     # force=True면 캐시 삭제
     if force and cache_k in _ai_cache:
@@ -1906,7 +1906,7 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
 
 @app.get("/api/ai/report-summary")
 async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
-    cache_k = f"report-summary|{project_id}|{updated_after}"
+    cache_k = f"report-summary|{s['url'].rstrip('/')}|{project_id}|{updated_after}"
     cached = _get_ai_cache(cache_k)
     if cached:
         return {"summary": cached}
@@ -1999,7 +1999,7 @@ async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026
 async def api_ai_delay_prediction(s: dict = Depends(_require_session),
     project_id: str = "", updated_after: str = "2026-03-01", project_name: str = ""
 ):
-    cache_k = f"delay-pred|{project_id}|{project_name}"
+    cache_k = f"delay-pred|{s['url'].rstrip('/')}|{project_id}|{project_name}"
     cached = _get_ai_cache(cache_k)
     if cached:
         return cached
