@@ -555,36 +555,11 @@ def get_issues(project_id="", updated_after="2026-03-01", redmine_url=None, api_
 def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=None, api_key=None):
     issues = get_issues(project_id, updated_after, redmine_url=redmine_url, api_key=api_key)
 
-    # 멤버십 API로 user_name → group_name 매핑 테이블 생성
-    user_group_map = {}  # {user_name: group_name}
+    # 그룹 API 직접 조회로 user → group 매핑 (이름 형식 무관)
+    user_group_map = {}
     if project_id:
         try:
-            memberships = fetch(f"/projects/{project_id}/memberships.json", redmine_url=redmine_url, api_key=api_key).get("memberships", [])
-            known_groups = {m["group"]["name"] for m in memberships if m.get("group")}
-            # 1차: 이름 prefix 매칭 (기획_홍길동, PM_ 권지용 등 언더스코어 기반)
-            for m in memberships:
-                user = m.get("user")
-                if not user:
-                    continue
-                uname = user.get("name", "")
-                if not uname or "_" not in uname:
-                    continue
-                prefix = uname.split("_")[0].strip()
-                if prefix in known_groups:
-                    user_group_map[uname] = prefix
-            # 2차: groups API로 언더스코어 없는 유저 매핑 (실패해도 무시)
-            for m in memberships:
-                grp = m.get("group")
-                if not grp:
-                    continue
-                gname, gid = grp["name"], grp["id"]
-                try:
-                    for u in fetch(f"/groups/{gid}.json?include=users", redmine_url=redmine_url, api_key=api_key).get("group", {}).get("users", []):
-                        uname = u.get("name", "")
-                        if uname and uname not in user_group_map:
-                            user_group_map[uname] = gname
-                except Exception:
-                    pass
+            _, user_group_map = _build_group_map(project_id, redmine_url, api_key)
         except Exception:
             pass
 
@@ -596,12 +571,11 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
         if not users_data[uname]["group"]:
             users_data[uname]["group"] = user_group_map.get(uname, "")
         if not users_data[uname].get("short_name"):
-            # short_name: 언더스코어 기준 실제 이름 추출
-            # "방효민 기획_" → "방효민" / "기획_ 방효민" → "방효민" / "test5" → "test5"
-            if "_" in uname:
+            # 그룹명 토큰을 이름에서 제거 (예: "기획_홍길동" → "홍길동", "김주완 클라" → "김주완 클라")
+            group = user_group_map.get(uname, "")
+            if group and "_" in uname:
                 parts = uname.replace("_", " ").split()
-                group = user_group_map.get(uname, "")
-                users_data[uname]["short_name"] = " ".join(p for p in parts if p != group and p != group.rstrip("_")) or uname
+                users_data[uname]["short_name"] = " ".join(p for p in parts if p.strip("_") != group.strip("_")) or uname
             else:
                 users_data[uname]["short_name"] = uname
         users_data[uname]["issues"].append({
@@ -790,54 +764,55 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
     }
 
 
+def _build_group_map(project_id, redmine_url, api_key):
+    """
+    프로젝트 멤버십 → 그룹 목록 확보 → 그룹별 멤버 API 호출
+    반환: (group_map, user_to_group)
+      group_map    : {group_name: {id, name, user_count, members}}
+      user_to_group: {user_name: group_name}  — 이름 형식 무관
+    """
+    memberships = fetch(
+        f"/projects/{project_id}/memberships.json",
+        redmine_url=redmine_url, api_key=api_key
+    ).get("memberships", [])
+
+    group_map = {}
+    for m in memberships:
+        grp = m.get("group")
+        if grp and grp["name"] not in group_map:
+            group_map[grp["name"]] = {"id": grp["id"], "name": grp["name"], "user_count": 0, "members": []}
+
+    # 각 그룹의 실제 멤버를 Redmine 그룹 API로 가져옴 (이름 형식 무관)
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    def fetch_members(gname):
+        try:
+            data = fetch(f"/groups/{group_map[gname]['id']}.json?include=users",
+                         redmine_url=redmine_url, api_key=api_key)
+            return gname, [u["name"] for u in data.get("group", {}).get("users", []) if u.get("name")]
+        except Exception:
+            return gname, []
+
+    with ThreadPoolExecutor(max_workers=5) as ex:
+        for gname, members in ex.map(lambda g: fetch_members(g), group_map):
+            group_map[gname]["members"] = members
+            group_map[gname]["user_count"] = len(members)
+
+    user_to_group = {uname: gname for gname, ginfo in group_map.items() for uname in ginfo["members"]}
+    return group_map, user_to_group
+
+
 def get_groups(project_id="", redmine_url=None, api_key=None):
     """
-    프로젝트 멤버십 기반 그룹 목록 + 8주 오버듀 역산
-    - 담당자명 접두사(기획_, 서버_ 등)로 그룹 매핑
-    - 주차별 오버듀 수 역산해서 스파크라인 데이터 반환
+    프로젝트 그룹 카드 목록 + 8주 오버듀 스파크라인
+    그룹 멤버는 Redmine 그룹 API 기준 (이름 형식 무관)
     """
     if not project_id:
         return []
     try:
         from datetime import date, timedelta
 
-        # 1. 멤버십에서 그룹 목록 추출
-        members = fetch(f"/projects/{project_id}/memberships.json", redmine_url=redmine_url, api_key=api_key).get("memberships", [])
-        group_map = {}  # group_name -> {id, name, user_count}
-        # 1차: 그룹 엔트리로 그룹 목록 확보
-        for m in members:
-            grp = m.get("group")
-            if grp:
-                gname = grp["name"]
-                if gname not in group_map:
-                    group_map[gname] = {"id": grp["id"], "name": gname, "user_count": 0}
-        # 2차: 유저 엔트리 접두사 또는 그룹 직접 매핑으로 인원 카운트
-        for m in members:
-            user = m.get("user")
-            if not user:
-                continue
-            uname = user.get("name", "")
-            # 접두사 매칭 (기획_홍길동 → 기획)
-            if "_" in uname:
-                prefix = uname.split("_")[0].strip()
-                if prefix in group_map:
-                    group_map[prefix]["user_count"] += 1
-                    group_map[prefix].setdefault("members", []).append(uname)
-            else:
-                # 언더스코어 없는 유저: 그룹 멤버 API로 직접 확인
-                for gname in group_map:
-                    try:
-                        grp_data = fetch(
-                            f"/groups/{group_map[gname]['id']}.json?include=users",
-                            redmine_url=redmine_url, api_key=api_key
-                        )
-                        grp_member_names = [u.get("name", "") for u in grp_data.get("group", {}).get("users", [])]
-                    except Exception:
-                        grp_member_names = []
-                    if uname in grp_member_names:
-                        group_map[gname]["user_count"] += 1
-                        group_map[gname].setdefault("members", []).append(uname)
-                        break
+        # 1. 그룹-멤버 매핑 (API 직접 조회)
+        group_map, user_to_group = _build_group_map(project_id, redmine_url, api_key)
 
         if not group_map:
             return []
@@ -845,24 +820,9 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
         # 2. 이슈 전체 로드
         issues = get_issues(project_id, updated_after="2024-01-01", redmine_url=redmine_url, api_key=api_key)
 
-        # 3. 담당자명 → 그룹명 매핑
+        # 3. 담당자 → 그룹 (딕셔너리 직접 조회, 이름 규칙 무관)
         def extract_group(assignee_name):
-            if not assignee_name:
-                return None
-            if "_" in assignee_name:
-                # 접두사 매칭: "기획_홍길동" → "기획"
-                prefix = assignee_name.split("_")[0].strip()
-                if prefix in group_map:
-                    return prefix
-                # 접미사 매칭: "방효민 기획_" → "기획"
-                last_prefix = assignee_name.rsplit("_", 1)[0].split()[-1].strip()
-                if last_prefix in group_map:
-                    return last_prefix
-            # 언더스코어 없는 유저: group_map.members 에서 찾기 (ex. "김주완 클라")
-            for gname, ginfo in group_map.items():
-                if assignee_name in ginfo.get("members", []):
-                    return gname
-            return None
+            return user_to_group.get(assignee_name)
 
         # 4. 8주 역산 계산
         today = date.today()
