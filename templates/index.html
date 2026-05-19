@@ -197,8 +197,8 @@ body {
 .navbar-brand { display: flex; flex-direction: column; justify-content: center; flex-shrink: 0; }
 .navbar-logo {
   font-family: var(--display);
-  font-size: 16px; font-weight: 900;
-  letter-spacing: -0.01em; color: var(--text); line-height: 1;
+  font-size: 22px; font-weight: 900;
+  letter-spacing: -0.02em; color: var(--text); line-height: 1;
 }
 .navbar-icon-btn { position: relative; padding: 6px 8px !important; }
 .navbar-icon-btn::after {
@@ -229,12 +229,12 @@ body {
   gap: var(--sp-4); flex: 1; padding: 0 var(--sp-4);
 }
 .navbar-filter-item { display: flex; align-items: center; gap: 8px; }
-.since-dd-item{padding:9px 14px;font-size:11px;letter-spacing:0.05em;color:#111;cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
+.since-dd-item{padding:9px 14px;font-size:11px;letter-spacing:0.05em;color:var(--text);cursor:pointer;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);}
 .since-dd-item:last-child{border-bottom:none;}
 .since-dd-item:hover{background:var(--bg-muted);}
-.since-dd-item.active{background:#0e0e0e;color:#ffffff;}
-.since-dd-item.active span{color:#888;}
-.since-dd-item span{font-size:9px;color:#aaa;letter-spacing:0.08em;}
+.since-dd-item.active{background:var(--bg-muted);color:var(--text);font-weight:700;}
+.since-dd-item.active span{color:var(--text-muted);}
+.since-dd-item span{font-size:9px;color:var(--text-dim);letter-spacing:0.08em;}
 .navbar-filter-label {
   font-size: 9px; letter-spacing: 0.14em;
   text-transform: uppercase; color: var(--text-muted); font-family: var(--mono);
@@ -284,11 +284,11 @@ body {
   background: transparent; border: 1.5px solid var(--text); color: var(--text);
   font-weight: 700; letter-spacing: 0.18em;
 }
-.btn-primary-outline:hover { background: var(--text); color: #fff; }
+.btn-primary-outline:hover { background: var(--text); color: var(--bg); }
 .btn-icon {
   display: flex; align-items: center; justify-content: center;
   padding: 0 8px; height: 32px; cursor: pointer;
-  background: transparent; border: none; opacity: 0.55; transition: opacity 0.15s;
+  background: transparent; border: none; color: var(--text); opacity: 0.6; transition: opacity 0.15s;
 }
 .btn-icon:hover { opacity: 1; }
 .btn-icon img { height: 18px; width: 18px; object-fit: contain; }
@@ -341,13 +341,31 @@ body {
 .sum-card.accent-critical { border-top: none; padding-top: 40px; }
 
 /* ── Risk score card ── */
+/* ══════════════════════════════════════════════════════════════
+   OVERVIEW 2×2 GRID
+   ══════════════════════════════════════════════════════════════ */
+.ov-grid {
+  display: grid;
+  grid-template-columns: 2fr 3fr;
+}
+.ov-cell {
+  padding: 28px var(--g-margin);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+}
+.ov-cell:nth-child(even) { border-right: none; }
+.ov-cell.no-bottom { border-bottom: none; }
+.ov-cell-label {
+  font-family: var(--mono); font-size: 9px; font-weight: 500;
+  letter-spacing: 0.18em; text-transform: uppercase;
+  color: var(--text-muted); margin-bottom: 16px;
+}
+
 .risk-score-card {
-  padding: 48px 0 40px 48px;
   background: transparent;
-  border-right: none;
 }
 #risk-score-display {
-  font-family: var(--dm); font-weight: 800; font-size: 100px; letter-spacing: -0.07em;
+  font-family: var(--dm); font-weight: 800; font-size: 80px; letter-spacing: -0.07em;
   line-height: 1; transition: color 0.4s ease;
 }
 .risk-sub { font-family: var(--mono); font-size: 9px; color: var(--text-muted); margin-top: 10px; letter-spacing: 0.1em; text-transform: uppercase; }
@@ -355,7 +373,6 @@ body {
 /* ── Risk trend card ── */
 .trend-card {
   background: transparent;
-  border-right: none;
   padding: 0;
 }
 
@@ -382,11 +399,12 @@ body {
 }
 .ai-legend-dot { width: 20px; height: 2px; border-radius: 1px; flex-shrink: 0; }
 .ai-gear-btn {
-  background: none; border: none; cursor: pointer; color: #bbb;
-  font-size: 13px; padding: 2px 4px; line-height: 1;
+  background: none; border: none; cursor: pointer; color: var(--text);
+  font-size: 15px; padding: 2px 4px; line-height: 1;
+  display: inline-flex; align-items: center; opacity: 0.5;
 }
-.ai-gear-btn:hover { background: #f5f3f0; color: #666; }
-.ai-gear-btn.active { color: #333; background: var(--bg-muted); }
+.ai-gear-btn:hover { background: var(--bg-muted); opacity: 1; }
+.ai-gear-btn.active { background: var(--bg-muted); opacity: 1; }
 .ai-settings-panel {
   display: none; position: absolute; top: 44px; right: 20px;
   background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px;
@@ -452,56 +470,6 @@ body {
 /* ══════════════════════════════════════════════════════════════
    AI ANALYSIS SECTION  (g-content · 8+4 cols)
    ══════════════════════════════════════════════════════════════ */
-.risk-members-section { background: var(--bg-white); border: 1px solid var(--border); }
-.risk-members-header {
-  display: flex; justify-content: space-between; align-items: flex-end;
-  padding: var(--sp-2) var(--sp-3) var(--sp-2);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-muted);
-}
-.risk-members-label {
-  font-size: 9px; font-weight: 600; letter-spacing: 0.12em;
-  text-transform: uppercase; color: var(--text-muted); margin-bottom: 2px;
-  font-family: var(--display);
-}
-.risk-members-title {
-  font-size: 11px; font-weight: 700; letter-spacing: 0.06em;
-  text-transform: uppercase; color: var(--text);
-  font-family: var(--display);
-}
-.risk-member-row {
-  display: block; border-bottom: 1px solid rgba(0,0,0,0.06);
-  cursor: pointer; transition: background 0.15s;
-}
-.risk-member-row:last-child { border-bottom: none; }
-.risk-member-row:hover { background: var(--bg-muted); }
-.risk-member-row.selected { background: var(--bg-muted); outline: 1px solid rgba(0,0,0,0.15); }
-.risk-member-top { display: flex; align-items: center; gap: 10px; padding: 11px var(--sp-3); }
-.risk-member-name-block { flex: 0 0 20%; min-width: 0; }
-.risk-member-bar-section { display: flex; flex-direction: column; gap: 5px; flex: 0 0 55%; min-width: 0; }
-.risk-member-bar-row { display: flex; align-items: center; gap: 6px; }
-.risk-member-bar-lbl {
-  font-size: 9px; font-weight: 700; letter-spacing: 0.1em;
-  text-transform: uppercase; color: rgba(0,0,0,0.35); width: 28px; flex-shrink: 0;
-}
-.risk-member-bar-track { height: 4px; background: var(--bg-muted); flex: 1; min-width: 0; max-width: 600px; overflow: hidden; border-radius: 2px; }  /* [H] 3→4px, 통일된 색상 */
-.risk-member-bar-fill { height: 100%; border-radius: 2px; transition: width 0.6s cubic-bezier(0.4,0,0.2,1); }  /* [H] ease→cubic-bezier */
-.risk-member-bar-val { font-size: 11px; font-weight: 700; width: 36px; text-align: right; flex-shrink: 0; }
-.risk-member-avatar {
-  width: 30px; height: 30px; border-radius: 0; display: flex;
-  align-items: center; justify-content: center; font-size: 11px;
-  font-weight: 700; flex-shrink: 0; margin-right: 12px;
-}
-.risk-member-name {
-  font-size: 13px; font-weight: 700; letter-spacing: -0.01em;
-  text-transform: uppercase; color: #000;
-  font-family: var(--display);
-}
-.risk-member-dept { font-size: 10px; color: rgba(0,0,0,0.4); margin-top: 1px; }
-.risk-member-badge {
-  font-size: 9px; font-weight: 700; padding: 2px 7px; border-radius: 0;
-  letter-spacing: 0.08em; text-transform: uppercase; align-self: center;
-}
 
 /* ── AI dark card ── */
 
@@ -605,8 +573,7 @@ body {
 /* ══════════════════════════════════════════════════════════════
    ISSUE ROWS (cards 01/02)
    ══════════════════════════════════════════════════════════════ */
-.ci-row { padding: 18px 48px; border-bottom: 0.5px solid rgba(255,255,255,0.04); cursor: pointer; background: transparent; }
-.ci-row:last-child { border-bottom: none; }
+.ci-row { padding: 18px 48px; border-bottom: none; cursor: pointer; background: transparent; }
 .ci-row:hover .ci-title { color: var(--red); }
 .ci-meta { display: flex; align-items: center; gap: 6px; margin-bottom: 5px; flex-wrap: wrap; }
 .ci-num { font-size: 9px; color: var(--text-dim); font-weight: 400; font-family: var(--mono); }
@@ -691,7 +658,7 @@ body {
   text-align: left; border-bottom: 1px solid var(--text); white-space: nowrap;
   background: transparent; font-family: var(--mono);
 }
-.data-table tbody tr { border-bottom: 0.5px solid rgba(255,255,255,0.04); }
+.data-table tbody tr { border-bottom: none; }
 .data-table tbody tr:hover { background: transparent; transition: none; }
 .data-table tbody tr:hover .td-subject { color: var(--red); }
 .tab-table tbody tr { border-left: 3px solid transparent; }
@@ -949,7 +916,7 @@ body {
 .fc-right { display: grid; grid-template-rows: auto 1fr; }
 
 /* 지표 3개 */
-.fc-metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--sp-4); margin-bottom: 20px; }
+.fc-metrics { display: grid; grid-template-columns: repeat(3,1fr); gap: var(--sp-4); }
 .fc-metric-label {
   font-family: var(--dm); font-size: 9px; font-weight: 700;
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 4px;
@@ -993,7 +960,7 @@ body {
 .fc-badge.safe    { background: var(--safe-bg);     color: var(--safe);     border-color: #bbf7d0; }
 
 /* 과부하 경보 */
-.fc-overload { padding: var(--sp-2) var(--sp-3); background: var(--bg-muted); border-bottom: 1px solid var(--border); }
+.fc-overload { padding: 0; background: none; }
 .fc-overload-label {
   font-family: var(--dm); font-size: 9px; font-weight: 700;
   letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
@@ -1275,10 +1242,10 @@ body {
 .sb-view-badge.gray  { background: transparent; color: var(--text-dim); border: none; }
 .sb-view-badge.weekly { background: transparent; color: var(--text-muted); letter-spacing: 0.08em; }
 .sb-view-badge.risk-level { background: transparent; color: var(--text-muted); letter-spacing: 0.08em; }
-.sb-view-badge.risk-level.lvl-critical { color: var(--red); }
-.sb-view-badge.risk-level.lvl-high     { color: #fb923c; }
-.sb-view-badge.risk-level.lvl-medium   { color: var(--amber); }
-.sb-view-badge.risk-level.lvl-low      { color: #4ade80; }
+.sb-view-badge.risk-level.lvl-critical { color: #ef4444; }
+.sb-view-badge.risk-level.lvl-high     { color: #f97316; }
+.sb-view-badge.risk-level.lvl-medium   { color: #d97706; }
+.sb-view-badge.risk-level.lvl-low      { color: #22c55e; }
 
 .sb-divider { height: 1px; background: var(--border); margin: 8px 0; }
 
@@ -1486,7 +1453,7 @@ body {
   align-items: baseline;
   justify-content: space-between;
   padding: 13px 24px;
-  border-bottom: 1px solid #f5f4f1;
+  border-bottom: none;
   cursor: pointer;
 }
 .card-issue:hover .card-issue-name { color: var(--red); }
@@ -1593,9 +1560,39 @@ body {
 .sb-cal-pin-del:hover { color:var(--red); }
 
 @media (max-width: 768px) {
-  .app-sidebar { display: none; }
-  #page-main { margin-left: 0; }
+  .app-sidebar { transform: translateX(-100%); }
+  #page-main   { margin-left: 0 !important; }
 }
+
+/* ── Sidebar transition ── */
+.app-sidebar {
+  transition: transform 0.26s cubic-bezier(0.4,0,0.2,1);
+  z-index: 200;
+}
+
+/* Narrow: sidebar hidden by default (media query handles base state) */
+/* sb-open class: override to show as overlay */
+.app-sidebar.sb-open { transform: translateX(0) !important; }
+
+/* Overlay backdrop */
+#sb-overlay {
+  display: none; position: fixed; inset: 0; z-index: 199;
+  background: rgba(0,0,0,0.38);
+}
+#sb-overlay.active { display: block; }
+
+/* Toggle button */
+#sb-toggle-btn {
+  display: none;
+  align-items: center; justify-content: center;
+  width: 26px; height: 26px; flex-shrink: 0;
+  background: none; border: none; cursor: pointer;
+  color: var(--text-muted); border-radius: 3px;
+  transition: color 0.15s, background 0.15s;
+  margin-right: 12px;
+}
+#sb-toggle-btn.visible { display: inline-flex; }
+#sb-toggle-btn:hover { color: var(--text); background: var(--sb-hover-bg); }
 
 /* footer가 있다면 page-main 안에서 흘러야 하므로 body footer 제거 */
 body > footer { display: none; }
@@ -1608,7 +1605,6 @@ body > footer { display: none; }
   <a href="/" style="text-decoration:none;color:inherit;">
     <div class="navbar-brand">
       <div class="navbar-logo">Vantix</div>
-      <div class="navbar-tagline">AI Project Risk Intelligence</div>
     </div>
   </a>
 
@@ -1675,6 +1671,7 @@ body > footer { display: none; }
 </nav>
 
 <!-- ══ SIDEBAR ════════════════════════════════════════════════════ -->
+<div id="sb-overlay" onclick="closeSidebar()"></div>
 <aside class="app-sidebar" id="app-sidebar">
   <div id="sb-project-list" style="margin-top:20px;"></div>
 
@@ -1692,7 +1689,13 @@ body > footer { display: none; }
 <!-- ══ UNIFIED VIEW HEADER ══════════════════════════════════════ -->
 <div id="view-header" style="display:none;padding:48px 72px 0;">
   <div style="display:flex;align-items:flex-end;justify-content:space-between;">
-    <div>
+    <div style="display:flex;align-items:center;">
+      <button id="sb-toggle-btn" onclick="toggleSidebar()" title="사이드바 토글">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+          <rect x="1.5" y="1.5" width="13" height="13" rx="2"/>
+          <line x1="5.5" y1="1.5" x2="5.5" y2="14.5"/>
+        </svg>
+      </button>
       <span id="vh-title" style="font-size:20px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1;"></span>
     </div>
     <div style="display:flex;align-items:center;gap:16px;padding-bottom:2px;">
@@ -1706,11 +1709,12 @@ body > footer { display: none; }
 <div id="sec-overview">
 
 <!-- ══ RISK SCORE + TREND STRIP  (4 + 8 cols) ═══════════════════ -->
-<div class="g-strip section-border" style="margin-bottom:0;">
+<!-- ══ OVERVIEW 2×2 GRID ══════════════════════════════════════════ -->
+<div class="ov-grid">
 
-  <!-- Risk Index — 4/12 cols -->
-  <div class="gc-4 risk-score-card" id="card-risk">
-    <div class="sum-label">CURRENT RISK INDEX</div>
+  <!-- Cell 1 (top-left): Risk Index -->
+  <div class="ov-cell" id="card-risk">
+    <div class="ov-cell-label">CURRENT RISK INDEX</div>
     <div style="display:flex;align-items:flex-end;gap:16px;margin-bottom:10px;">
       <div id="risk-score-wrap" style="position:relative;display:inline-block;cursor:help;">
         <span id="risk-score-display" style="color:#ccc;">—</span>
@@ -1740,16 +1744,15 @@ body > footer { display: none; }
       <span style="font-size:8px;color:var(--red);letter-spacing:0.1em;">CRITICAL</span>
     </div>
     <div class="risk-sub" id="risk-sub">—</div>
-    <div style="height:0.5px;background:#e8e8e8;margin:var(--sp-1) 0;"></div>
+    <div style="height:0.5px;background:var(--border);margin:var(--sp-1) 0;"></div>
     <div id="risk-ai-comment" style="font-size:11px;color:var(--text);font-weight:600;line-height:1.6;display:flex;gap:5px;align-items:flex-start;">
       <span style="color:var(--red);flex-shrink:0;">✦</span>
       <span id="risk-ai-comment-text">분석 중...</span>
     </div>
-    <div class="sum-hint" style="margin-top:6px;">위험경보 ↓</div>
   </div>
 
-  <!-- Risk Trend Chart — 8/12 cols -->
-  <div class="gc-8 trend-card">
+  <!-- Cell 2 (top-right): Trend Chart -->
+  <div class="ov-cell" style="padding:0;">
     <div class="ai-chart-card" style="position:relative;">
       <div class="ai-chart-header">
         <div class="ai-chart-title">RISK SCORE TRENDS</div>
@@ -1759,7 +1762,7 @@ body > footer { display: none; }
             <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#333;"></div> AVG</div>
             <div class="ai-legend-item"><div class="ai-legend-dot" style="background:var(--red);"></div> CRITICAL</div>
           </div>
-          <button class="ai-gear-btn" id="riskGearBtn" onclick="toggleRiskSettings()">&#9881;</button>
+          <button class="ai-gear-btn" id="riskGearBtn" onclick="toggleRiskSettings()">&#9881;&#xFE0E;</button>
         </div>
       </div>
       <div class="ai-settings-panel" id="riskSettingsPanel">
@@ -1789,78 +1792,29 @@ body > footer { display: none; }
     </div>
   </div>
 
-</div>
-
 <!-- ══ KPI ROW  (3 + 3 + 3 + 3 cols) ══════════════════════════ -->
-<div class="g-strip kpi-row section-border mb-4">
 
-  <div class="gc-3 sum-card" id="card-total">
-    <div class="sum-label">Total Issues</div>
-    <div class="sum-value" id="val-total"><span class="skeleton-kpi"></span></div>
-    <div class="sum-spark">
-      <svg id="spark-total" width="60" height="18" viewBox="0 0 60 18"></svg>
-      <span class="sum-delta" id="delta-total"><span class="skeleton" style="width:60px;height:11px;">.</span></span>
+
+  <!-- Cell 3 (bottom-left): Forecast KPIs -->
+  <div class="ov-cell no-bottom">
+    <div class="ov-cell-label" style="display:flex;justify-content:space-between;align-items:center;">
+      <span>차주 예측 · <span id="forecast-subtitle" style="font-weight:400;letter-spacing:normal;text-transform:none;font-size:9px;color:var(--text-dim);"></span></span>
+      <span class="fc-refresh" onclick="loadForecast()">↺</span>
+    </div>
+    <div class="fc-metrics" id="forecast-metrics">
+      <div style="font-size:10px;color:var(--text-dim);padding-top:8px;">로딩 중...</div>
     </div>
   </div>
 
-  <div class="gc-3 sum-card bg-muted clickable" id="card-open" onclick="goToTab('assignee')">
-    <div class="sum-label">Open Issues</div>
-    <div class="sum-value amber" id="val-open"><span class="skeleton-kpi"></span></div>
-    <div class="sum-spark">
-      <svg id="spark-open" width="60" height="18" viewBox="0 0 60 18"></svg>
-      <span class="sum-delta" id="delta-open"><span class="skeleton" style="width:60px;height:11px;">.</span></span>
+  <!-- Cell 4 (bottom-right): Assignee Overload -->
+  <div class="ov-cell no-bottom">
+    <div class="ov-cell-label">담당자 과부하</div>
+    <div id="forecast-overload" style="padding:0;background:none;">
+      <div style="font-size:10px;color:var(--text-dim);padding-top:8px;">로딩 중...</div>
     </div>
-    <div class="sum-hint">담당자별 현황 ↓</div>
   </div>
 
-  <div class="gc-3 sum-card accent-warning clickable" id="card-imminent" onclick="goToTab('imminent')">
-    <div class="sum-label">Imminent</div>
-    <div class="sum-value blue" id="val-imminent"><span class="skeleton-kpi"></span></div>
-    <div class="sum-spark">
-      <span class="sum-delta" id="delta-imminent" style="color:#2980b9;">D-7 이내</span>
-    </div>
-    <div class="sum-hint">마감 임박 이슈 ↓</div>
-  </div>
-
-  <div class="gc-3 sum-card bg-dark2 accent-critical clickable" id="card-overdue" onclick="goToTab('overdue')">
-    <div class="sum-label">Overdue</div>
-    <div class="sum-value red" id="val-overdue"><span class="skeleton-kpi"></span></div>
-    <div class="sum-spark">
-      <svg id="spark-overdue" width="60" height="18" viewBox="0 0 60 18"></svg>
-      <span class="sum-delta" id="delta-overdue"><span class="skeleton" style="width:60px;height:11px;">.</span></span>
-    </div>
-    <div class="sum-hint">Overdue Issues ↓</div>
-  </div>
-
-</div>
-
-
-<!-- ══ AI ANALYSIS  (8 + 4 cols) ═══════════════════════════════ -->
-<!-- ══ WEEKLY FORECAST ════════════════════════════════════════ -->
-<div id="forecast-section" class="section-border" style="display:none;">
-
-  <!-- 헤더 -->
-  <div class="fc-header">
-    <span class="fc-subtitle" id="forecast-subtitle"></span>
-    <span class="fc-refresh" onclick="loadForecast()">↺ 새로고침</span>
-  </div>
-
-  <!-- 바디: 좌(5) · 우(7) -->
-  <div class="fc-body">
-
-    <!-- LEFT -->
-    <div class="fc-left">
-      <div class="fc-metrics" id="forecast-metrics"></div>
-    </div>
-
-    <!-- RIGHT -->
-    <div class="fc-right">
-      <div class="fc-overload" id="forecast-overload"></div>
-    </div>
-
-  </div>
-
-</div>
+</div><!-- /ov-grid -->
 
 <div id="sec-ai-summary">
 
@@ -1889,14 +1843,6 @@ body > footer { display: none; }
 
   </div>
 
-  <!-- ── Risk-Heavy Members ── -->
-  <div style="padding:32px var(--g-margin);">
-    <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:20px;">
-      <div class="risk-members-title">Risk-Heavy Members</div>
-      <div onclick="goToTab('assignee')" style="font-size:10px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:rgba(0,0,0,0.4);cursor:pointer;">View All ↓</div>
-    </div>
-    <div id="risk-members-body"></div>
-  </div>
 
 </div>
 
@@ -2531,7 +2477,56 @@ function updateSbBadges(){
 // ============================================================
 // Init
 // ============================================================
+// ── Sidebar toggle ──────────────────────────────────────────────
+var _sbNarrow = false;
+
+function _updateToggleBtn() {
+  var btn = document.getElementById('sb-toggle-btn');
+  if (!btn) return;
+  var sidebar = document.getElementById('app-sidebar');
+  var isOpen  = sidebar.classList.contains('sb-open');
+  // 좁은 화면이고 사이드바가 닫혀 있을 때만 버튼 표시
+  btn.classList.toggle('visible', _sbNarrow && !isOpen);
+}
+
+function openSidebar() {
+  var sidebar = document.getElementById('app-sidebar');
+  var overlay = document.getElementById('sb-overlay');
+  sidebar.classList.add('sb-open');
+  if (overlay) overlay.classList.add('active');
+  _updateToggleBtn();
+}
+
+function closeSidebar() {
+  var sidebar = document.getElementById('app-sidebar');
+  var overlay = document.getElementById('sb-overlay');
+  sidebar.classList.remove('sb-open');
+  if (overlay) overlay.classList.remove('active');
+  _updateToggleBtn();
+}
+
+function toggleSidebar() {
+  var sidebar = document.getElementById('app-sidebar');
+  if (sidebar.classList.contains('sb-open')) {
+    closeSidebar();
+  } else {
+    openSidebar();
+  }
+}
+
+function initSidebarState() {
+  _sbNarrow = window.innerWidth <= 768;
+  _updateToggleBtn();
+  window.addEventListener('resize', function() {
+    _sbNarrow = window.innerWidth <= 768;
+    // 넓어지면 자동으로 오버레이 닫기
+    if (!_sbNarrow) closeSidebar();
+    _updateToggleBtn();
+  });
+}
+
 async function init() {
+  initSidebarState();
   showView('forecast');
   renderSbCalendar();
   await loadProjects();
@@ -2544,8 +2539,8 @@ async function loadProjects() {
   try {
     var res = await fetch('/api/projects');
     var projects = await res.json();
-    window._sbNameToPid={};
-    projects.forEach(function(p){ window._sbNameToPid[p.name]=p.identifier; });
+    window._sbNameToPid={};window._sbPidToName={};
+    projects.forEach(function(p){ window._sbNameToPid[p.name]=p.identifier; window._sbPidToName[p.identifier]=p.name; });
     var sel = document.getElementById('projectSelect');
     sel.innerHTML = '<option value="">All Projects</option>';
     projects.forEach(function(p){
@@ -2635,13 +2630,12 @@ async function loadForecast() {
 }
 
 function renderForecast(d) {
-  var sec = document.getElementById('forecast-section');
-  if (!d || (!(d.items||[]).length && !(d.deadlines||[]).length)) { return; }
+  if (!d || (!(d.items||[]).length && !(d.deadlines||[]).length && !(d.overload||[]).length)) { return; }
 
   // 서브타이틀
   var today = new Date().toISOString().slice(0,10);
   document.getElementById('forecast-subtitle').textContent = d.type==='project'
-    ? currentProjectId + ' · 차주 지연 사전 감지'
+    ? (window._sbPidToName[currentProjectId]||currentProjectId) + ' · 차주 지연 사전 감지'
     : today.replace(/-/g,'.').slice(0,7) + ' 기준 · 차주 지연 사전 감지';
 
   // ── 지표 3개 ──
@@ -2888,7 +2882,6 @@ function renderSummaryCards() {
   var trend=d.trend_7days||{};
   window._currentRedmineUrl = allData.redmine_url || '';
   window._currentRedminePublicUrl = allData.redmine_public_url || allData.redmine_url || '';
-  renderRiskMembers(allData);
   var valTotalEl=document.getElementById('val-total');
   if(valTotalEl) valTotalEl.textContent=(d.total_issues!==undefined&&d.total_issues!==null)?d.total_issues:'—';
   renderSparkline('spark-total',trend.open||[],'#999');
@@ -3220,40 +3213,6 @@ function getInitials(name){
   return letters?letters[0].toUpperCase():name[0];
 }
 
-function renderRiskMembers(allData){
-  var container=document.getElementById('risk-members-body');
-  if(!container)return;
-  var usersData=allData.users_data||{};
-  var todayStr=new Date().toISOString().slice(0,10);
-  var rows=[];
-  for(var uname in usersData){
-    var ud=usersData[uname],issues=ud.issues||[];
-    var open=issues.filter(function(i){return!CLOSED_SET_JS.has(i.status);});
-    var overdueIssues=open.filter(function(i){return i.due_date&&i.due_date<todayStr&&!HOLD_SET_JS.has(i.status);});
-    if(overdueIssues.length===0)continue;
-    var overdueRatio=open.length>0?Math.round(overdueIssues.length/open.length*100):0;
-    var level=overdueRatio>=60?'critical':overdueRatio>=30?'high':'medium';
-    rows.push({uname:uname,shortN:ud.short_name||getShortName(uname),dept:ud.group||getDept(uname),open:open.length,overdue:overdueIssues.length,overdueRatio:overdueRatio,level:level});
-  }
-  rows.sort(function(a,b){return b.overdueRatio-a.overdueRatio||b.open-a.open;});
-  var top3=rows.slice(0,3);
-  if(top3.length===0){container.innerHTML='<div style="padding:var(--sp-2) var(--sp-3);font-size:11px;color:rgba(0,0,0,0.4);text-transform:uppercase;letter-spacing:0.1em;">초과 이슈 없음</div>';return;}
-  var LEVEL_COLOR={critical:'#c0392b',high:'#b45309',medium:'#555'};
-  var LEVEL_LABEL={critical:'CRITICAL',high:'HIGH',medium:'MEDIUM'};
-  var LEVEL_BADGE_BG={critical:'#c0392b',high:'#000',medium:'#000'};
-  var LEVEL_BADGE_COLOR={critical:'#fff',high:'#fff',medium:'#fff'};
-  var maxOpen=Math.max.apply(null,top3.map(function(r){return r.open;}))||1;
-  container.innerHTML=top3.map(function(r){
-    var color=LEVEL_COLOR[r.level]||'#555',label=LEVEL_LABEL[r.level]||'MEDIUM';
-    var badgeBg=LEVEL_BADGE_BG[r.level]||'#000',badgeFg=LEVEL_BADGE_COLOR[r.level]||'#fff';
-    var initials=getInitials(r.shortN);
-    var odValColor=r.overdueRatio>=60?'#c0392b':r.overdueRatio>=30?'#b45309':'#2e7d32';
-    var openPct=Math.round(r.open/maxOpen*100);
-    var barColor=r.level==='critical'?'#c0392b':r.level==='high'?'#b45309':'#000';
-    return '<div class="risk-member-row" data-name="'+escHtml(r.shortN)+'" onclick="selectMemberFromCard(this)"><div class="risk-member-top"><div class="risk-member-avatar" style="background:'+badgeBg+';color:'+badgeFg+';">'+escHtml(initials)+'</div><div class="risk-member-name-block"><div class="risk-member-name">'+escHtml(r.shortN)+'</div><div class="risk-member-dept">'+escHtml(r.dept)+'</div></div><div class="risk-member-bar-section"><div class="risk-member-bar-row"><span class="risk-member-bar-lbl">OVR</span><div class="risk-member-bar-track"><div class="risk-member-bar-fill" style="width:'+r.overdueRatio+'%;background:'+barColor+';"></div></div><span class="risk-member-bar-val" style="color:'+odValColor+';">'+r.overdueRatio+'%</span></div><div class="risk-member-bar-row"><span class="risk-member-bar-lbl">OPN</span><div class="risk-member-bar-track"><div class="risk-member-bar-fill" style="width:'+openPct+'%;background:#555;"></div></div><span class="risk-member-bar-val">'+r.open+'</span></div></div><span class="risk-member-badge" style="background:'+badgeBg+';color:'+badgeFg+';width:64px;text-align:center;flex-shrink:0;margin:0 auto;">'+label+'</span></div></div>';
-  }).join('');
-}
-
 function renderAssigneeCard(){
   var usersData=allData.users_data||{};
   var todayStr=new Date().toISOString().slice(0,10);
@@ -3319,7 +3278,7 @@ async function renderVersionCard(){
     return;
   }
   if(cardsRow)cardsRow.style.display='';
-  var vpn=document.getElementById('version-project-name');if(vpn)vpn.textContent=currentProjectId;
+  var vpn=document.getElementById('version-project-name');if(vpn)vpn.textContent=window._sbPidToName[currentProjectId]||currentProjectId;
   var body=document.getElementById('version-body');
   body.innerHTML='<div style="padding:var(--sp-2);text-align:center;font-size:11px;color:#ccc;">로딩 중...</div>';
   try {
@@ -3383,26 +3342,11 @@ function closeConfirmModal(e){
   document.getElementById('confirmModal').classList.remove('open');_confirmUrl='';
 }
 
-function selectMemberFromCard(el){
-  var shortName=el.getAttribute('data-name');
-  document.querySelectorAll('.risk-member-row').forEach(function(row){row.classList.toggle('selected',row.getAttribute('data-name')===shortName);});
-  var assigneeSelect=document.getElementById('tabAssigneeFilter');
-  if(assigneeSelect&&shortName){
-    for(var i=0;i<assigneeSelect.options.length;i++){
-      if(assigneeSelect.options[i].text.trim()===shortName.trim()){assigneeSelect.selectedIndex=i;break;}
-    }
-  }
-  switchTab('assignee');renderTab();
-  var bottomEl=document.querySelector('.g-padded');
-  if(bottomEl){var y=bottomEl.getBoundingClientRect().top+window.pageYOffset-80;window.scrollTo({top:y,behavior:'smooth'});}
-}
-
 function switchTab(tab){
   currentTab=tab;
   if(tab!=='assignee'){
     var assigneeSelect=document.getElementById('tabAssigneeFilter');
     if(assigneeSelect)assigneeSelect.selectedIndex=0;
-    document.querySelectorAll('.risk-member-row').forEach(function(row){row.classList.remove('selected');});
   }
   renderTab();
 }
@@ -3723,7 +3667,7 @@ function openReport() {
   var overlay = document.getElementById('report-modal-overlay');
   overlay.style.display = 'flex';
   document.getElementById('report-modal-project').textContent =
-    currentProjectId || 'ALL PROJECTS';
+    (currentProjectId ? (window._sbPidToName[currentProjectId]||currentProjectId) : 'ALL PROJECTS');
   document.getElementById('report-memo-input').value = '';
   reportUpdateCount();
 }
@@ -3980,7 +3924,6 @@ function showView(view){
   // 최상위 섹션 on/off
   document.getElementById('sec-overview').style.display=(isOverview||isAssignee||isMilestone||isForecast)?'':'none';
   document.getElementById('sec-issue-table').style.display=isIssue?'':'none';
-  document.getElementById('forecast-section').style.display=isForecast?'':'none';
   var secIssues=document.getElementById('sec-issues');
   if(secIssues)secIssues.style.display=isIssues?'':'none';
 
@@ -3988,11 +3931,11 @@ function showView(view){
   var kpiRow=document.querySelector('.g-strip.kpi-row');
   var secGroup=document.getElementById('sec-group');
   var secVersion=document.getElementById('sec-version');
-  var cardRisk=document.getElementById('card-risk');
-  if(cardRisk){var cr=cardRisk.closest('.g-strip,.g-content');if(cr)cr.style.display=(isOverview||isForecast)?'':'none';}
+  var ovGrid=document.querySelector('.ov-grid');
+  if(ovGrid)ovGrid.style.display=(isOverview||isForecast)?'':'none';
   var secAi=document.getElementById('sec-ai-summary');
   if(secAi)secAi.style.display=(isOverview||isForecast)?'':'none';
-  if(kpiRow)kpiRow.style.display=isOverview?'':'none';
+  if(kpiRow)kpiRow.style.display=(isOverview||isForecast)?'':'none';
   if(secGroup){
     secGroup.style.display=isAssignee?'':'none';
     secGroup.className='gc-12 card-panel';
@@ -4030,7 +3973,7 @@ function showView(view){
 
   if(isIssue){ if(allData)renderTab(); }
   if(isIssues){ if(allData)renderCombinedIssues(); }
-  if(isForecast){ loadActionSignals(); }
+  if(isForecast){ loadActionSignals(); loadForecast(); }
 
   if(isAssignee){
     var cardsRow=document.getElementById('sec-group')&&document.getElementById('sec-group').closest('.cards-row');
@@ -4059,6 +4002,7 @@ function sbToggle(id){
     localStorage.setItem('vantix_last_project',id);
     showView('forecast');
     loadData(); loadRiskHistory(); loadForecast();
+    if(_sbIsOverlay) closeSidebar();
   }
 }
 
@@ -4077,6 +4021,8 @@ function sbSwitchView(view){
     showView(view);
     switchTab(view);
   }
+  // 오버레이 모드(좁은 화면에서 열어둔 것)면 선택 후 닫기
+  if(_sbIsOverlay) closeSidebar();
 }
 
 document.addEventListener('click',function(e){
