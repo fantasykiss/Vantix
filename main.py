@@ -824,13 +824,16 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
                     group_map[prefix]["user_count"] += 1
                     group_map[prefix].setdefault("members", []).append(uname)
             else:
-                # 언더스코어 없는 유저는 Redmine 그룹 멤버십으로 직접 매핑
+                # 언더스코어 없는 유저: 그룹 멤버 API로 직접 확인
                 for gname in group_map:
-                    grp_members = fetch(
-                        f"/groups/{group_map[gname]['id']}/memberships.json",
-                        redmine_url=redmine_url, api_key=api_key
-                    ).get("users", [])
-                    grp_member_names = [u.get("name", "") for u in grp_members]
+                    try:
+                        grp_data = fetch(
+                            f"/groups/{group_map[gname]['id']}.json?include=users",
+                            redmine_url=redmine_url, api_key=api_key
+                        )
+                        grp_member_names = [u.get("name", "") for u in grp_data.get("group", {}).get("users", [])]
+                    except Exception:
+                        grp_member_names = []
                     if uname in grp_member_names:
                         group_map[gname]["user_count"] += 1
                         group_map[gname].setdefault("members", []).append(uname)
@@ -842,18 +845,23 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
         # 2. 이슈 전체 로드
         issues = get_issues(project_id, updated_after="2024-01-01", redmine_url=redmine_url, api_key=api_key)
 
-        # 3. 담당자명 접두사로 그룹 매핑 (기획_홍길동 → 기획)
+        # 3. 담당자명 → 그룹명 매핑
         def extract_group(assignee_name):
-            if not assignee_name or "_" not in assignee_name:
+            if not assignee_name:
                 return None
-            # 접두사 매칭: "기획_ TEST1" → "기획"
-            prefix = assignee_name.split("_")[0].strip()
-            if prefix in group_map:
-                return prefix
-            # 접미사 매칭: "방효민 기획_" → "기획" (잘못된 형식 방어)
-            last_prefix = assignee_name.rsplit("_", 1)[0].split()[-1].strip()
-            if last_prefix in group_map:
-                return last_prefix
+            if "_" in assignee_name:
+                # 접두사 매칭: "기획_홍길동" → "기획"
+                prefix = assignee_name.split("_")[0].strip()
+                if prefix in group_map:
+                    return prefix
+                # 접미사 매칭: "방효민 기획_" → "기획"
+                last_prefix = assignee_name.rsplit("_", 1)[0].split()[-1].strip()
+                if last_prefix in group_map:
+                    return last_prefix
+            # 언더스코어 없는 유저: group_map.members 에서 찾기 (ex. "김주완 클라")
+            for gname, ginfo in group_map.items():
+                if assignee_name in ginfo.get("members", []):
+                    return gname
             return None
 
         # 4. 8주 역산 계산
