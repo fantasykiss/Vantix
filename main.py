@@ -657,6 +657,17 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
 
     # ── 프로젝트별 위험도 계산 ──
     project_risk = {}
+
+    # 미할당 이슈가 있는 프로젝트도 color bar에 표시되도록 전체 이슈 기준으로 먼저 등록
+    for iss in issues:
+        pname = iss["project"]["name"]
+        if pname not in project_risk:
+            project_risk[pname] = {
+                "name": pname, "overdue": 0, "urgent": 0,
+                "pending": 0, "open": 0, "total": 0,
+                "issues_overdue": [], "issues_urgent": [], "issues_pending": [],
+            }
+
     for uname, ud in users_data.items():
         for i in ud["issues"]:
             pname = i["project"]

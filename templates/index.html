@@ -2337,7 +2337,8 @@ function updateSbRiskColors(){
   });
   document.querySelectorAll('.sb-proj-row[data-pid]').forEach(function(row){
     var pid=row.dataset.pid;
-    row.style.borderLeftColor=pid&&pidToColor[pid]?pidToColor[pid]:'transparent';
+    var color=pidToColor[pid]||(pid?'#34d399':'transparent');
+    row.style.borderLeftColor=color;
   });
 }
 
