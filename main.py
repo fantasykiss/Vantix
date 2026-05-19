@@ -838,9 +838,13 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
         this_week_start = today - timedelta(days=days_since_thu)
         WEEKS = 8
 
+        today_str = today.strftime("%Y-%m-%d")
         results = []
+        unclassified_issues = []
+
         for gname, ginfo in group_map.items():
             spark = []
+            group_total = 0
             for w in range(WEEKS - 1, -1, -1):
                 week_end = (this_week_start - timedelta(weeks=w) + timedelta(days=6)).strftime("%Y-%m-%d")
                 overdue_count = 0
@@ -851,6 +855,8 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
                     status = i.get("status", {}).get("name", "")
                     if status in CLOSED_SET or status in HOLD_SET:
                         continue
+                    if w == 0:
+                        group_total += 1
                     due = i.get("due_date", "")
                     if due and due < week_end:
                         overdue_count += 1
@@ -860,7 +866,6 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
             overdue_prev = spark[-2] if len(spark) >= 2 else 0
             wow = overdue_now - overdue_prev
 
-            # 리스크 배지: Critical(오버듀 5+), High(2+), Stable
             if overdue_now >= 5:
                 risk = "Critical"
             elif overdue_now >= 2:
@@ -873,14 +878,43 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
                 "name":         gname,
                 "user_count":   ginfo["user_count"],
                 "members":      ginfo.get("members", []),
+                "total_issues": group_total,
                 "overdue_now":  overdue_now,
                 "overdue_wow":  wow,
                 "risk":         risk,
                 "spark":        spark,
+                "is_extra":     False,
             })
 
-        # 오버듀 내림차순 정렬
-        results.sort(key=lambda x: -x["overdue_now"])
+        # 미분류 이슈 수집 (extract_group이 None인 담당자)
+        for i in issues:
+            assignee = i.get("assigned_to", {}).get("name", "")
+            if extract_group(assignee) is None:
+                status = i.get("status", {}).get("name", "")
+                if status not in CLOSED_SET and status not in HOLD_SET:
+                    unclassified_issues.append(i)
+
+        if unclassified_issues:
+            uc_overdue = sum(
+                1 for i in unclassified_issues
+                if i.get("due_date", "") and i.get("due_date", "") < today_str
+            )
+            uc_members = list({i.get("assigned_to", {}).get("name", "") for i in unclassified_issues if i.get("assigned_to")})
+            results.append({
+                "id":           None,
+                "name":         "기타",
+                "user_count":   len(uc_members),
+                "members":      uc_members,
+                "total_issues": len(unclassified_issues),
+                "overdue_now":  uc_overdue,
+                "overdue_wow":  0,
+                "risk":         "High" if uc_overdue >= 2 else "Stable",
+                "spark":        [],
+                "is_extra":     True,
+            })
+
+        # 오버듀 내림차순 정렬, 기타 카드는 항상 마지막
+        results.sort(key=lambda x: (x["is_extra"], -x["overdue_now"]))
         return results
 
     except Exception as e:
@@ -1376,7 +1410,7 @@ async def api_update_connection(request: Request):
 def api_get_issue(issue_id: int, request: Request):
     from concurrent.futures import ThreadPoolExecutor
     s = _require_session(request)
-    issue_data = fetch(f"/issues/{issue_id}.json", {"include": "journals"}, redmine_url=s["url"], api_key=s["key"])
+    issue_data = fetch(f"/issues/{issue_id}.json", {"include": "journals,attachments"}, redmine_url=s["url"], api_key=s["key"])
     issue = issue_data.get("issue", {})
     pid = issue.get("project", {}).get("identifier") or str(issue.get("project", {}).get("id", ""))
 
@@ -1433,6 +1467,24 @@ async def api_update_issue(issue_id: int, request: Request, s: dict = Depends(_r
             return {"ok": True}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/attachment-proxy")
+async def api_attachment_proxy(url: str, request: Request):
+    s = _require_session(request)
+    try:
+        req = urllib.request.Request(
+            url,
+            headers={"X-Redmine-API-Key": s["key"]},
+        )
+        with urllib.request.urlopen(req, timeout=15, context=SSL_CONTEXT) as resp:
+            content_type = resp.headers.get("Content-Type", "application/octet-stream")
+            data = resp.read()
+        from fastapi.responses import Response
+        return Response(content=data, media_type=content_type)
+    except Exception as e:
+        from fastapi.responses import Response
+        return Response(status_code=404)
 
 
 @app.post("/api/action/redmine-update")
@@ -1989,8 +2041,6 @@ def warmup_cache():
 
 
 def _preload_all_projects():
-    import time
-    time.sleep(5)  # 서버 완전 기동 후 실행
     try:
         projects = get_projects()
         for p in projects:
@@ -2006,7 +2056,12 @@ def _preload_all_projects():
     except Exception as e:
         print(f"  프리로드 전체 실패: {e}")
 
-threading.Thread(target=_preload_all_projects, daemon=True).start()
+
+def _warmup_then_preload():
+    warmup_cache()          # ① 전체 + 기본 프로젝트 먼저 (유저 첫 화면)
+    _preload_all_projects() # ② 완료 후 나머지 순차 워밍
+
+threading.Thread(target=_warmup_then_preload, daemon=True).start()
 
 
 if __name__ == "__main__":
@@ -2018,7 +2073,6 @@ if __name__ == "__main__":
     print(f"  자동갱신 주기: 30분")
     print("=" * 50)
 
-    warmup_thread = threading.Thread(target=warmup_cache, daemon=True)
-    warmup_thread.start()
+    # warmup은 _warmup_then_preload 에서 순차 실행됨 (모듈 로드 시 이미 시작)
 
     uvicorn.run(app, host="0.0.0.0", port=8000)

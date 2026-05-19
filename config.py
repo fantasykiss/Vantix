@@ -3,7 +3,7 @@ from datetime import date, timedelta
 
 try:
     from dotenv import load_dotenv
-    load_dotenv()
+    load_dotenv(override=True)
 except ImportError:
     pass
 
