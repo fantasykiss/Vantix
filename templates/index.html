@@ -361,9 +361,9 @@ body {
 .ov-cell:nth-child(even) { border-right: none; }
 .ov-cell.no-bottom { border-bottom: none; }
 .ov-cell-label {
-  font-family: var(--mono); font-size: 9px; font-weight: 500;
-  letter-spacing: 0.18em; text-transform: uppercase;
-  color: var(--text-muted); margin-bottom: 16px;
+  font-family: var(--sans); font-size: 12px; font-weight: 700;
+  letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--text); margin-bottom: 16px;
 }
 
 .risk-score-card {
@@ -386,7 +386,7 @@ body {
    ══════════════════════════════════════════════════════════════ */
 .ai-chart-card {
   background: transparent; border: none;
-  padding: var(--sp-3) var(--sp-4);
+  padding: 28px var(--g-margin);
 }
 .ai-chart-header {
   display: flex; justify-content: space-between; align-items: center;
@@ -412,7 +412,7 @@ body {
 .ai-gear-btn.active { background: var(--bg-muted); opacity: 1; }
 .ai-settings-panel {
   display: none; position: absolute; top: 44px; right: 20px;
-  background: var(--bg-white); border: 1px solid var(--border); border-radius: 8px;
+  background: var(--bg-white); border: 1px solid var(--border); border-radius: 0;
   padding: 14px 16px; z-index: 10; width: 220px;
   box-shadow: 0 4px 16px rgba(0,0,0,0.08);
 }
@@ -429,14 +429,14 @@ body {
 .ai-dow-btns { display: flex; gap: 4px; }
 .ai-dow-btn {
   flex: 1; padding: 5px 2px; font-family: var(--dm); font-size: 10px;
-  font-weight: 500; border: 1px solid var(--border); border-radius: 4px;
+  font-weight: 500; border: 1px solid var(--border); border-radius: 0;
   background: var(--bg-white); color: var(--text-muted); cursor: pointer; text-align: center;
 }
 .ai-dow-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
 .ai-settings-apply {
   width: 100%; padding: 8px; font-family: var(--dm); font-size: 10px;
   font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
-  background: var(--text); color: #fff; border: none; border-radius: 4px;
+  background: var(--text); color: #fff; border: none; border-radius: 0;
   cursor: pointer; margin-top: 4px;
 }
 .ai-chart-sub { font-family: var(--dm); font-size: 10px; color: #aaa; margin-bottom: 12px; }
@@ -456,7 +456,7 @@ body {
   display: flex; flex-direction: column; align-items: center;
   flex: 1; height: 100%; justify-content: flex-end;
 }
-.ai-bar { width: 100%; border-radius: 2px 2px 0 0; min-height: 3px; }
+.ai-bar { width: 100%; border-radius: 0; min-height: 3px; }
 .ai-bar.low      { background: var(--text-dim); }
 .ai-bar.normal   { background: var(--text-muted); }
 .ai-bar.critical { background: var(--red); }
@@ -536,27 +536,15 @@ body {
    ══════════════════════════════════════════════════════════════ */
 .tl-body { position: relative; padding: var(--sp-2) var(--sp-2) var(--sp-2) var(--sp-3); margin-left: var(--sp-1); }
 .tl-line { display: none; }
-.tl-item { position: relative; margin-bottom: var(--sp-3); cursor: pointer; padding-left: var(--sp-2); }
+.tl-item { position: relative; margin-bottom: var(--sp-3); cursor: pointer; padding-left: 0; }
 .tl-content { transition: transform 150ms linear; transform-origin: left center; }
 .tl-item:hover .tl-content { transform: scale(1.03); }
 .tl-item:hover .tl-passive { background: var(--bg-muted); }
 .tl-item:hover .tl-active-card { background: var(--bg-muted); }
 .tl-passive { display: flex; justify-content: space-between; align-items: flex-start; padding: 4px 0; transition: background 150ms; }
-.tl-dot {
-  position: absolute; left: -20px; top: 6px; width: 12px; height: 12px;
-  border-radius: 50%; background: var(--bg-muted); border: 1.5px solid #ccc;
-  transform: translateX(-50%); display: flex; align-items: center; justify-content: center; z-index: 1;
-}
-.tl-dot::before {
-  content: ''; position: absolute; left: 50%; transform: translateX(-50%);
-  width: 1px; background: #ddd; top: calc(100% + 6px);
-  height: calc(var(--tl-item-h, 60px) - 18px);
-}
-.tl-item:last-child .tl-dot::before { display: none; }
-.tl-dot::after { content: ''; width: 4px; height: 4px; border-radius: 50%; background: #ccc; }
-.tl-dot.active { border-color: var(--text); background: var(--bg-muted); }
-.tl-dot.active::after { background: var(--text); }
-.tl-dot.done { border-color: #ccc; background: var(--bg-muted); }
+.tl-dot { display: none; }
+.tl-dot.active { display: none; }
+.tl-dot.done { display: none; }
 .tl-dot.done::after { background: #ccc; }
 .tl-passive-name { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
 .tl-passive-name.done { color: #ccc; text-decoration: line-through; }
@@ -680,7 +668,7 @@ body {
 /* [G] Due-date pill */
 .dday-pill {
   display: inline-flex; align-items: center;
-  padding: 2px 7px; border-radius: var(--radius-sm);
+  padding: 2px 7px; border-radius: 0;
   font-size: 10px; font-weight: 500; white-space: nowrap;
   font-family: var(--mono);
 }
@@ -694,14 +682,14 @@ body {
 .td-project { font-size: 10px; color: var(--text-dim); font-weight: 300; }
 .td-group-badge {
   display: inline-block; font-size: 9px; font-weight: 500;
-  letter-spacing: 0.08em; padding: 2px 6px; border-radius: 3px;
+  letter-spacing: 0.08em; padding: 2px 6px; border-radius: 0;
   background: var(--bg-muted); color: var(--text-muted); text-transform: uppercase; border: none;
 }
 .status-badge {
   display: inline-flex; align-items: center;
   font-size: 9px; font-weight: 600;
   letter-spacing: 0.08em; text-transform: uppercase;
-  padding: 2px 7px; border-radius: 3px; border: none;
+  padding: 2px 7px; border-radius: 0; border: none;
   background: var(--bg-muted); color: var(--text-muted);
 }
 .status-badge.progress { background: #111; color: #fff; }
@@ -951,8 +939,8 @@ body {
 .fc-item-name { font-size: 12px; font-weight: 700; letter-spacing: -0.01em; color: var(--text); }
 .fc-item-meta { font-size: 10px; color: var(--text-muted); margin-top: 2px; }
 .fc-progress { display: flex; align-items: center; gap: 5px; margin-top: 4px; }
-.fc-progress-track { flex: 1; height: 3px; background: var(--border); border-radius: 2px; }
-.fc-progress-fill { height: 3px; border-radius: 2px; }
+.fc-progress-track { flex: 1; height: 3px; background: var(--border); border-radius: 0; }
+.fc-progress-fill { height: 3px; border-radius: 0; }
 .fc-progress-pct { font-size: 9px; color: var(--text-dim); width: 28px; text-align: right; }
 
 /* 배지 */
@@ -967,14 +955,14 @@ body {
 /* 과부하 경보 */
 .fc-overload { padding: 0; background: none; }
 .fc-overload-label {
-  font-family: var(--dm); font-size: 9px; font-weight: 700;
-  letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 10px;
+  font-family: var(--dm); font-size: 10px; font-weight: 400;
+  letter-spacing: normal; text-transform: none; color: #aaa; margin-bottom: 12px;
 }
 .fc-overload-row { display: flex; align-items: center; gap: 10px; margin-bottom: 7px; }
 .fc-overload-row:last-child { margin-bottom: 0; }
 .fc-overload-name { font-size: 12px; font-weight: 700; width: 64px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fc-overload-track { flex: 1; height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; }
-.fc-overload-fill { height: 4px; border-radius: 2px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+.fc-overload-track { flex: 1; height: 4px; background: var(--border); border-radius: 0; overflow: hidden; }
+.fc-overload-fill { height: 4px; border-radius: 0; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
 .fc-overload-pct { font-size: 10px; font-weight: 700; width: 32px; text-align: right; }
 .fc-overload-badge {
   font-family: var(--dm); font-size: 9px; font-weight: 700;
@@ -1087,12 +1075,12 @@ body {
   .tab-card-title { font-size: 12px; color: var(--text); line-height: 1.5; margin-bottom: 6px; }
   .tab-card-meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
   .tab-card-date { font-size: 10px; color: var(--text-dim); }
-  .tab-card-status { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 2px; }
+  .tab-card-status { font-size: 10px; font-weight: 500; padding: 2px 8px; border-radius: 0; }
 
   .sum-card { padding: 28px 0 20px 24px; }
   #risk-score-display { font-size: 60px; }
   .sum-value { font-size: 44px; letter-spacing: -0.06em; }
-  #view-header { padding: 32px 24px 0 !important; }
+  #view-header { padding: 32px var(--g-margin) 0 !important; }
   .ci-row { padding: 14px 24px; }
   .tab-bar { padding: 0 24px; }
   .tab-filters { padding: 0 24px; }
@@ -1166,7 +1154,7 @@ body {
   background: linear-gradient(90deg, #ebebeb 25%, #e0e0e0 50%, #ebebeb 75%);
   background-size: 400% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
-  border-radius: 3px;
+  border-radius: 0;
   color: transparent !important;
   user-select: none;
   display: inline-block;
@@ -1179,7 +1167,7 @@ body {
   background: linear-gradient(90deg, #eeece9 25%, #e3e1de 50%, #eeece9 75%);
   background-size: 400% 100%;
   animation: shimmer 1.6s ease-in-out infinite;
-  border-radius: 3px;
+  border-radius: 0;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1543,15 +1531,15 @@ body {
 /* ── Sidebar Calendar ── */
 .sb-cal { padding: 12px 14px 16px; }
 .sb-cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:10px; }
-.sb-cal-title { font-size:10px !important; font-weight:700; letter-spacing:0.12em; color:var(--text); text-transform:uppercase; font-family:var(--mono,monospace); }
+.sb-cal-title { font-size:10px !important; font-weight:700; letter-spacing:0.12em; color:var(--text); text-transform:uppercase; font-family:var(--sans); }
 .sb-cal-nav { background:none; border:none; cursor:pointer; color:var(--text-muted); font-size:12px; padding:2px 5px; line-height:1; }
 .sb-cal-nav:hover { color:var(--text); }
 .sb-cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:0; }
-.sb-cal-dow { font-size:8.5px; font-weight:600; letter-spacing:0.05em; color:var(--text-dim); text-align:center; padding-bottom:8px; font-family:var(--mono,monospace); }
+.sb-cal-dow { font-size:8.5px; font-weight:600; letter-spacing:0.05em; color:var(--text-dim); text-align:center; padding-bottom:8px; font-family:var(--sans); }
 .sb-cal-cell { display:flex; flex-direction:column; align-items:center; gap:2px; padding:2px 0; cursor:pointer; }
 .sb-cal-cell.other { cursor:default; pointer-events:none; }
 .sb-cal-cell.other .sb-cal-day-num { color:var(--text-dim); opacity:0.35; }
-.sb-cal-day-num { width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--text-muted); border-radius:50%; transition:background 0.1s; }
+.sb-cal-day-num { width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--text-muted); border-radius:0; transition:background 0.1s; }
 .sb-cal-cell:not(.other):hover .sb-cal-day-num { background:var(--bg-muted); }
 .sb-cal-day-num.today { background:var(--text); color:var(--bg); font-weight:700; }
 .sb-cal-day-num.holiday { color:#c0392b; }
@@ -1607,7 +1595,7 @@ body {
   align-items: center; justify-content: center;
   width: 26px; height: 26px; flex-shrink: 0;
   background: none; border: none; cursor: pointer;
-  color: var(--text-muted); border-radius: 3px;
+  color: var(--text-muted); border-radius: 0;
   transition: color 0.15s, background 0.15s;
   margin-right: 12px;
 }
@@ -1704,15 +1692,15 @@ body > footer { display: none; }
 
 <!-- ══ OVERVIEW WRAPPER ══════════════════════════════════════════ -->
 <!-- ══ UNIFIED VIEW HEADER ══════════════════════════════════════ -->
-<div id="view-header" style="display:none;padding:48px 72px 0;">
+<div id="view-header" style="display:none;padding:48px var(--g-margin) 0;">
+  <button id="sb-toggle-btn" onclick="toggleSidebar()" title="사이드바 토글" style="margin-bottom:12px;">
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <rect x="1.5" y="1.5" width="13" height="13" rx="2"/>
+      <line x1="5.5" y1="1.5" x2="5.5" y2="14.5"/>
+    </svg>
+  </button>
   <div style="display:flex;align-items:flex-end;justify-content:space-between;">
     <div style="display:flex;align-items:center;">
-      <button id="sb-toggle-btn" onclick="toggleSidebar()" title="사이드바 토글">
-        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
-          <rect x="1.5" y="1.5" width="13" height="13" rx="2"/>
-          <line x1="5.5" y1="1.5" x2="5.5" y2="14.5"/>
-        </svg>
-      </button>
       <span id="vh-title" style="font-size:20px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1;"></span>
     </div>
     <div style="display:flex;align-items:center;gap:16px;padding-bottom:2px;">
@@ -1815,9 +1803,10 @@ body > footer { display: none; }
   <!-- Cell 3 (bottom-left): Forecast KPIs -->
   <div class="ov-cell no-bottom">
     <div class="ov-cell-label" style="display:flex;justify-content:space-between;align-items:center;">
-      <span>차주 예측 · <span id="forecast-subtitle" style="font-weight:400;letter-spacing:normal;text-transform:none;font-size:9px;color:var(--text-dim);"></span></span>
+      <span>RISK FORECAST</span>
       <span class="fc-refresh" onclick="loadForecast()">↺</span>
     </div>
+    <div id="forecast-subtitle" class="ai-chart-sub" style="margin-top:-10px;"></div>
     <div class="fc-metrics" id="forecast-metrics">
       <div style="font-size:10px;color:var(--text-dim);padding-top:8px;">로딩 중...</div>
     </div>
@@ -1825,7 +1814,8 @@ body > footer { display: none; }
 
   <!-- Cell 4 (bottom-right): Assignee Overload -->
   <div class="ov-cell no-bottom">
-    <div class="ov-cell-label">담당자 과부하</div>
+    <div class="ov-cell-label" style="margin-bottom:0;">WORKLOAD ALERT</div>
+    <div class="ai-chart-sub" id="overload-subtitle" style="margin-bottom:12px;"></div>
     <div id="forecast-overload" style="padding:0;background:none;">
       <div style="font-size:10px;color:var(--text-dim);padding-top:8px;">로딩 중...</div>
     </div>
@@ -1841,14 +1831,13 @@ body > footer { display: none; }
     <!-- 헤더 -->
     <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;">
       <div>
-        <div style="font-family:var(--mono);font-size:9px;letter-spacing:0.2em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px;">AI Analysis</div>
+        <div style="font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#1B4FFF;border:1px solid #1B4FFF;padding:3px 10px;display:inline-block;margin-bottom:4px;">AI INSIGHTS</div>
         <div id="aiHeadline" style="font-size:20px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1;">—</div>
       </div>
       <div style="display:flex;align-items:center;gap:14px;">
         <span id="ai-timestamp" style="font-family:var(--mono);font-size:9px;color:var(--text-dim);display:none;">LAST ANALYZED —</span>
-        <button id="ai-analyze-btn" onclick="runAiAnalysis()" style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:var(--text);color:var(--bg);border:none;padding:5px 14px;cursor:pointer;">✦ AI 분석하기</button>
-        <button id="ai-reanalyze-btn" onclick="runAiAnalysis()" style="display:none;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;cursor:pointer;">↻ 재분석</button>
-        <button onclick="openEscalateModal()" style="font-family:var(--mono);font-size:9px;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;cursor:pointer;">보고서 생성</button>
+        <button id="ai-analyze-btn" onclick="runAiAnalysis()" style="font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:var(--text);color:var(--bg);border:none;padding:5px 14px;cursor:pointer;">✦ ANALYZE</button>
+        <button id="ai-reanalyze-btn" onclick="runAiAnalysis()" style="display:none;font-family:var(--sans);font-size:9px;font-weight:700;letter-spacing:0.1em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:5px 12px;cursor:pointer;">↻ ANALYZE</button>
       </div>
     </div>
 
@@ -2666,9 +2655,9 @@ function renderForecast(d) {
 
   // ── overload 영역: 전체=프로젝트별 위험 예측 / 개별=담당자 과부하 ──
   if (d.type === 'all') {
+    document.getElementById('overload-subtitle').textContent = '프로젝트별 차주 위험 예측';
     document.getElementById('forecast-overload').innerHTML =
-      '<div class="fc-overload-label">프로젝트별 차주 위험 예측</div>'
-      + (d.items||[]).map(function(item) {
+      (d.items||[]).map(function(item) {
           var badgeCls = item.badge_class==='danger' ? 'danger' : item.badge_class==='warning' ? 'warning' : 'ok';
           return '<div class="fc-overload-row" style="flex-direction:column;align-items:flex-start;gap:3px;">'
             + '<div style="display:flex;align-items:center;gap:8px;width:100%;">'
@@ -2679,9 +2668,9 @@ function renderForecast(d) {
             + '</div>';
         }).join('');
   } else {
+    document.getElementById('overload-subtitle').textContent = '담당자 과부하 경보';
     document.getElementById('forecast-overload').innerHTML =
-      '<div class="fc-overload-label">담당자 과부하 경보</div>'
-      + (d.overload||[]).map(function(o) {
+      (d.overload||[]).map(function(o) {
           return '<div class="fc-overload-row">'
             + '<span class="fc-overload-name">'+escHtml(o.name)+'</span>'
             + '<div class="fc-overload-track"><div class="fc-overload-fill" style="width:'+o.pct+'%;background:'+(o.level==='danger'?'var(--red)':o.level==='warning'?'var(--amber)':'var(--green)')+'"></div></div>'
@@ -2810,7 +2799,7 @@ function renderGroupDetail(groupName) {
     var badgeBg=hasOv?'#c0392b':'#333';
     html+='<div>'
       +'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
-      +'<div style="width:26px;height:26px;border-radius:50%;background:'+badgeBg+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">'+escHtml(shortN.slice(0,1))+'</div>'
+      +'<div style="width:26px;height:26px;border-radius:0;background:'+badgeBg+';color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">'+escHtml(shortN.slice(0,1))+'</div>'
       +'<div style="flex:1;font-size:12px;font-weight:600;">'+escHtml(shortN)+'</div>'
       +'<div style="font-size:10px;color:var(--text-dim);">전체 <b style="color:var(--text);">'+activeIssues.length+'</b>건</div>'
       +(hasOv?'<div style="font-size:10px;color:#c0392b;font-weight:600;margin-left:8px;">지연 '+overdueIssues.length+'건</div>':'')
