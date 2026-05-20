@@ -3687,9 +3687,11 @@ async function generateAiSummary(){
       }).join('');
     }else if(data.error){
       if(headEl)headEl.textContent='';
-      el.innerHTML='<div style="font-size:10px;color:var(--text-muted);line-height:1.6;">'+escHtml(data.error)+'<br><button onclick="generateAiSummary()" style="margin-top:8px;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;cursor:pointer;">↻ 다시 시도</button></div>';
+      var isCreditErr=data.error&&data.error.indexOf('credit')!==-1;
+      var errMsg=isCreditErr?'AI 분석 서비스 점검 중입니다. 잠시 후 다시 시도해주세요.':escHtml(data.error);
+      el.innerHTML='<div style="font-size:10px;color:var(--text-muted);line-height:1.8;">'+errMsg+'</div>';
     }
-  }catch(e){if(headEl)headEl.textContent='';el.innerHTML='<div style="font-size:10px;color:var(--text-muted);">서버에 연결할 수 없습니다.<br><button onclick="generateAiSummary()" style="margin-top:8px;font-size:9px;letter-spacing:0.08em;text-transform:uppercase;background:none;border:1px solid var(--border);color:var(--text-muted);padding:4px 10px;cursor:pointer;">↻ 다시 시도</button></div>';}
+  }catch(e){if(headEl)headEl.textContent='';el.innerHTML='<div style="font-size:10px;color:var(--text-muted);line-height:1.8;">AI 분석 서비스 점검 중입니다. 잠시 후 다시 시도해주세요.</div>';}
 }
 function openAiSummary(){
   var el=document.getElementById('sec-ai-summary');
