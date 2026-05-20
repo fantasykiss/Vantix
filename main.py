@@ -449,7 +449,7 @@ _scheduler.add_job(_job_weekly_report, CronTrigger(
     day_of_week=REPORT_DAY, hour=REPORT_HOUR, minute=REPORT_MINUTE
 ), id="weekly_report")
 _scheduler.add_job(save_risk_snapshot, CronTrigger(
-    hour=9, minute=0, timezone="Asia/Seoul"
+    day_of_week='mon', hour=9, minute=0, timezone="Asia/Seoul"
 ), id="risk_snapshot")
 _scheduler.add_job(_job_send_monitor_alerts, CronTrigger(
     hour=9, minute=5, timezone="Asia/Seoul"
@@ -1329,16 +1329,64 @@ async def api_risk_history(project_id: str = "", weeks: int = 12, s: dict = Depe
                     key = name_key if name_key in history else "all"
                 except Exception:
                     key = "all"
-    records = history.get(key, [])[-weeks:]
+    records = history.get(key, [])
+
+    # 프로젝트 데이터가 너무 적으면 "all" 키로 폴백 (레드마인 인스턴스 변경 등으로 키가 달라진 경우 대응)
+    if key != "all" and len(records) < 3:
+        records = history.get("all", [])
+
+    # 월요일 기준 주별 그룹핑 — 같은 주의 마지막(최신) 스냅샷만 사용
+    from datetime import date as _date
+    week_map = {}
+    for r in records:
+        try:
+            d = _date.fromisoformat(r["date"])
+            # 해당 날짜의 월요일 구하기 (weekday: 0=월)
+            monday = d - timedelta(days=d.weekday())
+            week_key = monday.isoformat()
+            week_map[week_key] = r  # 같은 주면 나중 것(최신)으로 덮어쓰기
+        except Exception:
+            continue
+
+    # 월요일 날짜 기준 오름차순 정렬 후 최근 N주만 사용
+    sorted_weeks = sorted(week_map.items())[-weeks:]
+
+    # All Projects 뷰일 때 주별 프로젝트 breakdown 수집
+    proj_week_map = {}  # monday_str → {proj_key: record}
+    if key == "all":
+        for hkey, hrecords in history.items():
+            if not hkey.startswith("project_"):
+                continue
+            proj_name = hkey[len("project_"):]
+            for pr in hrecords:
+                try:
+                    pd = _date.fromisoformat(pr["date"])
+                    pm = pd - timedelta(days=pd.weekday())
+                    pm_str = pm.isoformat()
+                    proj_week_map.setdefault(pm_str, {})[proj_name] = pr
+                except Exception:
+                    continue
 
     result = []
-    for idx, r in enumerate(records, 1):
-        result.append({
+    for idx, (monday_str, r) in enumerate(sorted_weeks, 1):
+        item = {
             "week": f"W{idx}",
             "score": r["score"],
             "level": r["level"],
-            "date": r["date"]
-        })
+            "date": monday_str
+        }
+        # All Projects — 해당 주의 프로젝트 목록 추가 (점수 내림차순)
+        if key == "all" and monday_str in proj_week_map:
+            projs = []
+            for pname, pr in proj_week_map[monday_str].items():
+                projs.append({
+                    "name": pname,
+                    "score": pr["score"],
+                    "level": pr["level"]
+                })
+            projs.sort(key=lambda x: x["score"], reverse=True)
+            item["projects"] = projs
+        result.append(item)
 
     return {"history": result}
 

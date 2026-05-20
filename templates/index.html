@@ -412,31 +412,31 @@ body {
 .ai-gear-btn.active { background: var(--bg-muted); opacity: 1; }
 .ai-settings-panel {
   display: none; position: absolute; top: 44px; right: 20px;
-  background: var(--bg-white); border: 1px solid var(--border); border-radius: 0;
-  padding: 14px 16px; z-index: 10; width: 220px;
-  box-shadow: 0 4px 16px rgba(0,0,0,0.08);
+  background: var(--bg); border: 1px solid var(--border); border-radius: 0;
+  padding: 14px 16px; z-index: 10; width: 240px;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.24);
 }
 .ai-settings-panel.open { display: block; }
 .ai-settings-label {
-  font-family: var(--display); font-size: 10px; font-weight: 600; color: #999;
-  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 10px;
+  font-family: var(--sans); font-size: 10px; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px;
 }
 .ai-settings-row { margin-bottom: 12px; }
 .ai-settings-row label {
-  font-family: var(--dm); font-size: 11px; color: #555;
-  display: block; margin-bottom: 6px;
+  font-family: var(--sans); font-size: 10px; font-weight: 600; color: var(--text-muted);
+  letter-spacing: 0.06em; text-transform: uppercase; display: block; margin-bottom: 6px;
 }
 .ai-dow-btns { display: flex; gap: 4px; }
 .ai-dow-btn {
-  flex: 1; padding: 5px 2px; font-family: var(--dm); font-size: 10px;
-  font-weight: 500; border: 1px solid var(--border); border-radius: 0;
-  background: var(--bg-white); color: var(--text-muted); cursor: pointer; text-align: center;
+  flex: 1; padding: 5px 2px; font-family: var(--sans); font-size: 10px;
+  font-weight: 600; border: 1px solid var(--border); border-radius: 0;
+  background: transparent; color: var(--text-muted); cursor: pointer; text-align: center;
 }
 .ai-dow-btn.active { background: var(--text); color: var(--bg); border-color: var(--text); }
 .ai-settings-apply {
-  width: 100%; padding: 8px; font-family: var(--dm); font-size: 10px;
-  font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase;
-  background: var(--text); color: #fff; border: none; border-radius: 0;
+  width: 100%; padding: 8px; font-family: var(--sans); font-size: 10px;
+  font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  background: var(--text); color: var(--bg); border: none; border-radius: 0;
   cursor: pointer; margin-top: 4px;
 }
 .ai-chart-sub { font-family: var(--dm); font-size: 10px; color: #aaa; margin-bottom: 12px; }
@@ -457,13 +457,52 @@ body {
   flex: 1; height: 100%; justify-content: flex-end;
 }
 .ai-bar { width: 100%; border-radius: 0; min-height: 3px; }
-.ai-bar.low      { background: var(--text-dim); }
+.ai-bar.low      { background: #22c55e; }
+.ai-bar.medium   { background: #d97706; }
+.ai-bar.high     { background: #f97316; }
+.ai-bar.critical { background: #ef4444; }
 .ai-bar.normal   { background: var(--text-muted); }
-.ai-bar.critical { background: var(--red); }
 .ai-bar-labels { display: flex; gap: 10px; margin-top: 6px; }
 .ai-bar-label {
   flex: 1; text-align: center; font-family: var(--dm);
   font-size: 10px; color: #aaa;
+}
+/* ── Risk Chart Tooltip ── */
+.risk-bar-tooltip {
+  position: fixed; display: none; z-index: 200; pointer-events: none;
+  background: var(--bg); border: 1px solid var(--border);
+  padding: 10px 13px; min-width: 150px;
+  font-family: var(--sans); font-size: 11px; color: var(--text);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.35);
+}
+.risk-bar-tooltip .tt-header {
+  font-size: 10px; color: var(--text-muted); font-weight: 600;
+  letter-spacing: 0.04em; margin-bottom: 7px;
+}
+.risk-bar-tooltip .tt-main {
+  display: flex; align-items: baseline; gap: 8px; margin-bottom: 4px;
+}
+.risk-bar-tooltip .tt-score { font-size: 20px; font-weight: 700; line-height: 1; }
+.risk-bar-tooltip .tt-level { font-size: 10px; font-weight: 700; letter-spacing: 0.08em; }
+.risk-bar-tooltip .tt-delta {
+  font-size: 10px; color: var(--text-muted); margin-bottom: 8px;
+}
+.risk-bar-tooltip .tt-delta.up   { color: #ef4444; }
+.risk-bar-tooltip .tt-delta.down { color: #22c55e; }
+.risk-bar-tooltip .tt-divider {
+  border: none; border-top: 1px solid var(--border); margin: 7px 0;
+}
+.risk-bar-tooltip .tt-proj-row {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 10px; padding: 2px 0;
+}
+.risk-bar-tooltip .tt-proj-name {
+  flex: 1; color: var(--text-muted); overflow: hidden;
+  text-overflow: ellipsis; white-space: nowrap; max-width: 110px;
+}
+.risk-bar-tooltip .tt-proj-score { font-weight: 700; }
+.risk-bar-tooltip .tt-proj-dot {
+  width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0;
 }
 .risk-chart-empty {
   display: flex; align-items: center; justify-content: center;
@@ -1541,7 +1580,8 @@ body {
 .sb-cal-cell.other .sb-cal-day-num { color:var(--text-dim); opacity:0.35; }
 .sb-cal-day-num { width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--text-muted); border-radius:0; transition:background 0.1s; }
 .sb-cal-cell:not(.other):hover .sb-cal-day-num { background:var(--bg-muted); }
-.sb-cal-day-num.today { background:var(--text); color:var(--bg); font-weight:700; }
+.sb-cal-day-num.today { background:transparent; color:var(--text); font-weight:700; outline:1.5px solid var(--text); outline-offset:-1px; }
+[data-theme="light"] .sb-cal-day-num.today { background:var(--text); color:#fff; outline:none; }
 .sb-cal-day-num.holiday { color:#c0392b; }
 .sb-cal-day-num.sat { color:#3b82f6; }
 .sb-cal-dot-row { display:flex; gap:2px; height:4px; align-items:center; justify-content:center; }
@@ -1556,7 +1596,7 @@ body {
 .sb-cal-pin-input { padding:8px 0 4px; display:flex; gap:4px; align-items:center; }
 .sb-cal-pin-input input { flex:1; border:1px solid var(--border); padding:4px 7px; font-size:10px; font-family:var(--sans); outline:none; background:var(--bg-white); color:var(--text); }
 .sb-cal-pin-input input:focus { border-color:#888; }
-.sb-cal-pin-input button { border:none; background:var(--text); color:#fff; padding:4px 8px; font-size:10px; cursor:pointer; flex-shrink:0; }
+.sb-cal-pin-input button { border:none; background:none; color:#888; padding:4px 6px; font-size:13px; cursor:pointer; flex-shrink:0; line-height:1; }
 .sb-cal-pin-list { margin-top:6px; display:flex; flex-direction:column; }
 .sb-cal-pin-item { display:flex; align-items:center; gap:8px; padding:6px 2px; border-bottom:1px solid var(--border); }
 .sb-cal-pin-item:last-child { border-bottom:none; }
@@ -1763,9 +1803,9 @@ body > footer { display: none; }
         <div class="ai-chart-title">RISK SCORE TRENDS</div>
         <div class="ai-chart-header-right">
           <div class="ai-legend">
-            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#ccc;"></div> LOW</div>
-            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#333;"></div> AVG</div>
-            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:var(--red);"></div> CRITICAL</div>
+            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#22c55e;"></div> LOW</div>
+            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#f97316;"></div> HIGH</div>
+            <div class="ai-legend-item"><div class="ai-legend-dot" style="background:#ef4444;"></div> CRITICAL</div>
           </div>
           <button class="ai-gear-btn" id="riskGearBtn" onclick="toggleRiskSettings()">&#9881;&#xFE0E;</button>
         </div>
@@ -1780,9 +1820,16 @@ body > footer { display: none; }
             <div class="ai-dow-btn" onclick="setWeeks(this,12)">12주</div>
           </div>
         </div>
-        <button class="ai-settings-apply" onclick="applyRiskSettings()">Apply</button>
+        <div class="ai-settings-row">
+          <label>X축 레이블</label>
+          <div class="ai-dow-btns" id="labelModeBtns">
+            <div class="ai-dow-btn active" onclick="setLabelMode(this,'week')">W1 W2</div>
+            <div class="ai-dow-btn" onclick="setLabelMode(this,'date')">M.D</div>
+          </div>
+        </div>
+        <button class="ai-settings-apply" onclick="applyRiskSettings()">APPLY</button>
       </div>
-      <div class="ai-chart-sub">Weekly volatility · updated every Friday</div>
+      <div class="ai-chart-sub">Weekly volatility · updated every Monday</div>
       <div class="ai-chart-area">
         <div class="ai-gridlines">
           <div class="ai-gridline"></div><div class="ai-gridline"></div>
@@ -1796,6 +1843,8 @@ body > footer { display: none; }
       <div class="ai-bar-labels" id="riskChartLabels"></div>
     </div>
   </div>
+  <!-- Risk chart tooltip -->
+  <div class="risk-bar-tooltip" id="riskBarTooltip"></div>
 
 <!-- ══ KPI ROW  (3 + 3 + 3 + 3 cols) ══════════════════════════ -->
 
@@ -2295,7 +2344,7 @@ function updateSbRiskColors(){
 }
 
 var _calYear, _calMonth, _calHolidays={};
-var _PIN_COLORS=['#c0392b','#e57300','#b7770d','#2563eb','#6366f1'];
+var _PIN_COLORS=['#c0392b','#2563eb','#e57300','#6366f1','#b7770d'];
 var _calPins=JSON.parse(localStorage.getItem('vantix_cal_pins')||'[]');
 
 function _savePins(){ localStorage.setItem('vantix_cal_pins',JSON.stringify(_calPins)); }
@@ -2325,13 +2374,16 @@ function calDayClick(dateKey){
   wrap.className='sb-cal-pin-input';
   wrap.innerHTML='<span style="width:7px;height:7px;border-radius:50%;background:'+color+';flex-shrink:0;display:inline-block;"></span>'
     +'<input id="sb-pin-text" placeholder="'+label+' 일정 제목" maxlength="20" autofocus autocomplete="new-password" name="cal-title-'+Date.now()+'">'
-    +'<button onclick="calPinConfirm(\''+dateKey+'\',\''+color+'\')">+</button>';
+    +'<button onclick="calPinConfirm(\''+dateKey+'\',\''+color+'\')">↵</button>';
   document.getElementById('sb-calendar').appendChild(wrap);
   var input=document.getElementById('sb-pin-text');
   input.focus();
   input.onkeydown=function(e){
     if(e.key==='Enter') calPinConfirm(dateKey,color);
     if(e.key==='Escape'){ wrap.remove(); }
+  };
+  input.onblur=function(){
+    setTimeout(function(){ if(!input.value.trim()){ var w=document.getElementById('sb-cal-input-wrap'); if(w) w.remove(); } },150);
   };
 }
 
@@ -2610,8 +2662,12 @@ async function loadData() {
     setServerStatus('online');
     renderAll();
     _riskWeeks = parseInt(localStorage.getItem('riskWeeks')||'12');
+    _riskLabelMode = localStorage.getItem('riskLabelMode')||'week';
     document.querySelectorAll('#weeksBtns .ai-dow-btn').forEach(function(b){
       b.classList.toggle('active',b.getAttribute('onclick').includes(','+_riskWeeks+')'));
+    });
+    document.querySelectorAll('#labelModeBtns .ai-dow-btn').forEach(function(b){
+      b.classList.toggle('active',b.getAttribute('onclick').includes("'"+_riskLabelMode+"'"));
     });
     loadRiskHistory();
     loadForecast();
@@ -2926,7 +2982,7 @@ function renderSummaryCards() {
     if(scoreDisplayEl){var normalizedScore=Math.min(Math.round(topRisk.risk_score*100/60),100);scoreDisplayEl.textContent=normalizedScore;scoreDisplayEl.style.color=rc.text;}
     if(subEl) subEl.textContent='';
     var gaugeFill=document.getElementById('risk-gauge-fill');
-    if(gaugeFill){var s=topRisk.risk_score,pct;if(s<5)pct=(s/5)*25;else if(s<15)pct=25+((s-5)/10)*25;else if(s<30)pct=50+((s-15)/15)*25;else pct=75+Math.min((s-30)/70,1)*25;gaugeFill.style.width=pct.toFixed(1)+'%';gaugeFill.style.background=rc.dot;}
+    if(gaugeFill){var s=topRisk.risk_score,pct;if(s<5)pct=(s/5)*25;else if(s<15)pct=25+((s-5)/10)*25;else if(s<30)pct=50+((s-15)/15)*25;else pct=75+Math.min((s-30)/70,1)*25;gaugeFill.style.width=pct.toFixed(1)+'%';gaugeFill.style.background=rc.text;}
     var commentEl=document.getElementById('risk-ai-comment-text');
     if(commentEl){
       var parts=[];
@@ -3597,9 +3653,11 @@ function closeSettingsModal(e){if(e&&e.target===document.getElementById('setting
 // Risk Chart
 // ============================================================
 var _riskWeeks=12;
+var _riskLabelMode='week';
 function toggleRiskSettings(){var panel=document.getElementById('riskSettingsPanel'),btn=document.getElementById('riskGearBtn');panel.classList.toggle('open');btn.classList.toggle('active');}
 function setWeeks(el,val){el.parentElement.querySelectorAll('.ai-dow-btn').forEach(function(b){b.classList.remove('active');});el.classList.add('active');_riskWeeks=val;}
-function applyRiskSettings(){localStorage.setItem('riskWeeks',_riskWeeks);document.getElementById('riskSettingsPanel').classList.remove('open');document.getElementById('riskGearBtn').classList.remove('active');loadRiskHistory();}
+function setLabelMode(el,mode){el.parentElement.querySelectorAll('.ai-dow-btn').forEach(function(b){b.classList.remove('active');});el.classList.add('active');_riskLabelMode=mode;}
+function applyRiskSettings(){localStorage.setItem('riskWeeks',_riskWeeks);localStorage.setItem('riskLabelMode',_riskLabelMode);document.getElementById('riskSettingsPanel').classList.remove('open');document.getElementById('riskGearBtn').classList.remove('active');loadRiskHistory();}
 async function loadRiskHistory(){
   try{
     var params=new URLSearchParams({project_id:currentProjectId,weeks:_riskWeeks});
@@ -3632,8 +3690,92 @@ function renderRiskChart(history){
     return'<div class="ai-bar-group"><div class="ai-bar normal" style="height:'+h+'%;opacity:0.12;"></div></div>';
   }).join('');
   var emptyLabels='<div class="ai-bar-label"></div>'.repeat(emptyCount);
-  bars.innerHTML=emptyBars+history.map(function(d){var h=Math.max(4,Math.round((d.score/maxScore)*100));var lvl=(d.level||'').toLowerCase();var cls=lvl==='critical'?'critical':lvl==='low'?'low':'normal';return'<div class="ai-bar-group"><div class="ai-bar '+cls+'" style="height:'+h+'%;"></div></div>';}).join('');
-  labels.innerHTML=emptyLabels+history.map(function(d){return'<div class="ai-bar-label">'+d.week+'</div>';}).join('');
+
+  // 막대 렌더링 — data-idx로 history 인덱스 저장
+  bars.innerHTML=emptyBars+history.map(function(d,i){
+    var h=Math.max(4,Math.round((d.score/maxScore)*100));
+    var lvl=(d.level||'').toLowerCase();
+    var cls=lvl==='critical'?'critical':lvl==='high'?'high':lvl==='medium'?'medium':lvl==='low'?'low':'normal';
+    return'<div class="ai-bar-group" data-idx="'+i+'" onmouseenter="showRiskTooltip('+i+')" onmousemove="moveRiskTooltip(event)" onmouseleave="hideRiskTooltip()"><div class="ai-bar '+cls+'" style="height:'+h+'%;"></div></div>';
+  }).join('');
+
+  labels.innerHTML=emptyLabels+history.map(function(d){
+    var lbl=d.week;
+    if(_riskLabelMode==='date'&&d.date){var p=d.date.split('-');lbl=(parseInt(p[1])+'/'+(parseInt(p[2])));}
+    return'<div class="ai-bar-label">'+lbl+'</div>';
+  }).join('');
+
+  // history 전역 저장 (툴팁에서 참조)
+  window._riskHistoryData=history;
+}
+
+var _LEVEL_COLORS={critical:'#ef4444',high:'#f97316',medium:'#d97706',low:'#22c55e'};
+
+function showRiskTooltip(idx){
+  var tip=document.getElementById('riskBarTooltip');
+  if(!tip||!window._riskHistoryData)return;
+  var history=window._riskHistoryData;
+  var d=history[idx];
+  if(!d)return;
+
+  var lvl=(d.level||'').toLowerCase();
+  var color=_LEVEL_COLORS[lvl]||'#999';
+
+  // 날짜 레이블
+  var dateStr=d.week;
+  if(d.date){var p=d.date.split('-');dateStr='W'+(idx+1)+' · '+(parseInt(p[1]))+'/'+(parseInt(p[2]));}
+
+  // 전주 대비 델타
+  var deltaHtml='';
+  if(idx>0){
+    var prev=history[idx-1];
+    var diff=Math.round((d.score-prev.score)*10)/10;
+    var sign=diff>0?'↑ +':'↓ ';
+    var cls=diff>0?'up':diff<0?'down':'';
+    if(diff===0){deltaHtml='<div class="tt-delta">— 전주와 동일</div>';}
+    else{deltaHtml='<div class="tt-delta '+cls+'">'+sign+Math.abs(diff)+' vs 전주</div>';}
+  }
+
+  // 프로젝트 breakdown (All Projects 뷰)
+  var projHtml='';
+  if(d.projects&&d.projects.length>0){
+    projHtml+='<hr class="tt-divider">';
+    d.projects.forEach(function(p){
+      var plvl=(p.level||'').toLowerCase();
+      var pc=_LEVEL_COLORS[plvl]||'#999';
+      var plvlLabel=p.level.toUpperCase().slice(0,4);
+      projHtml+='<div class="tt-proj-row">'
+        +'<div class="tt-proj-dot" style="background:'+pc+';"></div>'
+        +'<div class="tt-proj-name">'+escHtml(p.name)+'</div>'
+        +'<div class="tt-proj-score" style="color:'+pc+';">'+p.score+'</div>'
+        +'<div style="font-size:9px;color:'+pc+';font-weight:700;letter-spacing:0.05em;margin-left:3px;">'+plvlLabel+'</div>'
+        +'</div>';
+    });
+  }
+
+  tip.innerHTML=
+    '<div class="tt-header">'+dateStr+'</div>'
+    +'<div class="tt-main">'
+      +'<span class="tt-score" style="color:'+color+';">'+d.score+'</span>'
+      +'<span class="tt-level" style="color:'+color+';">'+(d.level||'').toUpperCase()+'</span>'
+    +'</div>'
+    +deltaHtml
+    +projHtml;
+
+  tip.style.display='block';
+}
+
+function moveRiskTooltip(e){
+  var tip=document.getElementById('riskBarTooltip');
+  if(!tip||tip.style.display==='none')return;
+  // 툴팁 오른쪽 하단 모서리가 커서 끝에 맞닿도록
+  tip.style.left=(e.clientX-tip.offsetWidth)+'px';
+  tip.style.top=(e.clientY-tip.offsetHeight)+'px';
+}
+
+function hideRiskTooltip(){
+  var tip=document.getElementById('riskBarTooltip');
+  if(tip)tip.style.display='none';
 }
 
 // ============================================================
