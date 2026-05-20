@@ -114,6 +114,10 @@
 /* ── Reset ── */
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+html {
+  overscroll-behavior: none;
+}
+
 body {
   font-family: var(--sans);
   background: var(--bg);
@@ -122,6 +126,7 @@ body {
   font-size: 13px;
   -webkit-font-smoothing: antialiased;
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -1210,6 +1215,8 @@ body {
   margin-top: 52px;
   height: calc(100vh - 52px);
   overflow-y: auto;
+  overflow-x: hidden;
+  overscroll-behavior: none;
 }
 
 .sb-section-label {
@@ -4023,7 +4030,7 @@ function showView(view){
   document.querySelectorAll('.sb-view-item').forEach(function(el){
     el.classList.toggle('active', el.dataset.view===view);
   });
-  window.scrollTo({top:0,behavior:'smooth'});
+  var pm=document.getElementById('page-main');if(pm)pm.scrollTop=0;
 }
 
 function sbToggle(id){
