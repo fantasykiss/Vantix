@@ -1631,6 +1631,7 @@ body {
 
 /* Toggle button */
 #sb-toggle-btn {
+  /* 데스크탑: 항상 숨김 */
   display: none;
   align-items: center; justify-content: center;
   width: 26px; height: 26px; flex-shrink: 0;
@@ -1639,7 +1640,11 @@ body {
   transition: color 0.15s, background 0.15s;
   margin-right: 12px;
 }
-#sb-toggle-btn.visible { display: inline-flex; }
+/* 모바일: CSS로 기본 표시 — JS 타이밍 이슈 방지 */
+@media (max-width: 768px) {
+  #sb-toggle-btn { display: inline-flex; }
+  #sb-toggle-btn.sb-is-open { display: none; }
+}
 #sb-toggle-btn:hover { color: var(--text); background: var(--sb-hover-bg); }
 
 /* footer가 있다면 page-main 안에서 흘러야 하므로 body footer 제거 */
@@ -2543,8 +2548,9 @@ function _updateToggleBtn() {
   if (!btn) return;
   var sidebar = document.getElementById('app-sidebar');
   var isOpen  = sidebar.classList.contains('sb-open');
-  // 좁은 화면이고 사이드바가 닫혀 있을 때만 버튼 표시
-  btn.classList.toggle('visible', _sbNarrow && !isOpen);
+  // 모바일: CSS로 기본 표시, 사이드바 열렸을 때만 JS로 숨김
+  // 데스크탑: CSS display:none 고정 (미디어쿼리)
+  btn.classList.toggle('sb-is-open', isOpen);
 }
 
 function openSidebar() {
@@ -2576,9 +2582,10 @@ function initSidebarState() {
   _sbNarrow = window.innerWidth <= 768;
   _updateToggleBtn();
   window.addEventListener('resize', function() {
+    var wasNarrow = _sbNarrow;
     _sbNarrow = window.innerWidth <= 768;
-    // 넓어지면 자동으로 오버레이 닫기
-    if (!_sbNarrow) closeSidebar();
+    // 넓은 화면으로 전환 시 오버레이 닫기
+    if (wasNarrow && !_sbNarrow) closeSidebar();
     _updateToggleBtn();
   });
 }
