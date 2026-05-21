@@ -1248,14 +1248,33 @@ body {
 /* ── Notice Panel ── */
 .sb-notice-panel {
   flex-shrink: 0;
-  margin: 28px 10px 0;
-  padding: 11px 11px 12px;
-  background: rgba(255,255,255,0.045);
-  border: 1px solid rgba(255,255,255,0.1);
+  margin: 28px 4px 0;
+  padding: 14px 11px 16px;
+  background: transparent;
+  position: relative;
 }
-[data-theme="light"] .sb-notice-panel {
-  background: rgba(0,0,0,0.05);
-  border: 1px solid rgba(0,0,0,0.09);
+.sb-notice-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.06);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 0 52px 28px rgba(0,0,0,0.6);
+  -webkit-mask-image:
+    linear-gradient(to bottom, transparent 0%, black 16%, black 84%, transparent 100%),
+    linear-gradient(to right,  transparent 0%, black 8%,  black 92%, transparent 100%);
+  -webkit-mask-composite: destination-in;
+  mask-image:
+    linear-gradient(to bottom, transparent 0%, black 16%, black 84%, transparent 100%),
+    linear-gradient(to right,  transparent 0%, black 8%,  black 92%, transparent 100%);
+  mask-composite: intersect;
+  z-index: 0;
+  pointer-events: none;
+}
+[data-theme="light"] .sb-notice-panel::before {
+  background: rgba(220,217,212,0.55);
+  box-shadow: 0 0 52px 28px rgba(180,177,172,0.55);
 }
 .sb-notice-title {
   font-family: var(--mono);
@@ -1268,6 +1287,8 @@ body {
   display: flex;
   align-items: center;
   gap: 6px;
+  position: relative;
+  z-index: 1;
 }
 .sb-notice-title::after {
   content: '';
@@ -1277,23 +1298,25 @@ body {
   opacity: 0.4;
 }
 .sb-notice-card {
-  background: rgba(255,255,255,0.06);
-  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(40,40,40,0.85);
+  border: 1px solid rgba(255,255,255,0.08);
   padding: 9px 10px;
   margin-bottom: 5px;
   display: flex;
   gap: 8px;
   align-items: flex-start;
-  transition: background 0.15s;
+  transition: background 0.15s, opacity 0.45s ease;
+  position: relative;
+  z-index: 1;
 }
 .sb-notice-card:last-child { margin-bottom: 0; }
-.sb-notice-card:hover { background: rgba(255,255,255,0.1); }
+.sb-notice-card:hover { background: #2e2e2e; }
 .sb-notice-card.done { opacity: 0.35; }
 [data-theme="light"] .sb-notice-card {
-  background: rgba(0,0,0,0.05);
+  background: rgba(210,206,200,0.85);
   border: 1px solid rgba(0,0,0,0.08);
 }
-[data-theme="light"] .sb-notice-card:hover { background: rgba(0,0,0,0.09); }
+[data-theme="light"] .sb-notice-card:hover { background: rgba(200,196,190,0.9); }
 .sb-notice-priority {
   width: 4px;
   height: 4px;
@@ -1696,7 +1719,7 @@ body {
 .sb-cal-cell.other { cursor:default; pointer-events:none; }
 .sb-cal-cell.other .sb-cal-day-num { color:var(--text-dim); opacity:0.35; }
 .sb-cal-day-num { width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-size:10px; color:var(--text-muted); border-radius:0; transition:background 0.1s; }
-.sb-cal-cell:not(.other):hover .sb-cal-day-num { background:var(--bg-muted); }
+.sb-cal-cell:not(.other):hover .sb-cal-day-num { background:var(--sb-hover-bg); }
 .sb-cal-day-num.today { background:transparent; color:var(--text); font-weight:700; outline:1.5px solid var(--text); outline-offset:-1px; }
 [data-theme="light"] .sb-cal-day-num.today { background:var(--text); color:#fff; outline:none; }
 .sb-cal-day-num.holiday { color:#c0392b; }
@@ -1727,6 +1750,14 @@ body {
 @media (max-width: 768px) {
   .app-sidebar { transform: translateX(-100%); }
   #page-main   { margin-left: 0 !important; }
+  .sb-notice-panel {
+    opacity: 0;
+    transition: opacity 0.35s ease;
+  }
+  .app-sidebar.sb-open .sb-notice-panel {
+    opacity: 1;
+    transition: opacity 0.4s ease 0.2s;
+  }
 }
 
 /* ── Sidebar transition ── */
@@ -2042,8 +2073,7 @@ body > footer { display: none; }
     <!-- 헤더 -->
     <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:18px;">
       <div>
-        <div style="font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#1B4FFF;border:1px solid #1B4FFF;padding:3px 10px;display:inline-block;margin-bottom:4px;">AI INSIGHTS</div>
-        <div id="aiHeadline" style="font-size:20px;font-weight:800;letter-spacing:-0.03em;color:var(--text);line-height:1;">—</div>
+        <div style="font-family:var(--sans);font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:#1B4FFF;border:1px solid #1B4FFF;padding:3px 10px;display:inline-block;">AI INSIGHTS</div>
       </div>
       <div style="display:flex;align-items:center;gap:14px;">
         <span id="ai-timestamp" style="font-family:var(--mono);font-size:9px;color:var(--text-dim);display:none;">LAST ANALYZED —</span>
@@ -2052,11 +2082,11 @@ body > footer { display: none; }
       </div>
     </div>
 
-    <!-- AI 요약 텍스트 -->
-    <div id="aiSummaryText" style="font-family:var(--mono);font-size:10px;color:var(--text-muted);letter-spacing:0.04em;line-height:1.8;margin-bottom:28px;">프로젝트 데이터 기반으로 AI가 리스크를 분석합니다. 버튼을 눌러 시작하세요.</div>
+    <!-- 요약 칩 (critical/warning/info 카운트) -->
+    <div id="ai-summary-chips" style="margin-bottom:20px;"></div>
 
-    <!-- AI 시그널 리스트 -->
-    <div id="ai-signals-list" style="border-top:1px solid var(--border);"></div>
+    <!-- 인사이트 카드 리스트 -->
+    <div id="ai-signals-list"></div>
 
   </div>
 
@@ -2789,6 +2819,7 @@ async function init() {
   await loadData();
   loadAllProjectRisks();
   loadForecast();
+  runAiAnalysis();
 }
 
 async function loadProjects() {
@@ -3980,56 +4011,76 @@ function hideRiskTooltip(){
 // AI Analysis (unified entry point)
 // ============================================================
 async function runAiAnalysis() {
-  var btn     = document.getElementById('ai-analyze-btn');
-  var reBtn   = document.getElementById('ai-reanalyze-btn');
-  var ts      = document.getElementById('ai-timestamp');
+  var btn   = document.getElementById('ai-analyze-btn');
+  var reBtn = document.getElementById('ai-reanalyze-btn');
+  var ts    = document.getElementById('ai-timestamp');
+  var list  = document.getElementById('ai-signals-list');
+  var chips = document.getElementById('ai-summary-chips');
+
   if (btn) { btn.textContent = '분석 중...'; btn.disabled = true; }
-  await generateAiSummary();
-  await new Promise(function(resolve) { loadActionSignals(true, resolve); });
-  if (btn) { btn.style.display = 'none'; }
-  if (reBtn) { reBtn.style.display = ''; }
+  if (list) list.innerHTML = '<div style="padding:20px 0;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--text-dim);text-align:center;">분석 중...</div>';
+  if (chips) chips.innerHTML = '';
+
+  var STRIPE = {critical:'#B40023', warning:'#c47a00', info:'#1d4a7a'};
+  var RULE_C = {critical:'#7a0018', warning:'#7a4c00', info:'#1d3d5a'};
+
+  try {
+    var params = new URLSearchParams({
+      project_id: currentProjectId || '',
+      updated_after: currentUpdatedAfter || '2026-03-01'
+    });
+    var res = await fetch('/api/insights?' + params);
+    var data = await res.json();
+    var insights = data.insights || [];
+
+    // 요약 칩
+    var nc = insights.filter(function(i){return i.level==='critical';}).length;
+    var nw = insights.filter(function(i){return i.level==='warning';}).length;
+    var ni = insights.filter(function(i){return i.level==='info';}).length;
+    if (chips && (nc+nw+ni) > 0) {
+      chips.innerHTML =
+        '<div style="display:flex;gap:24px;padding-bottom:18px;border-bottom:1px solid rgba(255,255,255,0.06);margin-bottom:4px;">' +
+        '<div style="display:flex;align-items:baseline;gap:8px;"><span style="font-family:var(--mono);font-size:22px;font-weight:700;color:#B40023;">' + nc + '</span><span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#444;">Critical</span></div>' +
+        '<div style="display:flex;align-items:baseline;gap:8px;"><span style="font-family:var(--mono);font-size:22px;font-weight:700;color:#c47a00;">' + nw + '</span><span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#444;">Warning</span></div>' +
+        '<div style="display:flex;align-items:baseline;gap:8px;"><span style="font-family:var(--mono);font-size:22px;font-weight:700;color:#2a5a8a;">' + ni + '</span><span style="font-family:var(--mono);font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#444;">Info</span></div>' +
+        '</div>';
+    }
+
+    if (!insights.length) {
+      if (list) list.innerHTML = '<div style="padding:20px 0;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--text-dim);text-align:center;">감지된 리스크 없음</div>';
+    } else {
+      if (list) list.innerHTML = '<div style="display:flex;flex-direction:column;gap:1px;">' +
+        insights.map(function(ins) {
+          var sc = STRIPE[ins.level] || '#333';
+          var rc = RULE_C[ins.level] || '#444';
+          var ruleLabel = ins.rule.replace(/_/g, ' ');
+          return '<div style="display:grid;grid-template-columns:3px 1fr;align-items:stretch;background:rgba(255,255,255,0.018);">' +
+            '<div style="background:' + sc + ';"></div>' +
+            '<div style="padding:11px 20px;">' +
+            '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">' +
+            '<span style="font-family:var(--mono);font-size:8px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:' + rc + ';">' + ruleLabel + '</span>' +
+            '<span style="font-family:var(--mono);font-size:8px;color:#2a2a2a;letter-spacing:0.06em;white-space:nowrap;">' + escHtml(ins.target) + '</span>' +
+            '</div>' +
+            '<div style="font-size:13px;line-height:1.6;color:#777;">' + ins.body + '</div>' +
+            '</div>' +
+            '</div>';
+        }).join('') + '</div>';
+    }
+  } catch(e) {
+    if (list) list.innerHTML = '<div style="padding:20px 0;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--text-dim);text-align:center;">분석 실패 — 다시 시도해주세요</div>';
+  }
+
+  if (btn) { btn.style.display = 'none'; btn.disabled = false; }
+  if (reBtn) reBtn.style.display = '';
   if (ts) {
     ts.style.display = '';
     ts.textContent = 'ANALYZED ' + new Date().toLocaleTimeString('ko-KR', {hour:'2-digit', minute:'2-digit'});
   }
 }
 
-// ============================================================
-// AI Summary
-// ============================================================
-async function generateAiSummary(){
-  var el=document.getElementById('aiSummaryText'),headEl=document.getElementById('aiHeadline');
-  el.textContent='분석 중...';if(headEl)headEl.textContent='분석 중...';
-  loadRiskHistory();
-  try{
-    var params=new URLSearchParams({project_id:currentProjectId,updated_after:currentUpdatedAfter});
-    var res=await fetch('/api/ai/report-summary?'+params),data=await res.json();
-    if(data.summary){
-      aiSummaryText=data.summary;
-      var lines=data.summary.trim().split(String.fromCharCode(10)).filter(function(l){return l.trim();});
-      if(headEl)headEl.textContent=lines[0]||'';
-      var bodyLines=lines.slice(1);
-      el.innerHTML=bodyLines.map(function(line){
-        var rawKey=line.split(':')[0];
-        var keyMap={'상황1':'ST1','상황2':'ST2','상황':'ST','원인':'CA','대처':'AC'};
-        var key=(keyMap[rawKey]||rawKey)+':';
-        var val=line.slice(line.indexOf(':')+1).trim();
-        var isS1=/^ST1?:/.test(line),isS2=/^ST2:/.test(line);
-        var valColor=isS1?'#e05a4e':isS2?'#d4824a':'var(--text)';
-        return'<div style="display:flex;gap:8px;margin-bottom:10px;align-items:baseline;"><span style="font-family:var(--mono);font-size:9px;color:#555;text-transform:uppercase;letter-spacing:0.08em;flex-shrink:0;">'+key+'</span><span style="font-size:11px;color:'+valColor+';line-height:1.5;">'+escHtml(val)+'</span></div>';
-      }).join('');
-    }else if(data.error){
-      if(headEl)headEl.textContent='';
-      var isCreditErr=data.error&&data.error.indexOf('credit')!==-1;
-      var errMsg=isCreditErr?'AI 분석 서비스 점검 중입니다. 잠시 후 다시 시도해주세요.':escHtml(data.error);
-      el.innerHTML='<div style="font-size:10px;color:var(--text-muted);line-height:1.8;">'+errMsg+'</div>';
-    }
-  }catch(e){if(headEl)headEl.textContent='';el.innerHTML='<div style="font-size:10px;color:var(--text-muted);line-height:1.8;">AI 분석 서비스 점검 중입니다. 잠시 후 다시 시도해주세요.</div>';}
-}
 function openAiSummary(){
   var el=document.getElementById('sec-ai-summary');
   if(el){var y=el.getBoundingClientRect().top+window.pageYOffset-80;window.scrollTo({top:y,behavior:'smooth'});}
-  if(!aiSummaryText)generateAiSummary();
 }
 
 function openReport() {
@@ -4299,11 +4350,25 @@ function toggleTheme(){
   }
 })();
 
+function resetInsights(){
+  var list  = document.getElementById('ai-signals-list');
+  var chips = document.getElementById('ai-summary-chips');
+  var btn   = document.getElementById('ai-analyze-btn');
+  var reBtn = document.getElementById('ai-reanalyze-btn');
+  var ts    = document.getElementById('ai-timestamp');
+  if(list)  list.innerHTML  = '';
+  if(chips) chips.innerHTML = '';
+  if(btn)   { btn.style.display=''; btn.disabled=false; btn.textContent='✦ ANALYZE'; }
+  if(reBtn) reBtn.style.display = 'none';
+  if(ts)    { ts.style.display='none'; ts.textContent='LAST ANALYZED —'; }
+}
+
 function onProjectChange(){
   currentProjectId=document.getElementById('projectSelect').value;
   localStorage.setItem('vantix_last_project', currentProjectId);
   updateNavbarProjectName();
   loadData();loadRiskHistory();
+  runAiAnalysis();
 }
 
 function showView(view){
@@ -4396,6 +4461,7 @@ function sbToggle(id){
     updateNavbarProjectName();
     showView('forecast');
     loadData(); loadRiskHistory(); loadForecast();
+    runAiAnalysis();
     if(_sbIsOverlay) closeSidebar();
   }
 }
@@ -4947,65 +5013,7 @@ if (lastTd) {
   if (banner) banner.style.display = 'none';
 }
 
-function loadActionSignals(forceRefresh = false, onDone) {
-  var pid = currentProjectId || '';
-  var list = document.getElementById('ai-signals-list');
-  if (!list) { if(onDone) onDone(); return; }
-  var emptyStyle = 'padding:20px 0;font-family:var(--mono);font-size:9px;letter-spacing:0.1em;color:var(--text-dim);text-align:center;';
-  list.innerHTML = '<div style="'+emptyStyle+'">분석 중...</div>';
-
-  var PRIORITY_COLOR = {'P1': 'var(--red)', 'P2': 'var(--amber)', 'P3': 'var(--text-muted)'};
-
-  function attempt(retryCount) {
-    fetch('/api/ai/action-signals?project_id=' + encodeURIComponent(pid) + '&force=' + forceRefresh)
-      .then(r => r.json())
-      .then(data => {
-        if (data.no_cache) {
-          list.innerHTML = '<div style="'+emptyStyle+'">RE-ANALYZE를 눌러 분석을 시작하세요.</div>';
-          return;
-        }
-        var signals = data.signals || [];
-        var priorityOrder = {'P1': 1, 'P2': 2, 'P3': 3};
-        signals.sort(function(a, b) {
-          return (priorityOrder[a.priority] || 9) - (priorityOrder[b.priority] || 9);
-        });
-        if (!signals.length && retryCount > 0) {
-          setTimeout(function() { attempt(retryCount - 1); }, 2000);
-          return;
-        }
-        if (!signals.length) {
-          list.innerHTML = '<div style="'+emptyStyle+'">액션 시그널 없음</div>';
-          return;
-        }
-        list.innerHTML = signals.map(function(s) {
-          var pc = PRIORITY_COLOR[s.priority] || 'var(--text-muted)';
-          var bl = s.priority === 'P1' ? 'border-left:2px solid var(--red);padding-left:20px;' : 'padding-left:22px;';
-          return '<div style="display:flex;align-items:baseline;justify-content:space-between;gap:24px;padding:18px 0;border-bottom:1px solid var(--border);'+bl+'">'
-            + '<div style="flex:1;min-width:0;">'
-            + '<div style="font-family:var(--mono);font-size:8.5px;letter-spacing:0.15em;text-transform:uppercase;color:'+pc+';margin-bottom:5px;">'
-            + s.priority + ' · ' + escHtml(s.timing) + '</div>'
-            + '<div style="font-size:13px;font-weight:600;letter-spacing:-0.01em;color:var(--text);margin-bottom:4px;">' + escHtml(s.action) + '</div>'
-            + '<div style="font-family:var(--mono);font-size:9px;color:var(--text-muted);letter-spacing:0.04em;line-height:1.6;">'
-            + escHtml(s.reason) + ' · → ' + escHtml(s.who) + '</div>'
-            + '</div>'
-            + '<span style="font-family:var(--mono);font-size:9px;color:var(--text-dim);flex-shrink:0;">'
-            + escHtml(s.action_type || '') + '</span>'
-            + '</div>';
-        }).join('');
-        if(onDone) onDone();
-      })
-      .catch(function() {
-        if (retryCount > 0) {
-          setTimeout(function() { attempt(retryCount - 1); }, 2000);
-        } else {
-          list.innerHTML = '<div style="'+emptyStyle+'color:var(--red);">분석 실패 — 재시도</div>';
-          if(onDone) onDone();
-        }
-      });
-  }
-
-  attempt(4);
-}
+// loadActionSignals — 인사이트 시스템으로 대체됨 (runAiAnalysis 사용)
 </script>
 <div id="escalate-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center;">
   <div style="background:#1a1a1a;width:300px;border:1px solid #333;">
@@ -5083,6 +5091,10 @@ function loadActionSignals(forceRefresh = false, onDone) {
       </div>
 
       <div id="report-cb-list">
+        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="insights">
+          <div class="r-cb-box r-cb-on"></div>
+          <div class="r-cb-label">AI INSIGHTS <span style="color:var(--text-dim);">— 규칙 기반 리스크 탐지</span></div>
+        </div>
         <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="signal">
           <div class="r-cb-box r-cb-on"></div>
           <div class="r-cb-label">WEEKLY SIGNAL <span style="color:var(--text-dim);">— AI 주간 요약</span></div>

@@ -39,10 +39,11 @@ class ReportData:
     memo:               str   = ""
     sections:           list  = field(default_factory=list)
     ai_summary:         str   = ""
+    insights:           list  = field(default_factory=list)
 
 
 
-def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트") -> ReportData:
+def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트", insights: list = None) -> ReportData:
     today_str  = date.today().strftime("%Y-%m-%d")
     users_data = dashboard.get("users_data", {})
 
@@ -166,12 +167,13 @@ def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트
         versions         = version_rows,
         risk_snapshot_ts = snapshot_ts,
         ai_summary       = dashboard.get("ai_summary", ""),
+        insights         = insights or [],
     )
 
 
 def render_html_report(report, sections=None, memo="") -> str:
     if sections is None:
-        sections = ["signal", "risk", "forecast", "metrics", "versions", "critical", "assignee"]
+        sections = ["insights", "signal", "risk", "forecast", "metrics", "versions", "critical", "assignee"]
 
     # ── 데이터 추출 ──
     def _get(key, default):
@@ -189,6 +191,7 @@ def render_html_report(report, sections=None, memo="") -> str:
     overdue_list  = _get("overdue_issues", [])
     risk_list     = _get("top_risk",      [])
     version_rows  = _get("versions",      [])
+    insights_list = _get("insights",      [])
     users_list    = _get("users",         [])
 
     # ── forecast 계산 ──
@@ -236,6 +239,59 @@ def render_html_report(report, sections=None, memo="") -> str:
         return (f"<td style='padding:11px 14px;border-bottom:1px solid rgba(255,255,255,0.04);"
                 f"font-size:12px;color:{color};font-weight:{fw};font-family:{fm};"
                 f"text-align:{align};'>{val}</td>")
+
+    # ── 0. AI INSIGHTS ──
+    s_insights = ""
+    if "insights" in sections and insights_list:
+        STRIPE = {"critical": RED, "warning": AMBER, "info": "#1d4a7a"}
+        RULE_C = {"critical": "#7a0018", "warning": "#7a4c00", "info": "#1d3d5a"}
+        nc = sum(1 for i in insights_list if i.get("level") == "critical")
+        nw = sum(1 for i in insights_list if i.get("level") == "warning")
+        ni = sum(1 for i in insights_list if i.get("level") == "info")
+
+        chips_html = (
+            f"<div style='display:flex;gap:24px;margin-bottom:20px;'>"
+            f"<div style='display:flex;align-items:baseline;gap:8px;'>"
+            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:22px;font-weight:700;color:{RED};'>{nc}</span>"
+            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#444;'>Critical</span></div>"
+            f"<div style='display:flex;align-items:baseline;gap:8px;'>"
+            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:22px;font-weight:700;color:{AMBER};'>{nw}</span>"
+            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#444;'>Warning</span></div>"
+            f"<div style='display:flex;align-items:baseline;gap:8px;'>"
+            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:22px;font-weight:700;color:#2a5a8a;'>{ni}</span>"
+            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#444;'>Info</span></div>"
+            f"</div>"
+        )
+
+        cards_html = ""
+        for ins in insights_list:
+            lv  = ins.get("level", "info")
+            sc  = STRIPE.get(lv, "#333")
+            rc  = RULE_C.get(lv, "#444")
+            rl  = ins.get("rule", "").replace("_", " ")
+            tgt = ins.get("target", "")
+            body = ins.get("body", "")
+            cards_html += (
+                f"<div style='display:grid;grid-template-columns:3px 1fr;"
+                f"background:rgba(255,255,255,0.018);margin-bottom:1px;'>"
+                f"<div style='background:{sc};'></div>"
+                f"<div style='padding:11px 20px;'>"
+                f"<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;'>"
+                f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:8px;font-weight:700;"
+                f"letter-spacing:0.18em;text-transform:uppercase;color:{rc};'>{rl}</span>"
+                f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:8px;color:#2a2a2a;"
+                f"letter-spacing:0.06em;'>{tgt}</span>"
+                f"</div>"
+                f"<div style='font-size:13px;line-height:1.6;color:#777;'>{body}</div>"
+                f"</div></div>"
+            )
+
+        s_insights = f"""
+<div style='margin-bottom:32px;'>
+  {_sec_label("AI Insights — 규칙 기반 리스크 탐지")}
+  {chips_html}
+  <div>{cards_html}</div>
+</div>"""
 
     # ── 1. WEEKLY SIGNAL ──
     s_signal = ""
@@ -472,6 +528,7 @@ a {{ color: {NAVY}; text-decoration: none; }}
     </div>
   </div>
 
+  {s_insights}
   {s_signal}
   {s_risk}
   {s_forecast}

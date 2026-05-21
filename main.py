@@ -1443,6 +1443,12 @@ async def notice_mockup():
     with open(template_path, "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
 
+@app.get("/insights-mockup", response_class=HTMLResponse)
+async def insights_mockup():
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "insights-mockup.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
 @app.get("/connect", response_class=HTMLResponse)
 async def connect_page(request: Request):
     token = request.cookies.get("vx_session")
@@ -1772,7 +1778,33 @@ async def api_report_preview(
         except Exception:
             dashboard["ai_summary"] = ""
 
-    report = build_report_data(dashboard, project_label=proj_name)
+    # 인사이트 생성 — 버전 데이터(issues 포함) 필요
+    from app.insights import run_all_insights
+    r_url = s["url"].rstrip("/")
+    vkey  = f"versions|{r_url}|{project_id}"
+    ins_versions = None
+    v_entry = _cache.get(vkey)
+    if v_entry and (datetime.now() - v_entry["fetched_at"]).total_seconds() < CACHE_TTL_SECONDS:
+        ins_versions = v_entry["data"]
+    if not ins_versions:
+        try:
+            ins_versions = build_version_data(project_id, redmine_url=s["url"], api_key=s["key"])
+            if ins_versions:
+                _cache[vkey] = {"data": ins_versions, "fetched_at": datetime.now()}
+        except Exception:
+            ins_versions = []
+    insight_dash = dict(dashboard)
+    insight_dash["versions"] = ins_versions or []
+    try:
+        raw_insights = run_all_insights(insight_dash)
+        insights_data = [
+            {"rule": i.rule, "level": i.level, "title": i.title, "body": i.body, "target": i.target}
+            for i in raw_insights
+        ]
+    except Exception:
+        insights_data = []
+
+    report = build_report_data(dashboard, project_label=proj_name, insights=insights_data)
     html   = render_html_report(report, sections=section_list, memo=memo)
     return HTMLResponse(content=html)
 
@@ -2139,6 +2171,64 @@ async def api_ai_delay_prediction(s: dict = Depends(_require_session),
         return data
     except Exception as e:
         return {"error": str(e)}
+
+
+# ── Rule-based Insights ─────────────────────────────────────────
+@app.get("/api/insights")
+async def api_insights(
+    project_id: str = "",
+    updated_after: str = "2026-03-01",
+    s: dict = Depends(_require_session),
+):
+    from app.insights import run_all_insights
+
+    r_url = s["url"].rstrip("/")
+
+    # 대시보드 데이터 (캐시 우선)
+    dashboard = get_cache(project_id, updated_after, r_url)
+    if not dashboard:
+        dashboard = build_dashboard_data(
+            project_id, updated_after, redmine_url=s["url"], api_key=s["key"]
+        )
+        set_cache(project_id, updated_after, dashboard, redmine_url=s["url"])
+
+    # 버전 데이터 (issues 포함) — 인사이트 룰에 필요
+    vkey = f"versions|{r_url}|{project_id}"
+    versions = None
+    entry = _cache.get(vkey)
+    if entry and (datetime.now() - entry["fetched_at"]).total_seconds() < CACHE_TTL_SECONDS:
+        versions = entry["data"]
+    if not versions:
+        try:
+            versions = build_version_data(
+                project_id, redmine_url=s["url"], api_key=s["key"]
+            )
+            if versions:
+                _cache[vkey] = {"data": versions, "fetched_at": datetime.now()}
+        except Exception:
+            versions = []
+
+    # 인사이트용 dashboard에 버전(issues 포함) 주입
+    insight_dash = dict(dashboard)
+    insight_dash["versions"] = versions or []
+
+    try:
+        insights = run_all_insights(insight_dash)
+    except Exception as e:
+        return {"insights": [], "error": str(e)}
+
+    return {
+        "insights": [
+            {
+                "rule":   ins.rule,
+                "level":  ins.level,
+                "title":  ins.title,
+                "body":   ins.body,
+                "target": ins.target,
+            }
+            for ins in insights
+        ]
+    }
 
 
 # ==================== 실행 ====================
