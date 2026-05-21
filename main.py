@@ -20,8 +20,25 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 # ==================== 서버 설정 ====================
-from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL
+from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY
 import uuid as _uuid
+from cryptography.fernet import Fernet, InvalidToken
+
+# ── API Key 암호화 ────────────────────────────────────────────
+_fernet = Fernet(FERNET_KEY.encode()) if FERNET_KEY else None
+
+def _encrypt_key(raw: str) -> str:
+    if _fernet:
+        return _fernet.encrypt(raw.encode()).decode()
+    return raw
+
+def _decrypt_key(stored: str) -> str:
+    if _fernet:
+        try:
+            return _fernet.decrypt(stored.encode()).decode()
+        except (InvalidToken, Exception):
+            return stored  # 기존 평문 세션 호환
+    return stored
 
 # ── 세션 스토어 (Postgres 우선, 파일 폴백) ──────────────────
 SESSION_TTL = 86400 * 30      # 30일
@@ -51,6 +68,7 @@ def _init_session_table():
         print(f"[session] DB 테이블 초기화 실패: {e}")
 
 def _save_session(token: str, url: str, key: str, created: float):
+    encrypted_key = _encrypt_key(key)
     if _DATABASE_URL:
         try:
             with _db_conn() as conn:
@@ -58,7 +76,7 @@ def _save_session(token: str, url: str, key: str, created: float):
                     cur.execute(
                         "INSERT INTO vantix_sessions (token, url, key, created) VALUES (%s,%s,%s,%s) "
                         "ON CONFLICT (token) DO UPDATE SET url=EXCLUDED.url, key=EXCLUDED.key, created=EXCLUDED.created",
-                        (token, url, key, created)
+                        (token, url, encrypted_key, created)
                     )
                 conn.commit()
             return
@@ -70,7 +88,7 @@ def _save_session(token: str, url: str, key: str, created: float):
         if os.path.exists(_SESSION_FILE):
             with open(_SESSION_FILE, "r") as f:
                 data = json.load(f)
-        data[token] = {"url": url, "key": key, "created": created}
+        data[token] = {"url": url, "key": encrypted_key, "created": created}
         with open(_SESSION_FILE, "w") as f:
             json.dump(data, f)
     except Exception:
@@ -109,7 +127,7 @@ def _get_session(token: str) -> dict | None:
             if time.time() - created > SESSION_TTL:
                 _delete_session(token)
                 return None
-            return {"url": url, "key": key, "created": created}
+            return {"url": url, "key": _decrypt_key(key), "created": created}
         except Exception as e:
             print(f"[session] DB 조회 실패: {e}")
     # 파일 폴백
@@ -119,7 +137,7 @@ def _get_session(token: str) -> dict | None:
                 data = json.load(f)
             s = data.get(token)
             if s and time.time() - s["created"] < SESSION_TTL:
-                return s
+                return {"url": s["url"], "key": _decrypt_key(s["key"]), "created": s["created"]}
     except Exception:
         pass
     return None
@@ -191,6 +209,19 @@ def _call_claude(prompt: str, max_tokens: int = 256) -> str:
         if e.status_code == 429:
             raise RuntimeError("AI 요청 한도를 초과했습니다. 잠시 후 다시 시도해주세요.")
         raise RuntimeError(f"AI 오류 ({e.status_code}): {e.message}")
+
+# ==================== Rate Limiting ====================
+_connect_attempts: dict[str, list] = {}  # ip → [timestamp, ...]
+RATE_LIMIT_MAX = 10       # 최대 요청 수
+RATE_LIMIT_WINDOW = 600   # 10분 윈도우
+
+def _check_rate_limit(ip: str):
+    now = time.time()
+    attempts = [t for t in _connect_attempts.get(ip, []) if now - t < RATE_LIMIT_WINDOW]
+    if len(attempts) >= RATE_LIMIT_MAX:
+        raise HTTPException(status_code=429, detail="요청이 너무 많습니다. 잠시 후 다시 시도해주세요.")
+    attempts.append(now)
+    _connect_attempts[ip] = attempts
 
 # ==================== 접속자 관리 ====================
 _visitors = {}  # ip → last_seen
@@ -1413,6 +1444,8 @@ async def connect_page(request: Request):
 @app.post("/api/connect")
 async def api_connect(request: Request):
     """베타 온보딩: Redmine URL + API Key 검증 후 세션 발급"""
+    client_ip = request.headers.get("X-Forwarded-For", request.client.host).split(",")[0].strip()
+    _check_rate_limit(client_ip)
     body = await request.json()
     rm_url = (body.get("url") or "").strip().rstrip("/")
     rm_key = (body.get("api_key") or "").strip()
@@ -1431,7 +1464,7 @@ async def api_connect(request: Request):
     token = str(_uuid.uuid4())
     _save_session(token, rm_url, rm_key, time.time())
     response = JSONResponse({"ok": True, "user": user_data.get("user", {}).get("login", ""), "token": token})
-    response.set_cookie("vx_session", token, httponly=False, max_age=SESSION_TTL, samesite="lax", secure=False)
+    response.set_cookie("vx_session", token, httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
     return response
 
 @app.post("/api/disconnect")
