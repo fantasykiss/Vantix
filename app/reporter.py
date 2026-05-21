@@ -171,240 +171,273 @@ def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트
 
 def render_html_report(report, sections=None, memo="") -> str:
     if sections is None:
-        sections = ["signal", "metrics", "critical", "risk", "versions", "assignee"]
+        sections = ["signal", "risk", "forecast", "metrics", "versions", "critical", "assignee"]
 
-    # ── 디자인 토큰 ──
-    FONT_URL  = ""
-    F_SANS    = "font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue',Arial,sans-serif;font-size:12px;"
-    F_MONO    = "font-family:'SF Mono','Menlo','Courier New',monospace;font-size:11px;"
-    BG        = "#f7f5f2"
-    WHITE     = "#ffffff"
-    BORDER    = "1px solid #e8e6e2"
-    BORDER_H  = "0.5px solid #f0eeea"
-    RED       = "#B40023"
-    AMBER     = "#a0600a"
-    GREEN     = "#1a5c2e"
-    NAVY      = "#1a3a6e"
-    MUTED     = "#888888"
-    LABEL_CSS = "font-size:9px;font-weight:700;letter-spacing:0.15em;text-transform:uppercase;color:#999999;"
-    TH_CSS    = f"padding:9px 14px;background:{WHITE};{LABEL_CSS}border-bottom:{BORDER};text-align:left;"
-
-    def _td(val, color="#111111", align="left", mono=False, bold=False):
-        fw = "700" if bold else "400"
-        fm = F_MONO if mono else ""
-        return (f"<td style='padding:9px 14px;border-bottom:{BORDER_H};"
-                f"font-size:12px;color:{color};font-weight:{fw};{fm}"
-                f"text-align:{align};'>{val}</td>")
-
-    def _badge(text, bg, color):
-        return (f"<span style='font-size:9px;letter-spacing:0.1em;"
-                f"padding:2px 7px;background:{bg};color:{color};'>{text}</span>")
-
-    def _section(head_html, body_html):
-        return (f"<div style='background:{WHITE};border:{BORDER};"
-                f"margin-bottom:16px;overflow:hidden;'>"
-                f"{head_html}{body_html}</div>")
-
-    def _head(title, sub=""):
-        sub_html = (f"<span style='font-size:10px;color:#bbbbbb;"
-                    f"letter-spacing:0.05em;margin-left:10px;'>{sub}</span>") if sub else ""
-        return (f"<div style='padding:13px 20px;border-bottom:{BORDER};'>"
-                f"<span style='font-size:11px;font-weight:700;"
-                f"letter-spacing:0.12em;color:#111111;{F_SANS}'>{title}</span>"
-                f"{sub_html}</div>")
-
-    # ── 데이터 추출 헬퍼 ──
+    # ── 데이터 추출 ──
     def _get(key, default):
         val = getattr(report, key, None)
         return val if val is not None else default
 
-    proj_label   = _get("project_label", "프로젝트")
-    period_label = _get("period_label",  "")
-    gen_ts       = _get("generated_at",  datetime.now().strftime("%Y-%m-%d %H:%M"))
-    ai_text      = _get("ai_summary",    "")
-    total_i      = _get("total_issues",  0)
-    open_i       = _get("open_issues",   0)
-    over_i       = _get("overdue_total", 0)
-    members      = len(_get("users",     []))
-    overdue_list = _get("overdue_issues",  [])
-    risk_list    = _get("top_risk",      [])
-    snap_ts      = _get("risk_snapshot_ts", "")
-    version_rows = _get("versions",      [])
-    assignee_list= _get("assignee_stats",[])
+    proj_label    = _get("project_label", "프로젝트")
+    period_label  = _get("period_label",  "")
+    gen_ts        = _get("generated_at",  datetime.now().strftime("%Y-%m-%d %H:%M"))
+    ai_text       = _get("ai_summary",    "")
+    total_i       = _get("total_issues",  0)
+    open_i        = _get("open_issues",   0)
+    over_i        = _get("overdue_total", 0)
+    members       = len(_get("users",     []))
+    overdue_list  = _get("overdue_issues", [])
+    risk_list     = _get("top_risk",      [])
+    version_rows  = _get("versions",      [])
+    users_list    = _get("users",         [])
 
-    snap_label = f"기준: {snap_ts} 스냅샷" if snap_ts else "기준: 실시간"
+    # ── forecast 계산 ──
+    fc_delay      = len(overdue_list)
+    fc_milestones = sum(1 for v in version_rows if v.get("badge") == "OVERDUE")
+
+    # 담당자 부하 데이터
+    assignee_list = []
+    for u in sorted(users_list, key=lambda x: -getattr(x, 'overdue_cnt', 0)):
+        assignee_list.append({
+            "name":    getattr(u, "name",        ""),
+            "group":   getattr(u, "dept",        ""),
+            "open":    getattr(u, "open_cnt",    0),
+            "overdue": getattr(u, "overdue_cnt", 0),
+        })
+
+    # ── 색상 상수 ──
+    RED   = "#B40023"
+    AMBER = "#c47a00"
+    GREEN = "#2a7a4a"
+    NAVY  = "#3a6ea8"
+
+    def _sec_label(title):
+        return (f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:9px;font-weight:700;"
+                f"letter-spacing:0.2em;color:#444;text-transform:uppercase;margin-bottom:14px;"
+                f"display:flex;align-items:center;gap:10px;'>"
+                f"{title}"
+                f"<span style='flex:1;height:1px;background:rgba(255,255,255,0.05);display:block;'></span>"
+                f"</div>")
+
+    def _badge_dark(text, bg, color):
+        return (f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:8px;"
+                f"font-weight:700;letter-spacing:0.1em;padding:3px 8px;"
+                f"background:{bg};color:{color};'>{text}</span>")
+
+    def _th(label, align="left"):
+        return (f"<th style='font-family:\"JetBrains Mono\",monospace;font-size:8px;"
+                f"font-weight:700;letter-spacing:0.15em;color:#333;text-transform:uppercase;"
+                f"padding:0 14px 10px;text-align:{align};border-bottom:1px solid rgba(255,255,255,0.05);'>"
+                f"{label}</th>")
+
+    def _td(val, color="#888", align="left", mono=False, bold=False):
+        fm = "\"JetBrains Mono\",monospace" if mono else "\"Plus Jakarta Sans\",sans-serif"
+        fw = "700" if bold else "400"
+        return (f"<td style='padding:11px 14px;border-bottom:1px solid rgba(255,255,255,0.04);"
+                f"font-size:12px;color:{color};font-weight:{fw};font-family:{fm};"
+                f"text-align:{align};'>{val}</td>")
 
     # ── 1. WEEKLY SIGNAL ──
     s_signal = ""
     if "signal" in sections and ai_text:
         s_signal = f"""
-<div style='background:{WHITE};border-left:3px solid {RED};border-top:{BORDER};border-right:{BORDER};border-bottom:{BORDER};padding:16px 20px;margin-bottom:16px;'>
-  <div style='{LABEL_CSS}{F_SANS}margin-bottom:7px;'>WEEKLY SIGNAL / AI 주간 요약</div>
-  <div style='{F_SANS}font-size:13px;line-height:1.75;color:#111111;'>{ai_text}</div>
+<div style='margin-bottom:32px;'>
+  {_sec_label("Weekly Signal — AI 주간 요약")}
+  <div style='border-left:2px solid {RED};padding:16px 20px;background:rgba(180,0,35,0.05);'>
+    <div style='font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;line-height:1.8;color:#aaaaaa;'>{ai_text}</div>
+  </div>
 </div>"""
 
-    # ── 2. KEY METRICS ──
-    s_metrics = ""
-    if "metrics" in sections:
-        def _mcard(num, label, sub, color):
-            return (f"<td style='width:25%;padding:0 5px;'>"
-                    f"<div style='background:{WHITE};border:{BORDER};padding:16px;text-align:center;'>"
-                    f"<div style='font-size:28px;font-weight:700;color:{color};line-height:1;{F_MONO}'>{num}</div>"
-                    f"<div style='{LABEL_CSS}{F_SANS}margin-top:5px;'>{label}</div>"
-                    f"<div style='font-size:10px;color:#bbbbbb;{F_SANS}margin-top:2px;'>{sub}</div>"
-                    f"</div></td>")
-        s_metrics = f"""
-<table width='100%' cellpadding='0' cellspacing='0' style='margin-bottom:16px;'>
-  <tr>
-    {_mcard(total_i, 'OPEN',    '전체 이슈', NAVY)}
-    {_mcard(over_i,  'OVERDUE', '마감 초과', RED)}
-    {_mcard(open_i,  'ISSUES',  '오픈 이슈', AMBER)}
-    {_mcard(members, 'MEMBERS', '참여 인원', GREEN)}
-  </tr>
-</table>"""
-
-    # ── 3. CRITICAL ITEMS ──
-    s_critical = ""
-    if "critical" in sections and overdue_list:
-        rows = "".join(
-            f"<tr>"
-            f"{_td('#'+str(i.get('id','')), NAVY, mono=True)}"
-            f"{_td(i.get('subject',''))}"
-            f"{_td(i.get('assignee_short',''), MUTED)}"
-            f"{_td(i.get('status',''),   MUTED)}"
-            f"{_td(i.get('due_date',''), MUTED, mono=True)}"
-            f"{_td(str(i.get('dday','')), RED,  align='right', mono=True, bold=True)}"
-            f"</tr>"
-            for i in overdue_list
-        )
-        cnt_badge = _badge(f"{len(overdue_list)} OVERDUE", "#fdecea", RED)
-        s_critical = _section(
-            _head("CRITICAL ITEMS / 즉시 처리"),
-            f"<div style='padding:8px 20px;text-align:right;border-bottom:{BORDER_H};'>{cnt_badge}</div>"
-            f"<table width='100%' cellpadding='0' cellspacing='0'>"
-            f"<thead><tr>"
-            f"<th style='{TH_CSS}'>#</th>"
-            f"<th style='{TH_CSS}'>제목</th>"
-            f"<th style='{TH_CSS}'>담당</th>"
-            f"<th style='{TH_CSS}'>상태</th>"
-            f"<th style='{TH_CSS}'>마감일</th>"
-            f"<th style='{TH_CSS}text-align:right;'>D-DAY</th>"
-            f"</tr></thead><tbody>{rows}</tbody></table>"
-        )
-
-    # ── 4. RISK PROJECTS ──
+    # ── 2. RISK PROJECTS ──
     s_risk = ""
     if "risk" in sections and risk_list:
         lv_map = {
-            "Critical": ("#fdecea", RED),
-            "High":     ("#fff3e0", AMBER),
-            "Medium":   ("#f5f3f3", "#555555"),
-            "Low":      ("#e8f5e9", GREEN),
+            "Critical": (f"rgba(180,0,35,0.15)",   RED),
+            "High":     (f"rgba(196,122,0,0.15)",  AMBER),
+            "Medium":   ("rgba(255,255,255,0.06)", "#666"),
+            "Low":      (f"rgba(42,122,74,0.15)",  GREEN),
         }
         def _norm_score(p):
-            raw = p.get('risk_score', p.get('score', 0))
+            raw = p.get("risk_score", p.get("score", 0))
             try: return min(round(float(raw) * 100 / 60), 100)
             except: return 0
-        rows = "".join(
-            f"<tr>"
-            f"{_td(p.get('name',''), bold=True)}"
-            f"{_td(_badge(p.get('risk_level',p.get('level','')).upper(), *lv_map.get(p.get('risk_level',p.get('level','')), ('#f5f3f3','#555'))))}"
-            f"{_td(str(_norm_score(p)), RED if p.get('risk_level',p.get('level',''))=='Critical' else AMBER, align='right', mono=True, bold=True)}"
-            f"{_td(str(p.get('overdue',0)), RED, align='center', bold=True)}"
-            f"{_td(str(p.get('open',0)), MUTED, align='center')}"
-            f"</tr>"
-            for p in risk_list
-        )
-        s_risk = _section(
-            _head("RISK PROJECTS / 위험 프로젝트", snap_label),
-            f"<table width='100%' cellpadding='0' cellspacing='0'>"
-            f"<thead><tr>"
-            f"<th style='{TH_CSS}'>프로젝트</th>"
-            f"<th style='{TH_CSS}'>레벨</th>"
-            f"<th style='{TH_CSS}text-align:right;'>SCORE</th>"
-            f"<th style='{TH_CSS}text-align:center;'>초과</th>"
-            f"<th style='{TH_CSS}text-align:center;'>오픈</th>"
-            f"</tr></thead><tbody>{rows}</tbody></table>"
-        )
+        rows_html = ""
+        for p in risk_list:
+            lv  = p.get("risk_level", p.get("level", ""))
+            bb, bc = lv_map.get(lv, ("rgba(255,255,255,0.06)", "#666"))
+            sc  = _norm_score(p)
+            sc_color = RED if lv == "Critical" else AMBER
+            rows_html += f"""
+<div style='display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,0.04);'>
+  <div style='font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:600;color:#dddddd;flex:1;'>{p.get("name","")}</div>
+  {_badge_dark(lv.upper(), bb, bc)}
+  <div style='font-family:"JetBrains Mono",monospace;font-size:22px;font-weight:700;color:{sc_color};width:50px;text-align:right;'>{sc}</div>
+  <div style='font-family:"JetBrains Mono",monospace;font-size:10px;color:#444;width:80px;text-align:right;'>초과 <span style="color:{RED};font-weight:700;">{p.get("overdue",0)}</span> · 오픈 {p.get("open",0)}</div>
+</div>"""
+        s_risk = f"""
+<div style='margin-bottom:32px;'>
+  {_sec_label("Risk Projects — 위험 프로젝트")}
+  <div>{rows_html}</div>
+</div>"""
+
+    # ── 3. RISK FORECAST ──
+    s_forecast = ""
+    if "forecast" in sections:
+        def _fc_card(num, label, sub, color):
+            return (f"<td style='width:33%;padding:0 5px;'>"
+                    f"<div style='background:#111111;border:1px solid rgba(255,255,255,0.06);padding:18px 16px;'>"
+                    f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:8px;font-weight:700;"
+                    f"letter-spacing:0.15em;color:#444;text-transform:uppercase;margin-bottom:10px;'>{label}</div>"
+                    f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:32px;font-weight:700;"
+                    f"color:{color};line-height:1;'>{num}</div>"
+                    f"<div style='font-family:\"Plus Jakarta Sans\",sans-serif;font-size:10px;color:#444;margin-top:6px;'>{sub}</div>"
+                    f"</div></td>")
+        s_forecast = f"""
+<div style='margin-bottom:32px;'>
+  {_sec_label("Risk Forecast — 다음 주 예측")}
+  <table width='100%' cellpadding='0' cellspacing='0'>
+    <tr>
+      {_fc_card(fc_delay,      "차주 지연 예상", "이슈",      RED)}
+      {_fc_card(fc_milestones, "완료 위험",      "마일스톤",  AMBER)}
+      {_fc_card("—",           "리스크 변화",    "전주 대비", "#444")}
+    </tr>
+  </table>
+</div>"""
+
+    # ── 4. KEY METRICS ──
+    s_metrics = ""
+    if "metrics" in sections:
+        def _mc(num, label, sub, color, border_color):
+            return (f"<td style='width:25%;padding:0 5px;'>"
+                    f"<div style='background:#111111;border:1px solid rgba(255,255,255,0.06);"
+                    f"border-top:2px solid {border_color};padding:20px 16px;text-align:center;'>"
+                    f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:36px;"
+                    f"font-weight:700;color:{color};line-height:1;'>{num}</div>"
+                    f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:8px;"
+                    f"font-weight:700;letter-spacing:0.15em;color:#444;text-transform:uppercase;margin-top:10px;'>{label}</div>"
+                    f"<div style='font-family:\"Plus Jakarta Sans\",sans-serif;font-size:10px;"
+                    f"color:#333;margin-top:3px;'>{sub}</div>"
+                    f"</div></td>")
+        s_metrics = f"""
+<div style='margin-bottom:32px;'>
+  {_sec_label("Key Metrics")}
+  <table width='100%' cellpadding='0' cellspacing='0'>
+    <tr>
+      {_mc(total_i, "Open",    "전체 이슈",  NAVY,  NAVY)}
+      {_mc(over_i,  "Overdue", "마감 초과",  RED,   RED)}
+      {_mc(open_i,  "Issues",  "오픈 이슈",  AMBER, AMBER)}
+      {_mc(members, "Members", "참여 인원",  GREEN, GREEN)}
+    </tr>
+  </table>
+</div>"""
 
     # ── 5. VERSION PROGRESS ──
     s_versions = ""
     if "versions" in sections and version_rows:
-        badge_styles = {
-            "CLOSED":  ("#111111", "#ffffff"),
-            "OVERDUE": ("#fdecea", RED),
-            "LOCKED":  ("#f5f3f3", "#888888"),
-            "OPEN":    ("#e8f5e9", GREEN),
+        vbadge = {
+            "CLOSED":  ("rgba(255,255,255,0.06)", "#666"),
+            "OVERDUE": (f"rgba(180,0,35,0.15)",   RED),
+            "LOCKED":  ("rgba(255,255,255,0.04)", "#444"),
+            "OPEN":    (f"rgba(42,122,74,0.15)",  GREEN),
         }
         rows_html = ""
         for v in version_rows:
-            bb, bc = badge_styles.get(v["badge"], ("#f5f3f3","#555"))
-            due_color = RED if v["badge"] == "OVERDUE" else "#aaaaaa"
-            overdue_color = RED if v["overdue"] > 0 else "#cccccc"
+            bb, bc   = vbadge.get(v["badge"], ("rgba(255,255,255,0.06)", "#666"))
+            due_c    = RED if v["badge"] == "OVERDUE" else "#444"
+            over_c   = RED if v["overdue"] > 0 else "#444"
             open_cnt = v["total"] - v["closed"]
             rows_html += f"""
-<div style='padding:14px 20px;border-bottom:{BORDER_H};'>
-  <div style='display:flex;align-items:center;gap:8px;margin-bottom:10px;'>
-    <div style='{F_SANS}font-size:12px;font-weight:600;color:#111111;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;'>{v["name"]}</div>
-    <div style='font-size:9px;letter-spacing:0.1em;padding:2px 8px;background:{bb};color:{bc};font-weight:700;'>{v["badge"]}</div>
-    <div style='{F_MONO}font-size:10px;color:{due_color};flex-shrink:0;'>{v["due"]}</div>
+<div style='padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.04);'>
+  <div style='display:flex;align-items:center;gap:10px;margin-bottom:10px;'>
+    <div style='font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:600;color:#cccccc;flex:1;'>{v["name"]}</div>
+    {_badge_dark(v["badge"], bb, bc)}
+    <div style='font-family:"JetBrains Mono",monospace;font-size:10px;color:{due_c};'>{v["due"]}</div>
   </div>
   <div style='display:flex;align-items:center;gap:12px;'>
-    <div style='flex:1;height:5px;background:#f0eeea;'>
-      <div style='height:5px;background:{v["bar_color"]};width:{v["pct"]}%;'></div>
+    <div style='flex:1;height:3px;background:rgba(255,255,255,0.06);'>
+      <div style='height:3px;background:{v["bar_color"]};width:{v["pct"]}%;'></div>
     </div>
-    <div style='{F_MONO}font-size:11px;font-weight:700;color:{v["bar_color"]};width:36px;text-align:right;flex-shrink:0;'>{v["pct"]}%</div>
-    <div style='display:flex;gap:1px;flex-shrink:0;border-left:1px solid #eeeeee;padding-left:12px;'>
-      <div style='width:48px;text-align:center;'>
-        <div style='{F_MONO}font-size:9px;color:#bbbbbb;margin-bottom:2px;'>완료</div>
-        <div style='{F_MONO}font-size:13px;font-weight:700;color:#111111;'>{v["closed"]}</div>
-      </div>
-      <div style='width:48px;text-align:center;'>
-        <div style='{F_MONO}font-size:9px;color:#bbbbbb;margin-bottom:2px;'>오픈</div>
-        <div style='{F_MONO}font-size:13px;font-weight:700;color:#555555;'>{open_cnt}</div>
-      </div>
-      <div style='width:48px;text-align:center;'>
-        <div style='{F_MONO}font-size:9px;color:#bbbbbb;margin-bottom:2px;'>초과</div>
-        <div style='{F_MONO}font-size:13px;font-weight:700;color:{overdue_color};'>{v["overdue"]}</div>
-      </div>
+    <div style='font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;color:{v["bar_color"]};width:36px;text-align:right;'>{v["pct"]}%</div>
+    <div style='display:flex;gap:1px;padding-left:12px;border-left:1px solid rgba(255,255,255,0.05);'>
+      <div style='width:46px;text-align:center;'><div style='font-family:"JetBrains Mono",monospace;font-size:8px;color:#333;margin-bottom:3px;'>완료</div><div style='font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:700;color:#cccccc;'>{v["closed"]}</div></div>
+      <div style='width:46px;text-align:center;'><div style='font-family:"JetBrains Mono",monospace;font-size:8px;color:#333;margin-bottom:3px;'>오픈</div><div style='font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:700;color:#666;'>{open_cnt}</div></div>
+      <div style='width:46px;text-align:center;'><div style='font-family:"JetBrains Mono",monospace;font-size:8px;color:#333;margin-bottom:3px;'>초과</div><div style='font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:700;color:{over_c};'>{v["overdue"]}</div></div>
     </div>
   </div>
 </div>"""
-        s_versions = _section(
-            _head(f"VERSION PROGRESS / 버전별 진행상태", f"{len(version_rows)} VERSIONS"),
-            rows_html
-        )
+        s_versions = f"""
+<div style='margin-bottom:32px;'>
+  {_sec_label(f"Version Progress — {len(version_rows)}개 버전")}
+  {rows_html}
+</div>"""
 
-    # ── 6. ASSIGNEE LOAD ──
+    # ── 6. CRITICAL ITEMS ──
+    s_critical = ""
+    if "critical" in sections and overdue_list:
+        def _critical_row(i):
+            iid   = i.get("id", "")
+            link  = f'<a href="#" style="color:{NAVY};font-family:JetBrains Mono,monospace;font-size:11px;text-decoration:none;">#{iid}</a>'
+            return (
+                f"<tr>"
+                + _td(link, NAVY)
+                + _td(i.get("subject", ""), "#cccccc")
+                + _td(i.get("assignee_short", ""))
+                + _td(i.get("status", ""))
+                + _td(i.get("due_date", ""), "#666", mono=True)
+                + _td(str(i.get("dday", "")), RED, align="right", mono=True, bold=True)
+                + "</tr>"
+            )
+        rows_html = "".join(_critical_row(i) for i in overdue_list)
+        s_critical = f"""
+<div style='margin-bottom:32px;'>
+  <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;'>
+    {_sec_label("Critical Items — 즉시 처리").replace("margin-bottom:14px","margin-bottom:0")}
+    <span style='font-family:"JetBrains Mono",monospace;font-size:9px;font-weight:700;
+    letter-spacing:0.1em;color:{RED};background:rgba(180,0,35,0.12);padding:3px 9px;white-space:nowrap;'>{len(overdue_list)} OVERDUE</span>
+  </div>
+  <table width='100%' cellpadding='0' cellspacing='0'>
+    <thead><tr>
+      {_th("#", "left")}{_th("제목")}{_th("담당")}{_th("상태")}{_th("마감일")}{_th("D-DAY", "right")}
+    </tr></thead>
+    <tbody>{rows_html}</tbody>
+  </table>
+</div>"""
+
+    # ── 7. ASSIGNEE LOAD ──
     s_assignee = ""
     if "assignee" in sections and assignee_list:
         max_open = max((a.get("open", 0) for a in assignee_list), default=1) or 1
-        rows = ""
+        rows_html = ""
         for a in assignee_list:
-            pct = round(a.get("open", 0) / max_open * 100)
-            has_over = a.get("overdue", 0) > 0
-            bar_c = RED if has_over else "#111111"
-            stat_c = RED if has_over else MUTED
-            rows += f"""
-<div style='padding:10px 20px;border-bottom:{BORDER_H};display:flex;align-items:center;gap:12px;'>
-  <div style='{F_SANS}font-size:12px;color:#111111;min-width:100px;'>{a.get("group","")}&nbsp;{a.get("name","")}</div>
-  <div style='flex:1;height:3px;background:#f0eeea;'>
+            pct    = round(a.get("open", 0) / max_open * 100)
+            has_ov = a.get("overdue", 0) > 0
+            bar_c  = RED if has_ov else GREEN
+            stat_c = RED if has_ov else "#666"
+            rows_html += f"""
+<div style='display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);'>
+  <div style='font-family:"Plus Jakarta Sans",sans-serif;font-size:12px;color:#cccccc;min-width:110px;'>{a.get("name","")}</div>
+  <div style='flex:1;height:3px;background:rgba(255,255,255,0.05);'>
     <div style='height:3px;background:{bar_c};width:{pct}%;'></div>
   </div>
-  <div style='{F_SANS}font-size:10px;color:{stat_c};min-width:120px;text-align:right;'>오픈 {a.get("open",0)} · 초과 {a.get("overdue",0)}</div>
+  <div style='font-family:"JetBrains Mono",monospace;font-size:10px;color:{stat_c};min-width:100px;text-align:right;'>오픈 {a.get("open",0)} · 초과 {a.get("overdue",0)}</div>
 </div>"""
-        s_assignee = _section(
-            _head("ASSIGNEE LOAD / 담당자 부하", "초과 많은 순"),
-            rows
-        )
+        s_assignee = f"""
+<div style='margin-bottom:32px;'>
+  {_sec_label("Assignee Load — 담당자 부하")}
+  {rows_html}
+</div>"""
 
-    # ── 7. PM MEMO ──
+    # ── PM MEMO ──
     s_memo = ""
     if memo and memo.strip():
         s_memo = f"""
-<div style='background:{WHITE};border:{BORDER};border-left:3px solid #111111;padding:16px 20px;margin-bottom:16px;'>
-  <div style='{LABEL_CSS}{F_SANS}margin-bottom:7px;'>PM COMMENT / 리포트 메모</div>
-  <div style='{F_SANS}font-size:13px;line-height:1.75;color:#111111;white-space:pre-wrap;'>{memo}</div>
+<div style='margin-bottom:32px;'>
+  <div style='border-left:2px solid #333;padding:14px 18px;background:#111111;'>
+    <div style='font-family:"JetBrains Mono",monospace;font-size:8px;font-weight:700;
+    letter-spacing:0.18em;color:#333;text-transform:uppercase;margin-bottom:8px;'>PM Comment</div>
+    <div style='font-family:"Plus Jakarta Sans",sans-serif;font-size:12px;line-height:1.8;
+    color:#666;white-space:pre-wrap;'>{memo}</div>
+  </div>
 </div>"""
 
     # ── 최종 반환 ──
@@ -414,38 +447,134 @@ def render_html_report(report, sections=None, memo="") -> str:
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>{proj_label} 주간 리포트</title>
-<style>*{{font-size:12px;box-sizing:border-box;}}</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+* {{ box-sizing: border-box; margin: 0; padding: 0; }}
+body {{ background: #0a0a0a; color: #f0f0f0; font-family: 'Plus Jakarta Sans', sans-serif;
+  font-size: 13px; -webkit-font-smoothing: antialiased; padding: 40px 0; }}
+a {{ color: {NAVY}; text-decoration: none; }}
+</style>
 </head>
-<body style="margin:0;padding:0;background:{BG};{F_SANS}color:#111111;">
-<div style="max-width:680px;margin:0 auto;padding:24px 16px;">
+<body>
+<div style="max-width:780px;margin:0 auto;padding:0 24px;">
 
-  <div style="background:#111111;padding:24px 32px;margin-bottom:16px;display:flex;justify-content:space-between;align-items:center;">
+  <!-- 헤더 -->
+  <div style="border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:28px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end;">
     <div>
-      <div style="font-size:18px;font-weight:700;letter-spacing:0.05em;color:#ffffff;{F_SANS}">{proj_label}</div>
-      <div style="font-size:11px;color:#aaaaaa;margin-top:4px;{F_SANS}">{period_label}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.22em;color:#444;text-transform:uppercase;margin-bottom:10px;">Vantix · Weekly Report</div>
+      <div style="font-size:26px;font-weight:800;letter-spacing:-0.02em;color:#ffffff;line-height:1;">{proj_label}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#555;margin-top:8px;">{period_label}</div>
     </div>
     <div style="text-align:right;">
-      <div style="font-size:9px;letter-spacing:0.15em;color:#666666;{F_MONO}">WEEKLY REPORT</div>
-      <div style="font-size:10px;color:#666666;margin-top:3px;{F_MONO}">생성: {gen_ts}</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#333;letter-spacing:0.15em;text-transform:uppercase;">Generated</div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#444;margin-top:5px;">{gen_ts}</div>
     </div>
   </div>
 
   {s_signal}
-  {s_metrics}
-  {s_critical}
   {s_risk}
+  {s_forecast}
+  {s_metrics}
   {s_versions}
+  {s_critical}
   {s_assignee}
   {s_memo}
 
-  <div style="text-align:center;padding:20px 0 8px;border-top:1px solid #e8e6e2;margin-top:8px;">
-    <div style="font-size:10px;letter-spacing:0.2em;color:#bbbbbb;{F_MONO}">VANTIX</div>
-    <div style="font-size:10px;color:#cccccc;margin-top:3px;{F_SANS}">자동 생성된 리포트 · {gen_ts}</div>
+  <!-- 푸터 -->
+  <div style="border-top:1px solid rgba(255,255,255,0.05);margin-top:40px;padding-top:20px;display:flex;justify-content:space-between;align-items:center;">
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.25em;color:#222;">VANTIX</div>
+    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#222;">자동 생성 · {gen_ts}</div>
   </div>
 
 </div>
 </body>
 </html>"""
+
+
+def render_tsv_report(report, sections=None) -> str:
+    """구글 스프레드시트 붙여넣기용 TSV 생성"""
+    if sections is None:
+        sections = ["signal", "metrics", "critical", "risk", "versions", "assignee"]
+
+    def _get(key, default):
+        val = getattr(report, key, None)
+        return val if val is not None else default
+
+    lines = []
+    def row(*cols): lines.append("\t".join(str(c) for c in cols))
+    def blank(): lines.append("")
+
+    proj_label   = _get("project_label", "프로젝트")
+    period_label = _get("period_label", "")
+    gen_ts       = _get("generated_at", "")
+    ai_text      = _get("ai_summary", "")
+    total_i      = _get("total_issues", 0)
+    open_i       = _get("open_issues", 0)
+    over_i       = _get("overdue_total", 0)
+    members      = len(_get("users", []))
+    overdue_list = _get("overdue_issues", [])
+    risk_list    = _get("top_risk", [])
+    version_rows = _get("versions", [])
+    assignee_list= _get("assignee_stats", [])
+
+    row(proj_label, period_label, f"생성: {gen_ts}")
+    blank()
+
+    if "signal" in sections and ai_text:
+        row("【 WEEKLY SIGNAL / AI 주간 요약 】")
+        row(ai_text)
+        blank()
+
+    if "metrics" in sections:
+        row("【 KEY METRICS 】")
+        row("OPEN", "OVERDUE", "ISSUES", "MEMBERS")
+        row(total_i, over_i, open_i, members)
+        blank()
+
+    if "critical" in sections and overdue_list:
+        row(f"【 CRITICAL ITEMS 】 — {len(overdue_list)}건 초과")
+        row("#", "제목", "담당", "상태", "마감일", "D-DAY")
+        for i in overdue_list:
+            row(
+                f"#{i.get('id','')}",
+                i.get("subject", ""),
+                i.get("assignee_short", ""),
+                i.get("status", ""),
+                i.get("due_date", ""),
+                i.get("dday", ""),
+            )
+        blank()
+
+    if "risk" in sections and risk_list:
+        row("【 RISK PROJECTS 】")
+        row("프로젝트", "레벨", "SCORE", "초과", "오픈")
+        for p in risk_list:
+            raw = p.get("risk_score", p.get("score", 0))
+            try: score = min(round(float(raw) * 100 / 60), 100)
+            except: score = 0
+            row(p.get("name",""), p.get("risk_level", p.get("level","")), score,
+                p.get("overdue", 0), p.get("open", 0))
+        blank()
+
+    if "versions" in sections and version_rows:
+        row("【 VERSION PROGRESS 】")
+        row("버전", "상태", "마감일", "진행률", "완료", "오픈", "초과")
+        for v in version_rows:
+            open_cnt = v["total"] - v["closed"]
+            row(v["name"], v["badge"], v["due"], f"{v['pct']}%",
+                v["closed"], open_cnt, v["overdue"])
+        blank()
+
+    if "assignee" in sections and assignee_list:
+        row("【 ASSIGNEE LOAD 】")
+        row("부서", "담당자", "오픈", "초과")
+        for a in assignee_list:
+            row(a.get("group",""), a.get("name",""),
+                a.get("open", 0), a.get("overdue", 0))
+        blank()
+
+    return "\n".join(lines)
 
 
 def send_report_email(html: str, subject: str, email_cfg) -> dict:

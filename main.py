@@ -150,7 +150,7 @@ def _require_session(request: Request) -> dict:
     return s
 
 _init_session_table()
-from app.reporter import build_report_data, render_html_report, send_report_email
+from app.reporter import build_report_data, render_html_report, render_tsv_report, send_report_email
 from app.constants import PROGRESS_SET, RESOLVED_SET, CLOSED_SET, HOLD_SET, DEPT_NORMALIZE, dept_name, short_name
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.triggers.cron import CronTrigger
@@ -1431,6 +1431,18 @@ async def visitors(request: Request):
     return {"count": len(active)}
 
 
+@app.get("/report-mockup", response_class=HTMLResponse)
+async def report_mockup():
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "report-mockup.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+@app.get("/notice-mockup", response_class=HTMLResponse)
+async def notice_mockup():
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "notice-mockup.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
 @app.get("/connect", response_class=HTMLResponse)
 async def connect_page(request: Request):
     token = request.cookies.get("vx_session")
@@ -1763,6 +1775,26 @@ async def api_report_preview(
     report = build_report_data(dashboard, project_label=proj_name)
     html   = render_html_report(report, sections=section_list, memo=memo)
     return HTMLResponse(content=html)
+
+
+@app.get("/api/report/tsv")
+async def api_report_tsv(
+    request: Request,
+    project_id:    str = "",
+    updated_after: str = "2026-03-01",
+    sections:      str = "",
+    s: dict = Depends(_require_session),
+):
+    from fastapi.responses import PlainTextResponse
+    redmine_url = s.get("url")
+    api_key     = s.get("key")
+    dashboard = get_cache(project_id, updated_after, redmine_url)
+    if not dashboard:
+        dashboard = build_dashboard_data(project_id, updated_after, redmine_url=redmine_url, api_key=api_key)
+    section_list = [sec.strip() for sec in sections.split(",") if sec.strip()] if sections else None
+    report = build_report_data(dashboard, project_label=project_id or "전체 프로젝트")
+    tsv    = render_tsv_report(report, sections=section_list)
+    return PlainTextResponse(content=tsv, media_type="text/plain; charset=utf-8")
 
 
 @app.post("/api/report/send")
