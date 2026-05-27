@@ -712,13 +712,25 @@ html, body {
     --hero-num: clamp(72px, 22vw, 100px);
   }
 
-  body { overflow: auto; }
-  html { overflow: auto; }
-  .app { height: auto; min-height: 100vh; }
+  /* ① 수평 스크롤 차단 */
+  html, body { overflow-x: hidden; overflow-y: auto; max-width: 100vw; }
+  .app { height: auto; min-height: 100vh; max-width: 100vw; overflow-x: hidden; }
+  .app-row { overflow-x: hidden; }
+  .content { overflow-x: hidden; max-width: 100vw; }
 
-  .topbar { padding: 0 16px; gap: 10px; }
-.topbar-status .cache { display: none; }
+  /* ② topbar 오버플로우 — since 텍스트 숨기고 아이콘만 노출 */
+  .topbar { padding: 0 14px; gap: 8px; overflow: hidden; }
+  .topbar-since-wrap { display: none; }
+  .topbar-status .cache { display: none; }
   .topbar-status .topbar-divider { display: none; }
+  .topbar-status .label { display: none; }
+  .topbar-status { flex: 1; gap: 6px; }
+  .icon-btn { width: 26px; height: 26px; flex-shrink: 0; }
+
+  /* ④ 사이드바/content 겹침 — 모바일은 항상 margin 0 */
+  .content { margin-left: 0 !important; }
+  .sidebar { position: fixed; z-index: 200; }
+  .app.sidebar-hidden .sidebar { transform: translateX(-100%); pointer-events: none; }
   .icon-btn { width: 26px; height: 26px; }
 
   .crown { padding: 18px 16px 12px; gap: 14px; }
