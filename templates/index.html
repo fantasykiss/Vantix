@@ -1833,10 +1833,23 @@ document.addEventListener('DOMContentLoaded', function() {
 // Gauge
 // ────────────────────────────────────────────────────────────
 function riskScoreColor(score) {
-  if (score >= 30) return 'var(--red)';
-  if (score >= 15) return 'var(--amber)';
-  if (score >= 5)  return 'var(--green-dim)';
-  return 'var(--green)';
+  if (score >= 30) return '#ef4444';
+  if (score >= 15) return '#fb923c';
+  if (score >= 5)  return '#16a34a';
+  return '#22c55e';
+}
+var _RISK_COLORS = { 'Critical': '#ef4444', 'High': '#fb923c', 'Medium': '#16a34a', 'Low': '#22c55e' };
+
+function applyNowColor() {
+  if (!_nowRiskColor) return;
+  var nowLabelEl = document.getElementById('trend-now-label');
+  if (nowLabelEl) { nowLabelEl.style.background = _nowRiskColor; nowLabelEl.style.color = '#0c0c0c'; }
+  var nowLineEl = document.querySelector('.trend-now-line');
+  if (nowLineEl) { nowLineEl.style.borderColor = _nowRiskColor; nowLineEl.style.borderLeftColor = _nowRiskColor; }
+  var axisNowEl = document.querySelector('.trend-axis .now');
+  if (axisNowEl) axisNowEl.style.color = _nowRiskColor;
+  var nowBarEl = document.querySelector('#trend-bars .bar.now');
+  if (nowBarEl) nowBarEl.style.background = _nowRiskColor;
 }
 
 function buildGauge(score) {
@@ -1918,13 +1931,7 @@ function renderTrend(history, weeks) {
     axis.appendChild(el);
   }
 
-  // Override NOW bar color with live risk level color if available
-  if (_nowRiskColor) {
-    var nowBar = document.querySelector('#trend-bars .bar.now');
-    if (nowBar) nowBar.style.background = _nowRiskColor;
-    var axisNow = document.querySelector('.trend-axis .now');
-    if (axisNow) axisNow.style.color = _nowRiskColor;
-  }
+  applyNowColor();
 }
 
 function renderTrendFake(weeks) {
@@ -1973,6 +1980,7 @@ function renderTrendFake(weeks) {
     if (i === labels.length - 1) el.classList.add('now');
     axis.appendChild(el);
   });
+  applyNowColor();
 }
 
 // ────────────────────────────────────────────────────────────
@@ -2265,18 +2273,12 @@ function renderDashboard(d, forecast) {
   document.getElementById('risk-level-text').textContent = levelText[level] || level.toUpperCase();
 
   var riskState = document.getElementById('risk-state');
-  var levelBg = { 'Critical': 'var(--red)', 'High': 'var(--amber)', 'Medium': 'var(--amber-deep)', 'Low': 'var(--green-dim)' };
-  riskState.style.background = levelBg[level] || 'var(--amber)';
+  _nowRiskColor = _RISK_COLORS[level] || '#fb923c';
+  riskState.style.background = _nowRiskColor;
+  riskState.style.color = '#0c0c0c';
 
-  // Color NOW indicator elements to match risk level
-  _nowRiskColor = levelBg[level] || 'var(--amber)';
-  var nowLabelEl = document.getElementById('trend-now-label');
-  if (nowLabelEl) { nowLabelEl.style.background = _nowRiskColor; nowLabelEl.style.color = 'var(--bg)'; }
-  var nowLineEl = document.querySelector('.trend-now-line');
-  if (nowLineEl) nowLineEl.style.borderLeftColor = _nowRiskColor;
-  var axisNowEl = document.querySelector('.trend-axis .now');
-  if (axisNowEl) axisNowEl.style.color = _nowRiskColor;
-  riskState.style.color = 'var(--bg)';
+  // Color NOW indicator elements to match risk level (hex값 직접 적용)
+  applyNowColor();
 
   buildGauge(normScore);
 
