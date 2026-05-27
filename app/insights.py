@@ -121,10 +121,15 @@ def rule_assignee_delay_pattern(dashboard: dict) -> list[Insight]:
         if ratio >= 0.4:
             name = short_name(uname)
             dept = dept_name(uname)
+            level = "critical" if ratio >= 0.7 else "warning"
+            title = "담당자 지연 위험" if level == "critical" else "담당자 지연 패턴"
+            body  = (
+                f"<strong>{name}</strong> 오픈 이슈 {total}건 중 <strong>{len(overdue)}건 초과</strong> ({round(ratio*100)}%) — "
+                + ("즉각적인 업무 재배분 필요." if level == "critical" else "지속적 지연 패턴. 업무량 점검 필요.")
+            )
             results.append(Insight(
-                rule="ASSIGNEE_DELAY_PATTERN", level="warning",
-                title="담당자 지연 패턴",
-                body=f"<strong>{name}</strong> 오픈 이슈 {total}건 중 <strong>{len(overdue)}건 초과</strong> ({round(ratio*100)}%) — 지속적 지연 패턴. 업무량 점검 필요.",
+                rule="ASSIGNEE_DELAY_PATTERN", level=level,
+                title=title, body=body,
                 target=f"{name} · {dept}" if dept else name,
             ))
     return results
@@ -244,7 +249,27 @@ def rule_unassigned_urgent(dashboard: dict) -> list[Insight]:
     )]
 
 
-# ── Rule 8: DEADLINE_CLUSTER ─────────────────────────────────────
+# ── Rule 8: MASS_OVERDUE ────────────────────────────────────────
+def rule_mass_overdue(dashboard: dict) -> list[Insight]:
+    """전체 오픈 이슈 중 초과 비율 70% 이상 (최소 5건)"""
+    all_issues = _all_issues(dashboard)
+    open_issues = [i for i in all_issues if _is_open(i) and not _is_hold(i)]
+    overdue     = [i for i in open_issues if _is_overdue(i)]
+    total = len(open_issues)
+    if total < 5:
+        return []
+    ratio = len(overdue) / total
+    if ratio < 0.7:
+        return []
+    return [Insight(
+        rule="MASS_OVERDUE", level="critical",
+        title="프로젝트 전반 일정 초과",
+        body=f"오픈 이슈 <strong>{total}건 중 {len(overdue)}건 ({round(ratio*100)}%)이 마감 초과</strong> — 프로젝트 일정 전면 재검토 필요.",
+        target=f"초과 {len(overdue)}/{total}건",
+    )]
+
+
+# ── Rule 9: DEADLINE_CLUSTER ─────────────────────────────────────
 def rule_deadline_cluster(dashboard: dict) -> list[Insight]:
     """특정 날짜에 마감 이슈 5건 이상 집중"""
     from collections import Counter
@@ -294,6 +319,7 @@ def rule_long_pending(dashboard: dict) -> list[Insight]:
 # ── 전체 실행 ────────────────────────────────────────────────────
 RULES = [
     rule_version_overrun,
+    rule_mass_overdue,
     rule_unassigned_urgent,
     rule_deadline_cluster,
     rule_test_buffer,
@@ -315,4 +341,23 @@ def run_all_insights(dashboard: dict) -> list[Insight]:
         except Exception:
             pass
     results.sort(key=lambda x: LEVEL_ORDER.get(x.level, 9))
+
+    # ③ fallback: 리스크 Critical인데 CRITICAL insight 없을 때 보완
+    project_risks = dashboard.get("project_risk", [])
+    if isinstance(project_risks, dict):
+        project_risks = list(project_risks.values())
+    has_critical_risk = any(
+        p.get("risk_level") in ("Critical",) for p in project_risks
+    )
+    has_critical_insight = any(r.level == "critical" for r in results)
+    if has_critical_risk and not has_critical_insight:
+        top = next((p for p in project_risks if p.get("risk_level") == "Critical"), None)
+        if top:
+            results.insert(0, Insight(
+                rule="RISK_CRITICAL_FALLBACK", level="critical",
+                title="리스크 Critical 감지",
+                body=f"<strong>{top.get('name','?')}</strong> 리스크 점수 <strong>{round(top.get('risk_score', 0), 1)}</strong> — 초과·임박 이슈 집중. 즉각 점검 필요.",
+                target=top.get("name", "?"),
+            ))
+
     return results

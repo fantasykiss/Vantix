@@ -428,9 +428,12 @@ def save_risk_snapshot():
     # 전체 평균 스냅샷
     avg_score = round(sum(p["risk_score"] for p in projects) / len(projects), 1)
     avg_level = "Critical" if avg_score >= 30 else "High" if avg_score >= 15 else "Medium" if avg_score >= 5 else "Low"
+    avg_overdue = sum(p.get("overdue", 0) for p in projects)
+    avg_urgent  = sum(p.get("urgent",  0) for p in projects)
     history.setdefault("all", [])
     if not history["all"] or history["all"][-1]["date"] != today:
-        history["all"].append({"date": today, "score": avg_score, "level": avg_level})
+        history["all"].append({"date": today, "score": avg_score, "level": avg_level,
+                               "overdue": avg_overdue, "urgent": avg_urgent})
     history["all"] = history["all"][-52:]  # 최대 52주 보관
 
     # 캐시 키에서 project_id → project_name 역매핑 구성
@@ -458,7 +461,8 @@ def save_risk_snapshot():
         score = round(p["risk_score"], 1)
         level = p["risk_level"]
         if not history[key] or history[key][-1]["date"] != today:
-            history[key].append({"date": today, "score": score, "level": level})
+            history[key].append({"date": today, "score": score, "level": level,
+                                 "overdue": p.get("overdue", 0), "urgent": p.get("urgent", 0)})
         history[key] = history[key][-52:]
 
     with open(RISK_HISTORY_PATH, "w", encoding="utf-8") as f:
@@ -626,6 +630,16 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
     all_statuses = [i["status"] for ud in users_data.values() for i in ud["issues"]]
     open_issues  = sum(1 for s in all_statuses if s not in CLOSED_SET and s not in HOLD_SET)
 
+    # 오픈 이슈 1건 이상 보유 담당자 수 + 미배정 담당자 이름 목록
+    users_active = 0
+    users_idle_names = []
+    for uname, ud in users_data.items():
+        has_open = any(i["status"] not in CLOSED_SET and i["status"] not in HOLD_SET for i in ud["issues"])
+        if has_open:
+            users_active += 1
+        else:
+            users_idle_names.append(ud.get("short_name", uname))
+
     today_str = date.today().strftime("%Y-%m-%d")
 
     def is_overdue(i):
@@ -668,7 +682,9 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
         pname = iss["project"]["name"]
         if pname not in project_risk:
             project_risk[pname] = {
-                "name": pname, "overdue": 0, "urgent": 0,
+                "name": pname,
+                "identifier": iss["project"].get("identifier", ""),
+                "overdue": 0, "urgent": 0,
                 "pending": 0, "open": 0, "total": 0,
                 "issues_overdue": [], "issues_urgent": [], "issues_pending": [],
             }
@@ -776,6 +792,8 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
 
     return {
         "users":            len(users_data),
+        "users_active":     users_active,
+        "users_idle_names": users_idle_names,
         "total_issues":     len(issues),
         "open_issues":      open_issues,
         "overdue":          overdue_total,
@@ -1063,6 +1081,7 @@ async def root(request: Request):
     html = html.replace("__REDMINE_API_KEY__", s["key"])
     html = html.replace("__DEFAULT_UPDATED_AFTER__", DEFAULT_UPDATED_AFTER)
     html = html.replace("__DEFAULT_PROJECT_ID__", DEFAULT_PROJECT_ID or "")
+    html = html.replace("__REDMINE_PUBLIC_URL__", REDMINE_PUBLIC_URL or s["url"])
     return HTMLResponse(content=html)
 
 @app.get("/api/projects")
@@ -1207,14 +1226,21 @@ async def api_forecast(request: Request, project_id: str = "", updated_after: st
             at_risk_milestones += 1
 
     # ── 지표 3: 전주 대비 리스크 변화
-    risk_change = None
+    risk_change    = None
+    prev_overdue   = None
+    prev_urgent    = None
+    prev_date      = None
     try:
         with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
             hist = json.load(f)
         proj_key = f"project_{project_id}" if project_id else "all"
         proj_hist = hist.get(proj_key, hist.get("all", []))
         if len(proj_hist) >= 2:
-            risk_change = round(proj_hist[-1]["score"] - proj_hist[-2]["score"], 1)
+            prev = proj_hist[-2]
+            risk_change  = round(proj_hist[-1]["score"] - prev["score"], 1)
+            prev_overdue = prev.get("overdue")
+            prev_urgent  = prev.get("urgent")
+            prev_date    = prev.get("date")
     except Exception:
         pass
 
@@ -1238,9 +1264,12 @@ async def api_forecast(request: Request, project_id: str = "", updated_after: st
         })
 
     metrics = {
-        "delay_predicted": delay_predicted,
+        "delay_predicted":  delay_predicted,
         "at_risk_milestones": at_risk_milestones,
-        "risk_change": risk_change,
+        "risk_change":      risk_change,
+        "prev_overdue":     prev_overdue,
+        "prev_urgent":      prev_urgent,
+        "prev_date":        prev_date,
     }
 
     if not project_id:
@@ -1254,12 +1283,17 @@ async def api_forecast(request: Request, project_id: str = "", updated_after: st
             if p.get("urgent", 0) > 0:
                 parts.append(f"D-3 이내 {p['urgent']}건")
             items.append({
-                "name": p["name"],
-                "reason": " · ".join(parts) if parts else "이슈 없음, 안정",
-                "badge": "지연 위험" if lvl in ("Critical", "High") else ("주의 필요" if lvl == "Medium" else "안정"),
+                "name":       p["name"],
+                "identifier": p.get("identifier", ""),
+                "reason":     " · ".join(parts) if parts else "이슈 없음, 안정",
+                "badge":      "지연 위험" if lvl in ("Critical", "High") else ("주의 필요" if lvl == "Medium" else "안정"),
                 "badge_class": "danger" if lvl in ("Critical", "High") else ("warning" if lvl == "Medium" else "safe"),
-                "dot_class": "high" if lvl in ("Critical", "High") else ("medium" if lvl == "Medium" else "low"),
-                "done_pct": None,
+                "dot_class":  "high" if lvl in ("Critical", "High") else ("medium" if lvl == "Medium" else "low"),
+                "done_pct":   None,
+                "overdue":    p.get("overdue", 0),
+                "urgent":     p.get("urgent",  0),
+                "total":      p.get("total",   0),
+                "risk_score": round(p.get("risk_score", 0), 1),
             })
         return {
             "type": "all",
