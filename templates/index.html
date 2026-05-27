@@ -719,8 +719,9 @@ html, body {
   .app-row { overflow-x: hidden; }
   .content { overflow-x: hidden; max-width: 100vw; }
 
-  /* ② topbar 오버플로우 — SINCE 라벨 숨기고 날짜만 컴팩트 표시 */
-  .topbar { padding: 0 14px; gap: 8px; overflow: hidden; }
+  /* ② topbar — SINCE 라벨 숨기고 날짜만 컴팩트 표시 (overflow는 visible 유지 → 드롭다운 클리핑 방지) */
+  .topbar { padding: 0 14px; gap: 8px; overflow: visible; position: relative; }
+  .topbar-brand { min-width: 0; flex-shrink: 1; }
   .since-lbl { display: none; }
   .since-chevron { display: none; }
   .since-date { font-size: 9px; letter-spacing: 0.04em; }
@@ -729,8 +730,15 @@ html, body {
   .topbar-status .cache { display: none; }
   .topbar-status .topbar-divider { display: none; }
   .topbar-status .label { display: none; }
-  .topbar-status { flex: 1; gap: 6px; }
+  .topbar-status { flex: 1; gap: 6px; min-width: 0; }
   .icon-btn { width: 26px; height: 26px; flex-shrink: 0; }
+
+  /* ③ 섹션 헤더 모바일 wrap — 오른쪽 짤림 방지 */
+  .sec-head { flex-wrap: wrap; gap: 8px; }
+  .sec-head-name { white-space: normal; }
+  .sec-head-r { white-space: normal; }
+  #ins-refresh-btn { display: none; }
+  .wl-dist-legend { flex-wrap: wrap; gap: 6px; justify-content: flex-start; }
 
   /* ④ 사이드바/content 겹침 — 모바일은 항상 margin 0 */
   .content { margin-left: 0 !important; }
