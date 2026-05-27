@@ -45,9 +45,32 @@ SESSION_TTL = 86400 * 30      # 30일
 _SESSION_FILE = os.path.join(os.path.dirname(__file__), "sessions.json")
 _DATABASE_URL = os.getenv("DATABASE_URL", "")
 
-def _db_conn():
-    import psycopg2
-    return psycopg2.connect(_DATABASE_URL)
+_db_pool = None
+import concurrent.futures as _cf
+_db_executor = _cf.ThreadPoolExecutor(max_workers=5, thread_name_prefix="vx-db")
+
+def _get_pool():
+    global _db_pool
+    if _db_pool is None and _DATABASE_URL:
+        import psycopg2.pool
+        _db_pool = psycopg2.pool.ThreadedConnectionPool(2, 10, _DATABASE_URL)
+    return _db_pool
+
+class _db_conn:
+    """커넥션 풀에서 꺼내 쓰고 반납하는 컨텍스트 매니저"""
+    def __enter__(self):
+        pool = _get_pool()
+        self._conn = pool.getconn()
+        return self._conn
+    def __exit__(self, exc_type, *_):
+        if exc_type:
+            self._conn.rollback()
+        _get_pool().putconn(self._conn)
+
+async def _adb(fn):
+    """동기 DB 함수를 스레드에서 실행 → 이벤트 루프 블로킹 방지"""
+    import asyncio
+    return await asyncio.get_event_loop().run_in_executor(_db_executor, fn)
 
 def _init_session_table():
     if not _DATABASE_URL:
@@ -91,7 +114,23 @@ def _init_analytics_tables():
                         message   TEXT NOT NULL,
                         name      TEXT,
                         email     TEXT,
+                        ip        TEXT,
                         ts        DOUBLE PRECISION NOT NULL
+                    )
+                """)
+                cur.execute("""
+                    ALTER TABLE vantix_feedback ADD COLUMN IF NOT EXISTS ip TEXT
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS vantix_callouts (
+                        id      TEXT PRIMARY KEY,
+                        from_name TEXT,
+                        date    TEXT,
+                        text    TEXT NOT NULL,
+                        color   TEXT,
+                        done    BOOLEAN DEFAULT FALSE,
+                        seen    BOOLEAN DEFAULT FALSE,
+                        created DOUBLE PRECISION NOT NULL
                     )
                 """)
             conn.commit()
@@ -126,6 +165,7 @@ def _save_session(token: str, url: str, key: str, created: float):
         pass
 
 def _delete_session(token: str):
+    _session_cache.pop(token, None)
     if _DATABASE_URL:
         try:
             with _db_conn() as conn:
@@ -145,7 +185,38 @@ def _delete_session(token: str):
     except Exception:
         pass
 
+_session_cache: dict = {}   # token → {url, key, created}  ← 만료 전까지 영구 유지
+_callout_cache: list | None = None          # GET /api/callouts 결과 메모리 캐시
+_callout_cache_ts: float = 0.0
+_CALLOUT_CACHE_TTL = 30                     # 30초: 쓰기 시 즉시 무효화되므로 짧아도 OK
+
+def _warm_session_cache():
+    """서버 시작 시 DB 세션 전체를 메모리에 로드 — 이후 _get_session은 DB 미접촉"""
+    if not _DATABASE_URL:
+        return
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT token, url, key, created FROM vantix_sessions WHERE created > %s",
+                            (time.time() - SESSION_TTL,))
+                rows = cur.fetchall()
+        for token, url, key, created in rows:
+            _session_cache[token] = {"url": url, "key": _decrypt_key(key), "created": created}
+        print(f"[session] 캐시 워밍 완료: {len(rows)}개 세션")
+    except Exception as e:
+        print(f"[session] 캐시 워밍 실패: {e}")
+
 def _get_session(token: str) -> dict | None:
+    if not token:
+        return None
+    # 메모리 캐시에서 즉시 반환 (DB 미접촉)
+    s = _session_cache.get(token)
+    if s is not None:
+        if time.time() - s["created"] > SESSION_TTL:
+            _session_cache.pop(token, None)
+            return None
+        return s
+    # 캐시 미스 → DB 조회 (최초 로그인 또는 서버 재시작 직후)
     if _DATABASE_URL:
         try:
             with _db_conn() as conn:
@@ -158,7 +229,9 @@ def _get_session(token: str) -> dict | None:
             if time.time() - created > SESSION_TTL:
                 _delete_session(token)
                 return None
-            return {"url": url, "key": _decrypt_key(key), "created": created}
+            s = {"url": url, "key": _decrypt_key(key), "created": created}
+            _session_cache[token] = s
+            return s
         except Exception as e:
             print(f"[session] DB 조회 실패: {e}")
     # 파일 폴백
@@ -168,7 +241,9 @@ def _get_session(token: str) -> dict | None:
                 data = json.load(f)
             s = data.get(token)
             if s and time.time() - s["created"] < SESSION_TTL:
-                return {"url": s["url"], "key": _decrypt_key(s["key"]), "created": s["created"]}
+                result = {"url": s["url"], "key": _decrypt_key(s["key"]), "created": s["created"]}
+                _session_cache[token] = result
+                return result
     except Exception:
         pass
     return None
@@ -182,6 +257,7 @@ def _require_session(request: Request) -> dict:
 
 _init_session_table()
 _init_analytics_tables()
+_warm_session_cache()
 from app.reporter import build_report_data, render_html_report, render_tsv_report, send_report_email
 from app.constants import PROGRESS_SET, RESOLVED_SET, CLOSED_SET, HOLD_SET, DEPT_NORMALIZE, dept_name, short_name
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -1531,6 +1607,7 @@ async def api_feedback(request: Request):
         message = body.get("message", "").strip()
         name    = body.get("name", "").strip()
         email   = body.get("email", "").strip()
+        ip      = request.headers.get("X-Forwarded-For", request.client.host).split(",")[0].strip()
         if not message:
             raise HTTPException(status_code=400, detail="내용을 입력해 주세요.")
         ts = time.time()
@@ -1538,8 +1615,8 @@ async def api_feedback(request: Request):
             with _db_conn() as conn:
                 with conn.cursor() as cur:
                     cur.execute(
-                        "INSERT INTO vantix_feedback (type, message, name, email, ts) VALUES (%s,%s,%s,%s,%s)",
-                        (fb_type, message, name, email, ts)
+                        "INSERT INTO vantix_feedback (type, message, name, email, ip, ts) VALUES (%s,%s,%s,%s,%s,%s)",
+                        (fb_type, message, name, email, ip, ts)
                     )
                 conn.commit()
     except HTTPException:
@@ -1630,12 +1707,12 @@ async def api_admin_feedback(request: Request, _=Depends(_require_admin)):
         with _db_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT id, type, message, name, email, ts
+                    SELECT id, type, message, name, email, ip, ts
                     FROM vantix_feedback ORDER BY ts DESC LIMIT 200
                 """)
                 rows = cur.fetchall()
         items = [{"id": r[0], "type": r[1], "message": r[2], "name": r[3], "email": r[4],
-                  "ts": datetime.fromtimestamp(r[5]).strftime("%Y-%m-%d %H:%M")} for r in rows]
+                  "ip": r[5], "ts": datetime.fromtimestamp(r[6]).strftime("%Y-%m-%d %H:%M")} for r in rows]
         return {"items": items}
     except Exception as e:
         print(f"[admin/feedback] 오류: {e}")
@@ -1904,6 +1981,115 @@ async def api_get_monitor(project_id: str = "", s: dict = Depends(_require_sessi
     except (FileNotFoundError, json.JSONDecodeError):
         all_cfg = {}
     return all_cfg.get(project_id, {})
+
+
+@app.get("/api/callouts")
+async def api_callouts_get(request: Request):
+    global _callout_cache, _callout_cache_ts
+    token = request.cookies.get("vx_session")
+    s = _get_session(token or "")
+    if not s or not _DATABASE_URL:
+        return {"items": []}
+    # 메모리 캐시 히트 → 즉시 반환
+    if _callout_cache is not None and time.time() - _callout_cache_ts < _CALLOUT_CACHE_TTL:
+        return {"items": _callout_cache}
+    def _query():
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("SELECT id, from_name, date, text, color, done, seen FROM vantix_callouts ORDER BY created DESC")
+                return cur.fetchall()
+    try:
+        rows = await _adb(_query)
+        items = [{"id": r[0], "from": r[1] or "", "date": r[2] or "", "text": r[3], "color": r[4] or "#ff6b6b", "done": bool(r[5]), "seen": bool(r[6])} for r in rows]
+        _callout_cache = items
+        _callout_cache_ts = time.time()
+        return {"items": items}
+    except Exception as e:
+        print(f"[callouts/get] {e}")
+        return {"items": []}
+
+
+@app.post("/api/callouts")
+async def api_callouts_post(request: Request):
+    token = request.cookies.get("vx_session")
+    s = _get_session(token or "")
+    if not s:
+        raise HTTPException(status_code=401)
+    body = await request.json()
+    cid  = body.get("id", "")
+    text = body.get("text", "").strip()
+    if not cid or not text:
+        raise HTTPException(status_code=400, detail="id and text required")
+    if not _DATABASE_URL:
+        return {"ok": True}
+    vals = (cid, body.get("from", "나"), body.get("date", ""), text, body.get("color", "#ff6b6b"), False, False, time.time())
+    def _insert():
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO vantix_callouts (id, from_name, date, text, color, done, seen, created) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
+                    vals
+                )
+            conn.commit()
+    try:
+        await _adb(_insert)
+        global _callout_cache; _callout_cache = None  # 캐시 무효화
+    except Exception as e:
+        print(f"[callouts/post] {e}")
+        raise HTTPException(status_code=500)
+    return {"ok": True}
+
+
+@app.patch("/api/callouts/{cid}")
+async def api_callouts_patch(cid: str, request: Request):
+    token = request.cookies.get("vx_session")
+    s = _get_session(token or "")
+    if not s:
+        raise HTTPException(status_code=401)
+    body = await request.json()
+    if not _DATABASE_URL:
+        return {"ok": True}
+    has_done = "done" in body
+    has_seen = "seen" in body
+    done_val = bool(body.get("done"))
+    seen_val = bool(body.get("seen"))
+    def _update():
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                if has_done:
+                    cur.execute("UPDATE vantix_callouts SET done=%s WHERE id=%s", (done_val, cid))
+                if has_seen:
+                    cur.execute("UPDATE vantix_callouts SET seen=%s WHERE id=%s", (seen_val, cid))
+            conn.commit()
+    try:
+        await _adb(_update)
+        global _callout_cache; _callout_cache = None  # 캐시 무효화
+    except Exception as e:
+        print(f"[callouts/patch] {e}")
+        raise HTTPException(status_code=500)
+    return {"ok": True}
+
+
+@app.delete("/api/callouts/{cid}")
+async def api_callouts_delete(cid: str, request: Request):
+    token = request.cookies.get("vx_session")
+    s = _get_session(token or "")
+    if not s:
+        raise HTTPException(status_code=401)
+    if not _DATABASE_URL:
+        return {"ok": True}
+    def _delete():
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM vantix_callouts WHERE id=%s", (cid,))
+            conn.commit()
+    try:
+        await _adb(_delete)
+        global _callout_cache; _callout_cache = None  # 캐시 무효화
+    except Exception as e:
+        print(f"[callouts/delete] {e}")
+        raise HTTPException(status_code=500)
+    return {"ok": True}
 
 
 @app.get("/api/report/preview")

@@ -1249,7 +1249,7 @@ html, body {
   <header class="topbar">
     <!-- Brand + Since 날짜 드롭다운 (left) -->
     <div class="topbar-brand">
-      <span class="topbar-brand-name" onclick="location.reload()" style="cursor:pointer;">Vantix</span>
+      <span class="topbar-brand-name" onclick="_expandedProjects.clear(); _expandedProjects.add('__all__'); switchProject('', '전체 프로젝트', _allProjects);" style="cursor:pointer;">Vantix</span>
       <div class="topbar-since-wrap" id="topbar-since-wrap">
         <div class="topbar-since-trigger" onclick="toggleSinceDd(event)">
           <span class="topbar-since-icon"><svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="1" y="2" width="12" height="11" rx="1"/><path d="M1 5h12M4 1v2M10 1v2"/></svg></span>
@@ -1339,10 +1339,9 @@ html, body {
     <!-- 캘린더 (핀 시스템) -->
     <div class="cal" id="sb-calendar"></div>
 
-    <!-- 문의/건의 버튼 -->
-    <div style="padding: 12px 16px 16px; border-top: 1px solid var(--border); margin-top: auto; display:flex; gap:8px;">
-      <button onclick="openFeedback('inquiry')" style="flex:1;padding:7px 0;font-size:12px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--text-muted)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)'">문의하기</button>
-      <button onclick="openFeedback('suggestion')" style="flex:1;padding:7px 0;font-size:12px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--text-muted)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)'">건의하기</button>
+    <!-- 의견 남기기 버튼 -->
+    <div style="padding: 12px 16px 16px; border-top: 1px solid var(--border); margin-top: auto;">
+      <button onclick="openFeedback('inquiry')" style="width:100%;padding:8px 0;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border:1px solid rgba(251,146,60,0.35);border-radius:0;background:rgba(251,146,60,0.07);color:var(--amber);cursor:pointer;font-family:var(--dm);transition:background .15s,border-color .15s;" onmouseover="this.style.background='rgba(251,146,60,0.13)';this.style.borderColor='rgba(251,146,60,0.6)'" onmouseout="this.style.background='rgba(251,146,60,0.07)';this.style.borderColor='rgba(251,146,60,0.35)'">의견 남기기</button>
     </div>
 
   </aside>
@@ -2888,44 +2887,20 @@ document.addEventListener('click', function(e) {
 }, true);
 
 // ────────────────────────────────────────────────────────────
-// Callout 시스템 (localStorage 기반)
+// Callout 시스템 (DB 기반)
 // ────────────────────────────────────────────────────────────
-var _CALLOUT_KEY = 'vantix_callouts';
 var _calloutColor = '#ff6b6b';
-
-var _calloutDefaults = [
-  { id: 'co-d1', from: 'PM 김민수', date: '05/21', text: '3번 프로젝트 아트리소스 마감 10일 전 — 꼭 챙겨주세요.', color: '#ff6b6b', done: false, seen: true },
-  { id: 'co-d2', from: 'PM 이수진', date: '05/20', text: '클라이언트 리뷰 내일 10시 — 스크린샷 최신화 필요.', color: 'rgba(100,180,255,0.55)', done: false, seen: true },
-  { id: 'co-d3', from: 'PM 박지원', date: '05/19', text: '서버 점검 일정 확인 부탁드립니다.', color: 'rgba(255,255,255,0.08)', done: true, seen: true }
-];
-
-function _loadCallouts() {
-  var raw = localStorage.getItem(_CALLOUT_KEY);
-  if (!raw) {
-    localStorage.setItem(_CALLOUT_KEY, JSON.stringify(_calloutDefaults));
-    return _calloutDefaults;
-  }
-  try { return JSON.parse(raw); } catch(e) { return _calloutDefaults; }
-}
-
-function _saveCallouts(list) {
-  localStorage.setItem(_CALLOUT_KEY, JSON.stringify(list));
-}
+var _calloutCache = [];  // 메모리 캐시
 
 function _updateCalloutBadge(list) {
   var badge = document.getElementById('co-badge');
   if (!badge) return;
   var unseen = list.filter(function(co) { return !co.seen; }).length;
-  if (unseen > 0) {
-    badge.textContent = unseen;
-    badge.style.display = '';
-  } else {
-    badge.style.display = 'none';
-  }
+  if (unseen > 0) { badge.textContent = unseen; badge.style.display = ''; }
+  else { badge.style.display = 'none'; }
 }
 
-function renderCallouts() {
-  var list = _loadCallouts();
+function _renderCalloutList(list) {
   var container = document.getElementById('callout-list');
   if (!container) return;
   container.innerHTML = '';
@@ -2951,34 +2926,33 @@ function renderCallouts() {
   _updateCalloutBadge(list);
 }
 
+function renderCallouts() {
+  fetch('/api/callouts').then(function(r) { return r.json(); }).then(function(d) {
+    _calloutCache = d.items || [];
+    _renderCalloutList(_calloutCache);
+  }).catch(function() { _renderCalloutList(_calloutCache); });
+}
+
 function markCalloutSeen(id) {
-  var list = _loadCallouts();
-  var changed = false;
-  list = list.map(function(co) {
-    if (co.id === id && !co.seen) { co.seen = true; changed = true; }
-    return co;
-  });
-  if (!changed) return;
-  _saveCallouts(list);
+  var co = _calloutCache.find(function(c) { return c.id === id; });
+  if (!co || co.seen) return;
+  co.seen = true;
+  fetch('/api/callouts/' + id, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({seen: true}) });
   var dot = document.querySelector('#' + id + ' .co-new-dot');
   if (dot) dot.remove();
-  _updateCalloutBadge(list);
+  _updateCalloutBadge(_calloutCache);
 }
 
 function deleteCallout(id) {
-  var list = _loadCallouts().filter(function(co) { return co.id !== id; });
-  _saveCallouts(list);
-  renderCallouts();
+  fetch('/api/callouts/' + id, { method: 'DELETE' }).then(function() { renderCallouts(); });
 }
 
 function toggleCallout(id) {
-  var list = _loadCallouts();
-  list = list.map(function(co) {
-    if (co.id === id) co.done = !co.done;
-    return co;
-  });
-  _saveCallouts(list);
-  renderCallouts();
+  var co = _calloutCache.find(function(c) { return c.id === id; });
+  if (!co) return;
+  co.done = !co.done;
+  fetch('/api/callouts/' + id, { method: 'PATCH', headers: {'Content-Type':'application/json'}, body: JSON.stringify({done: co.done}) });
+  _renderCalloutList(_calloutCache);
 }
 
 function toggleCalloutForm() {
@@ -2986,12 +2960,8 @@ function toggleCalloutForm() {
   if (!form) return;
   var isOpen = form.classList.contains('open');
   form.classList.toggle('open');
-  if (!isOpen) {
-    document.getElementById('co-from').focus();
-  } else {
-    document.getElementById('co-from').value = '';
-    document.getElementById('co-text').value = '';
-  }
+  if (!isOpen) { document.getElementById('co-from').focus(); }
+  else { document.getElementById('co-from').value = ''; document.getElementById('co-text').value = ''; }
 }
 
 function selectCalloutColor(el) {
@@ -3006,10 +2976,12 @@ function submitCallout() {
   if (!text) { document.getElementById('co-text').focus(); return; }
   var now = new Date();
   var date = (now.getMonth()+1).toString().padStart(2,'0') + '/' + now.getDate().toString().padStart(2,'0');
-  var list = _loadCallouts();
-  list.unshift({ id: 'co-' + Date.now(), from: from || '나', date: date, text: text, color: _calloutColor, done: false, seen: false });
-  _saveCallouts(list);
-  renderCallouts();
+  var newItem = { id: 'co-' + Date.now(), from: from || '나', date: date, text: text, color: _calloutColor, done: false, seen: false };
+  fetch('/api/callouts', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(newItem)
+  }).then(function() { renderCallouts(); });
   toggleCalloutForm();
 }
 
@@ -4326,23 +4298,36 @@ document.addEventListener('click', function() {
 </script>
 
 <!-- ══ FEEDBACK MODAL ══════════════════════════════════════════ -->
-<div id="feedback-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center;">
-  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;width:420px;max-width:90vw;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.4);">
-    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
-      <h3 id="feedback-title" style="margin:0;font-size:15px;font-weight:600;color:var(--text);">문의하기</h3>
-      <button onclick="closeFeedback()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0 2px;line-height:1;">×</button>
+<div id="feedback-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:var(--bg);border:1px solid var(--ghost);border-radius:0;width:420px;max-width:90vw;padding:28px;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:var(--dm);">
+    <!-- 헤더 -->
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <h3 style="margin:0;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text);font-family:var(--dm);">의견 남기기</h3>
+      <button onclick="closeFeedback()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:0;line-height:1;font-family:var(--dm);transition:color .12s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">✕</button>
     </div>
-    <div style="display:flex;flex-direction:column;gap:12px;">
-      <input id="fb-name" type="text" placeholder="이름 (선택)" maxlength="30"
-        style="padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;outline:none;" />
-      <input id="fb-email" type="email" placeholder="이메일 (선택)" maxlength="80"
-        style="padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;outline:none;" />
+    <!-- 서브텍스트 -->
+    <p style="margin:0 0 18px;font-size:11px;color:var(--text-mid);font-family:var(--dm);letter-spacing:.02em;">의견하나가 Vantix 개선에 큰 도움이 됩니다 _ _)</p>
+    <!-- 타입 토글 -->
+    <div style="display:flex;gap:6px;margin-bottom:14px;">
+      <button id="fb-toggle-inquiry" onclick="setFbType('inquiry')"
+        style="flex:1;padding:6px 0;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--text-dim);border-radius:0;background:transparent;color:var(--text);cursor:pointer;font-family:var(--dm);transition:all .12s;">문의</button>
+      <button id="fb-toggle-suggestion" onclick="setFbType('suggestion')"
+        style="flex:1;padding:6px 0;font-size:11px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;border:1px solid var(--ghost);border-radius:0;background:transparent;color:var(--text-dim);cursor:pointer;font-family:var(--dm);transition:all .12s;">건의</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <input id="fb-name" type="text" placeholder="이름 (선택)" maxlength="30" autocomplete="off"
+        style="padding:9px 12px;border:1px solid var(--ghost);border-radius:0;background:transparent;color:var(--text);font-size:12px;outline:none;font-family:var(--dm);transition:border-color .12s;"
+        onfocus="this.style.borderColor='var(--text-dim)'" onblur="this.style.borderColor='var(--ghost)'" />
+      <input id="fb-email" type="text" placeholder="이메일 (선택)" maxlength="80" autocomplete="off"
+        style="padding:9px 12px;border:1px solid var(--ghost);border-radius:0;background:transparent;color:var(--text);font-size:12px;outline:none;font-family:var(--dm);transition:border-color .12s;"
+        onfocus="this.style.borderColor='var(--text-dim)'" onblur="this.style.borderColor='var(--ghost)'" />
       <textarea id="fb-message" rows="4" placeholder="내용을 입력해 주세요"
-        style="padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;outline:none;resize:vertical;font-family:inherit;"></textarea>
+        style="padding:9px 12px;border:1px solid var(--ghost);border-radius:0;background:transparent;color:var(--text);font-size:12px;outline:none;resize:vertical;font-family:var(--dm);transition:border-color .12s;"
+        onfocus="this.style.borderColor='var(--text-dim)'" onblur="this.style.borderColor='var(--ghost)'"></textarea>
       <button id="fb-submit" onclick="submitFeedback()"
-        style="padding:10px;border:none;border-radius:7px;background:var(--accent,#4f8ef7);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;"
-        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">제출하기</button>
-      <div id="fb-msg" style="font-size:12px;color:var(--text-muted);text-align:center;min-height:16px;"></div>
+        style="margin-top:4px;padding:10px;border:1px solid var(--text-dim);border-radius:0;background:transparent;color:var(--text);font-size:11px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;cursor:pointer;font-family:var(--dm);transition:border-color .12s,color .12s;"
+        onmouseover="this.style.borderColor='var(--text)'" onmouseout="this.style.borderColor='var(--text-dim)'">제출하기</button>
+      <div id="fb-msg" style="font-size:11px;color:var(--text-dim);text-align:center;min-height:15px;font-family:var(--dm);letter-spacing:.04em;"></div>
     </div>
   </div>
 </div>
@@ -4350,15 +4335,31 @@ document.addEventListener('click', function() {
 <script>
 // ── Feedback modal ────────────────────────────────────────────
 var _fbType = 'inquiry';
-function openFeedback(type) {
+function setFbType(type) {
   _fbType = type;
-  document.getElementById('feedback-title').textContent = type === 'suggestion' ? '건의하기' : '문의하기';
+  var active   = {border:'1px solid var(--text-dim)', color:'var(--text)'};
+  var inactive = {border:'1px solid var(--ghost)',    color:'var(--text-dim)'};
+  var inq = document.getElementById('fb-toggle-inquiry');
+  var sug = document.getElementById('fb-toggle-suggestion');
+  if (type === 'inquiry') {
+    inq.style.border = active.border;   inq.style.color = active.color;
+    sug.style.border = inactive.border; sug.style.color = inactive.color;
+    document.getElementById('fb-message').placeholder = '내용을 입력해 주세요';
+  } else {
+    sug.style.border = active.border;   sug.style.color = active.color;
+    inq.style.border = inactive.border; inq.style.color = inactive.color;
+    document.getElementById('fb-message').placeholder = '건의하실 내용을 입력해 주세요';
+  }
+}
+function openFeedback(type) {
   document.getElementById('fb-name').value = '';
   document.getElementById('fb-email').value = '';
   document.getElementById('fb-message').value = '';
   document.getElementById('fb-msg').textContent = '';
-  var ov = document.getElementById('feedback-overlay');
-  ov.style.display = 'flex';
+  var btn = document.getElementById('fb-submit');
+  btn.disabled = false; btn.textContent = '제출하기';
+  setFbType(type || 'inquiry');
+  document.getElementById('feedback-overlay').style.display = 'flex';
 }
 function closeFeedback() {
   document.getElementById('feedback-overlay').style.display = 'none';
@@ -4384,9 +4385,9 @@ function submitFeedback() {
   }).then(function(r) {
     if (r.ok) {
       document.getElementById('fb-msg').style.color = '#4caf7d';
-      document.getElementById('fb-msg').textContent = '제출되었습니다. 감사합니다!';
+      document.getElementById('fb-msg').textContent = '전달되었습니다. 소중한 의견 정말 감사합니다.';
       btn.textContent = '완료';
-      setTimeout(closeFeedback, 1500);
+      setTimeout(closeFeedback, 2000);
     } else {
       document.getElementById('fb-msg').style.color = '#e05';
       document.getElementById('fb-msg').textContent = '제출에 실패했습니다. 다시 시도해 주세요.';
