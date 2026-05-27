@@ -13,6 +13,7 @@ BASE_URL          = os.getenv("REDMINE_URL", os.getenv("BASE_URL", "http://local
 API_KEY           = os.getenv("REDMINE_API_KEY", os.getenv("API_KEY", ""))
 ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 FERNET_KEY        = os.getenv("FERNET_KEY", "")
+ADMIN_PASSWORD    = os.getenv("ADMIN_PASSWORD", "")
 REDMINE_PUBLIC_URL = os.getenv("REDMINE_PUBLIC_URL", "")
 
 @dataclass

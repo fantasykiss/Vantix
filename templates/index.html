@@ -1339,6 +1339,12 @@ html, body {
     <!-- 캘린더 (핀 시스템) -->
     <div class="cal" id="sb-calendar"></div>
 
+    <!-- 문의/건의 버튼 -->
+    <div style="padding: 12px 16px 16px; border-top: 1px solid var(--border); margin-top: auto; display:flex; gap:8px;">
+      <button onclick="openFeedback('inquiry')" style="flex:1;padding:7px 0;font-size:12px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--text-muted)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)'">문의하기</button>
+      <button onclick="openFeedback('suggestion')" style="flex:1;padding:7px 0;font-size:12px;border:1px solid var(--border);border-radius:6px;background:transparent;color:var(--text-muted);cursor:pointer;transition:all .15s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--text-muted)'" onmouseout="this.style.color='var(--text-muted)';this.style.borderColor='var(--border)'">건의하기</button>
+    </div>
+
   </aside>
 
   <!-- ══ MAIN ═══════════════════════════════════════════════ -->
@@ -4317,6 +4323,137 @@ document.addEventListener('click', function() {
   if (panel) panel.classList.remove('open');
 });
 
+</script>
+
+<!-- ══ FEEDBACK MODAL ══════════════════════════════════════════ -->
+<div id="feedback-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9000;align-items:center;justify-content:center;">
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;width:420px;max-width:90vw;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.4);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;">
+      <h3 id="feedback-title" style="margin:0;font-size:15px;font-weight:600;color:var(--text);">문의하기</h3>
+      <button onclick="closeFeedback()" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:18px;padding:0 2px;line-height:1;">×</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:12px;">
+      <input id="fb-name" type="text" placeholder="이름 (선택)" maxlength="30"
+        style="padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;outline:none;" />
+      <input id="fb-email" type="email" placeholder="이메일 (선택)" maxlength="80"
+        style="padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;outline:none;" />
+      <textarea id="fb-message" rows="4" placeholder="내용을 입력해 주세요"
+        style="padding:9px 12px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--text);font-size:13px;outline:none;resize:vertical;font-family:inherit;"></textarea>
+      <button id="fb-submit" onclick="submitFeedback()"
+        style="padding:10px;border:none;border-radius:7px;background:var(--accent,#4f8ef7);color:#fff;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s;"
+        onmouseover="this.style.opacity='.85'" onmouseout="this.style.opacity='1'">제출하기</button>
+      <div id="fb-msg" style="font-size:12px;color:var(--text-muted);text-align:center;min-height:16px;"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Feedback modal ────────────────────────────────────────────
+var _fbType = 'inquiry';
+function openFeedback(type) {
+  _fbType = type;
+  document.getElementById('feedback-title').textContent = type === 'suggestion' ? '건의하기' : '문의하기';
+  document.getElementById('fb-name').value = '';
+  document.getElementById('fb-email').value = '';
+  document.getElementById('fb-message').value = '';
+  document.getElementById('fb-msg').textContent = '';
+  var ov = document.getElementById('feedback-overlay');
+  ov.style.display = 'flex';
+}
+function closeFeedback() {
+  document.getElementById('feedback-overlay').style.display = 'none';
+}
+document.getElementById('feedback-overlay').addEventListener('click', function(e) {
+  if (e.target === this) closeFeedback();
+});
+function submitFeedback() {
+  var msg = document.getElementById('fb-message').value.trim();
+  if (!msg) { document.getElementById('fb-msg').textContent = '내용을 입력해 주세요.'; return; }
+  var btn = document.getElementById('fb-submit');
+  btn.disabled = true;
+  btn.textContent = '제출 중...';
+  fetch('/api/feedback', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({
+      type: _fbType,
+      message: msg,
+      name: document.getElementById('fb-name').value.trim(),
+      email: document.getElementById('fb-email').value.trim()
+    })
+  }).then(function(r) {
+    if (r.ok) {
+      document.getElementById('fb-msg').style.color = '#4caf7d';
+      document.getElementById('fb-msg').textContent = '제출되었습니다. 감사합니다!';
+      btn.textContent = '완료';
+      setTimeout(closeFeedback, 1500);
+    } else {
+      document.getElementById('fb-msg').style.color = '#e05';
+      document.getElementById('fb-msg').textContent = '제출에 실패했습니다. 다시 시도해 주세요.';
+      btn.disabled = false; btn.textContent = '제출하기';
+    }
+  }).catch(function() {
+    document.getElementById('fb-msg').style.color = '#e05';
+    document.getElementById('fb-msg').textContent = '네트워크 오류가 발생했습니다.';
+    btn.disabled = false; btn.textContent = '제출하기';
+  });
+}
+
+// ── Analytics tracking ────────────────────────────────────────
+(function() {
+  var SID = localStorage.getItem('vx_sid');
+  if (!SID) { SID = 'sid_' + Math.random().toString(36).slice(2) + Date.now(); localStorage.setItem('vx_sid', SID); }
+
+  function track(payload) {
+    payload.session_id = SID;
+    fetch('/api/track', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) }).catch(function(){});
+  }
+
+  // 페이지 진입 시각
+  var _pageEnter = Date.now();
+  var _currentPage = 'overview';
+
+  // 뷰 전환 감지 (fetchData / switchView 등이 view-xxx div를 토글할 때)
+  var _viewObserver = new MutationObserver(function(mutations) {
+    mutations.forEach(function(m) {
+      if (m.type === 'attributes' && m.attributeName === 'style') {
+        var el = m.target;
+        var id = el.id || '';
+        if (!id.startsWith('view-')) return;
+        var visible = el.style.display !== 'none' && el.offsetParent !== null;
+        if (visible) {
+          var prev = _currentPage;
+          var dur = Math.round((Date.now() - _pageEnter) / 1000);
+          if (prev && dur > 1) track({ event_type: 'dwell', page: prev, duration: dur });
+          _currentPage = id.replace('view-', '');
+          _pageEnter = Date.now();
+          track({ event_type: 'pageview', page: _currentPage });
+        }
+      }
+    });
+  });
+  document.querySelectorAll('[id^="view-"]').forEach(function(el) {
+    _viewObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
+  });
+
+  // 초기 pageview
+  track({ event_type: 'pageview', page: _currentPage });
+
+  // 이탈 이벤트
+  window.addEventListener('beforeunload', function() {
+    var dur = Math.round((Date.now() - _pageEnter) / 1000);
+    if (_currentPage && dur > 1) track({ event_type: 'dwell', page: _currentPage, duration: dur });
+    track({ event_type: 'exit', page: _currentPage });
+  });
+
+  // 클릭 이벤트 (버튼/탭/주요 액션)
+  document.addEventListener('click', function(e) {
+    var el = e.target.closest('button,[data-track],[role="tab"],.nav-item,.tab-btn');
+    if (!el) return;
+    var label = el.dataset.track || el.textContent.trim().slice(0, 40) || el.id || el.className.split(' ')[0];
+    track({ event_type: 'click', page: _currentPage, element: label });
+  });
+})();
 </script>
 
 </body>

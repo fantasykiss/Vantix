@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 # ==================== 서버 설정 ====================
-from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY
+from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY, ADMIN_PASSWORD
 import uuid as _uuid
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -66,6 +66,37 @@ def _init_session_table():
             conn.commit()
     except Exception as e:
         print(f"[session] DB 테이블 초기화 실패: {e}")
+
+def _init_analytics_tables():
+    if not _DATABASE_URL:
+        return
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS analytics_events (
+                        id        SERIAL PRIMARY KEY,
+                        session_id TEXT NOT NULL,
+                        event_type TEXT NOT NULL,
+                        page      TEXT,
+                        element   TEXT,
+                        duration  INTEGER,
+                        ts        DOUBLE PRECISION NOT NULL
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS vantix_feedback (
+                        id        SERIAL PRIMARY KEY,
+                        type      TEXT NOT NULL,
+                        message   TEXT NOT NULL,
+                        name      TEXT,
+                        email     TEXT,
+                        ts        DOUBLE PRECISION NOT NULL
+                    )
+                """)
+            conn.commit()
+    except Exception as e:
+        print(f"[analytics] DB 테이블 초기화 실패: {e}")
 
 def _save_session(token: str, url: str, key: str, created: float):
     encrypted_key = _encrypt_key(key)
@@ -150,6 +181,7 @@ def _require_session(request: Request) -> dict:
     return s
 
 _init_session_table()
+_init_analytics_tables()
 from app.reporter import build_report_data, render_html_report, render_tsv_report, send_report_email
 from app.constants import PROGRESS_SET, RESOLVED_SET, CLOSED_SET, HOLD_SET, DEPT_NORMALIZE, dept_name, short_name
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -1463,6 +1495,158 @@ async def visitors(request: Request):
     _visitors[ip] = datetime.now()
     active = get_active_visitors()
     return {"count": len(active)}
+
+
+# ==================== ANALYTICS & FEEDBACK ====================
+
+@app.post("/api/track")
+async def api_track(request: Request):
+    if not _DATABASE_URL:
+        return {"ok": True}
+    try:
+        body = await request.json()
+        session_id = body.get("session_id", "")
+        event_type = body.get("event_type", "")
+        page       = body.get("page", "")
+        element    = body.get("element", "")
+        duration   = body.get("duration")
+        ts         = time.time()
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO analytics_events (session_id, event_type, page, element, duration, ts) VALUES (%s,%s,%s,%s,%s,%s)",
+                    (session_id, event_type, page, element, duration, ts)
+                )
+            conn.commit()
+    except Exception as e:
+        print(f"[track] 저장 실패: {e}")
+    return {"ok": True}
+
+
+@app.post("/api/feedback")
+async def api_feedback(request: Request):
+    try:
+        body = await request.json()
+        fb_type = body.get("type", "")
+        message = body.get("message", "").strip()
+        name    = body.get("name", "").strip()
+        email   = body.get("email", "").strip()
+        if not message:
+            raise HTTPException(status_code=400, detail="내용을 입력해 주세요.")
+        ts = time.time()
+        if _DATABASE_URL:
+            with _db_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute(
+                        "INSERT INTO vantix_feedback (type, message, name, email, ts) VALUES (%s,%s,%s,%s,%s)",
+                        (fb_type, message, name, email, ts)
+                    )
+                conn.commit()
+    except HTTPException:
+        raise
+    except Exception as e:
+        print(f"[feedback] 저장 실패: {e}")
+        raise HTTPException(status_code=500, detail="저장 실패")
+    return {"ok": True}
+
+
+def _require_admin(request: Request):
+    auth = request.cookies.get("vx_admin")
+    if not ADMIN_PASSWORD or auth != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    return True
+
+
+@app.post("/api/admin/login")
+async def api_admin_login(request: Request):
+    body = await request.json()
+    pw = body.get("password", "")
+    if not ADMIN_PASSWORD or pw != ADMIN_PASSWORD:
+        raise HTTPException(status_code=401, detail="비밀번호가 틀렸습니다.")
+    resp = JSONResponse({"ok": True})
+    resp.set_cookie("vx_admin", ADMIN_PASSWORD, httponly=True, samesite="lax", max_age=86400 * 7)
+    return resp
+
+
+@app.get("/api/admin/stats")
+async def api_admin_stats(request: Request, _=Depends(_require_admin)):
+    if not _DATABASE_URL:
+        return {"pages": [], "clicks": [], "exits": [], "sessions": 0}
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                # 총 세션 수
+                cur.execute("SELECT COUNT(DISTINCT session_id) FROM analytics_events")
+                total_sessions = cur.fetchone()[0]
+
+                # 페이지별 평균 체류 시간 (dwell 이벤트)
+                cur.execute("""
+                    SELECT page, COUNT(*) as views, COALESCE(AVG(duration),0)::int as avg_sec
+                    FROM analytics_events
+                    WHERE event_type='dwell' AND page IS NOT NULL AND page != ''
+                    GROUP BY page ORDER BY avg_sec DESC
+                """)
+                pages = [{"page": r[0], "views": r[1], "avg_sec": r[2]} for r in cur.fetchall()]
+
+                # 클릭 Top 10
+                cur.execute("""
+                    SELECT element, COUNT(*) as cnt
+                    FROM analytics_events
+                    WHERE event_type='click' AND element IS NOT NULL AND element != ''
+                    GROUP BY element ORDER BY cnt DESC LIMIT 10
+                """)
+                clicks = [{"element": r[0], "cnt": r[1]} for r in cur.fetchall()]
+
+                # 이탈 페이지 (exit 이벤트)
+                cur.execute("""
+                    SELECT page, COUNT(*) as cnt
+                    FROM analytics_events
+                    WHERE event_type='exit' AND page IS NOT NULL AND page != ''
+                    GROUP BY page ORDER BY cnt DESC
+                """)
+                exits = [{"page": r[0], "cnt": r[1]} for r in cur.fetchall()]
+
+                # 최근 7일 일별 방문자 수
+                cur.execute("""
+                    SELECT TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul', 'MM/DD') as day,
+                           COUNT(DISTINCT session_id) as visitors
+                    FROM analytics_events
+                    WHERE ts > EXTRACT(EPOCH FROM NOW()) - 604800
+                    GROUP BY day ORDER BY day
+                """)
+                daily = [{"day": r[0], "visitors": r[1]} for r in cur.fetchall()]
+
+        return {"pages": pages, "clicks": clicks, "exits": exits, "sessions": total_sessions, "daily": daily}
+    except Exception as e:
+        print(f"[admin/stats] 오류: {e}")
+        return {"pages": [], "clicks": [], "exits": [], "sessions": 0, "daily": []}
+
+
+@app.get("/api/admin/feedback")
+async def api_admin_feedback(request: Request, _=Depends(_require_admin)):
+    if not _DATABASE_URL:
+        return {"items": []}
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT id, type, message, name, email, ts
+                    FROM vantix_feedback ORDER BY ts DESC LIMIT 200
+                """)
+                rows = cur.fetchall()
+        items = [{"id": r[0], "type": r[1], "message": r[2], "name": r[3], "email": r[4],
+                  "ts": datetime.fromtimestamp(r[5]).strftime("%Y-%m-%d %H:%M")} for r in rows]
+        return {"items": items}
+    except Exception as e:
+        print(f"[admin/feedback] 오류: {e}")
+        return {"items": []}
+
+
+@app.get("/admin", response_class=HTMLResponse)
+async def admin_page(request: Request):
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "admin.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
 
 
 @app.get("/report-mockup", response_class=HTMLResponse)
