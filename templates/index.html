@@ -288,6 +288,7 @@ html, body {
 .since-lbl { font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; }
 .since-date { font-size: 10px; color: var(--text-mid); font-family: var(--mono); letter-spacing: 0.05em; }
 .since-chevron { font-size: 8px; color: var(--text-ghost); }
+.topbar-since-icon { display: none; }
 .topbar-since-trigger:hover .since-date { color: var(--text); }
 .topbar-since-trigger:hover .since-chevron { color: var(--text-dim); }
 
@@ -718,9 +719,13 @@ html, body {
   .app-row { overflow-x: hidden; }
   .content { overflow-x: hidden; max-width: 100vw; }
 
-  /* ② topbar 오버플로우 — since 텍스트 숨기고 아이콘만 노출 */
+  /* ② topbar 오버플로우 — SINCE 라벨 숨기고 날짜만 컴팩트 표시 */
   .topbar { padding: 0 14px; gap: 8px; overflow: hidden; }
-  .topbar-since-wrap { display: none; }
+  .since-lbl { display: none; }
+  .since-chevron { display: none; }
+  .since-date { font-size: 9px; letter-spacing: 0.04em; }
+  .topbar-since-trigger { gap: 3px; padding: 4px 7px; border: 1px solid var(--ghost); }
+  .topbar-since-icon { display: inline-flex; align-items: center; color: var(--text-dim); }
   .topbar-status .cache { display: none; }
   .topbar-status .topbar-divider { display: none; }
   .topbar-status .label { display: none; }
@@ -1239,6 +1244,7 @@ html, body {
       <span class="topbar-brand-name" onclick="location.reload()" style="cursor:pointer;">Vantix</span>
       <div class="topbar-since-wrap" id="topbar-since-wrap">
         <div class="topbar-since-trigger" onclick="toggleSinceDd(event)">
+          <span class="topbar-since-icon"><svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="1" y="2" width="12" height="11" rx="1"/><path d="M1 5h12M4 1v2M10 1v2"/></svg></span>
           <span class="since-lbl">SINCE</span>
           <span class="since-date" id="since-date-btn">—</span>
           <span class="since-chevron">▾</span>
@@ -1479,6 +1485,17 @@ html, body {
 
     <!-- ══ SUB VIEW ════════════════════════════════════════════ -->
     <div id="view-sub" style="display:none;flex-direction:column;">
+
+      <!-- 사이드바 접혔을 때 열기 버튼 (overview와 동일) -->
+      <div class="sidebar-open-btn" onclick="toggleSidebar()" title="사이드바 열기">
+        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect x="0.6" y="0.6" width="14.8" height="14.8" rx="1.4" stroke="currentColor" stroke-width="1.2" fill="none"/>
+          <rect x="0.6" y="0.6" width="5" height="14.8" rx="1.4" fill="currentColor" opacity="0.4"/>
+          <line x1="8" y1="4.5" x2="13.5" y2="4.5" stroke="currentColor" stroke-width="1.1"/>
+          <line x1="8" y1="8" x2="13.5" y2="8" stroke="currentColor" stroke-width="1.1"/>
+          <line x1="8" y1="11.5" x2="13.5" y2="11.5" stroke="currentColor" stroke-width="1.1"/>
+        </svg>
+      </div>
 
       <!-- Issues Crown -->
       <section class="crown" id="mx-crown">
@@ -2843,8 +2860,9 @@ document.addEventListener('click', function(e) {
   if (app.classList.contains('sidebar-hidden')) return;
   if (window.innerWidth >= _sidebarBreakpoint) return;
   var sidebar = document.querySelector('.sidebar');
-  var openBtn = document.querySelector('.sidebar-open-btn');
-  if (!sidebar.contains(e.target) && (!openBtn || !openBtn.contains(e.target))) {
+  var openBtns = document.querySelectorAll('.sidebar-open-btn');
+  var clickedOpenBtn = Array.from(openBtns).some(function(btn) { return btn.contains(e.target); });
+  if (!sidebar.contains(e.target) && !clickedOpenBtn) {
     closeSidebar();
   }
 }, true);
