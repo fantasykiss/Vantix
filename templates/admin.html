@@ -340,8 +340,10 @@ function loadFeedback() {
       var badge = item.type === 'suggestion'
         ? '<span class="fb-badge suggestion">건의</span>'
         : '<span class="fb-badge inquiry">문의</span>';
-      var sender = (item.name || item.email)
-        ? '<div class="fb-sender">' + [item.name, item.email].filter(Boolean).join(' · ') + '</div>'
+      var senderParts = [item.name, item.email].filter(Boolean);
+      if (item.ip) senderParts.push(item.ip);
+      var sender = senderParts.length
+        ? '<div class="fb-sender">' + senderParts.join(' · ') + '</div>'
         : '';
       return '<div class="fb-item">' +
         '<div class="fb-item-head">' + badge + '<span class="fb-meta">' + item.ts + '</span></div>' +
