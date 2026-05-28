@@ -1,10 +1,10 @@
 """
 insights.py — Rule-based insight engine for Vantix
-9가지 룰을 실행해서 Insight 리스트를 반환합니다. AI API 불필요.
+14가지 룰을 실행해서 Insight 리스트를 반환합니다. AI API 불필요.
 """
 
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 from app.constants import CLOSED_SET, HOLD_SET, dept_name, short_name
 
 
@@ -316,16 +316,336 @@ def rule_long_pending(dashboard: dict) -> list[Insight]:
     )]
 
 
+# ── Rule: RESOLUTION_VELOCITY ───────────────────────────────────
+def rule_resolution_velocity(dashboard: dict) -> list[Insight]:
+    """완료 이슈 평균 처리일 vs 오픈 이슈 평균 나이 비교"""
+    all_iss = _all_issues(dashboard)
+    closed  = [i for i in all_iss if i.get("status", "") in CLOSED_SET]
+    open_iss = [i for i in all_iss if _is_open(i) and not _is_hold(i)]
+    today = date.today()
+
+    resolve_days = []
+    for i in closed:
+        c = i.get("created_on", "")[:10]
+        u = i.get("updated_on", "")[:10]
+        if c and u:
+            try:
+                d = (date.fromisoformat(u) - date.fromisoformat(c)).days
+                if 0 < d < 365:
+                    resolve_days.append(d)
+            except ValueError:
+                pass
+
+    if len(resolve_days) < 3:
+        return []
+    avg_resolve = round(sum(resolve_days) / len(resolve_days))
+
+    open_ages = []
+    for i in open_iss:
+        c = i.get("created_on", "")[:10]
+        if c:
+            try:
+                open_ages.append((today - date.fromisoformat(c)).days)
+            except ValueError:
+                pass
+    if not open_ages:
+        return []
+    avg_age = round(sum(open_ages) / len(open_ages))
+
+    if avg_age <= avg_resolve * 1.5 or avg_age < 14:
+        return []
+    ratio = round(avg_age / max(avg_resolve, 1), 1)
+    level = "critical" if ratio >= 3 else "warning"
+    return [Insight(
+        rule="RESOLUTION_VELOCITY", level=level,
+        title="처리 속도 저하",
+        body=f"완료 이슈 평균 처리 <strong>{avg_resolve}일</strong> 대비 "
+             f"현재 오픈 이슈 평균 나이 <strong>{avg_age}일</strong> ({ratio}배) — "
+             f"이슈가 쌓이는 속도가 해결보다 빠릅니다.",
+        target=f"평균 {avg_age}일",
+    )]
+
+
+# ── Rule: NO_DUE_DATE ────────────────────────────────────────────
+def rule_no_due_date(dashboard: dict) -> list[Insight]:
+    """마감일 없는 오픈 이슈 50% 이상"""
+    open_iss = [i for i in _all_issues(dashboard) if _is_open(i) and not _is_hold(i)]
+    if len(open_iss) < 5:
+        return []
+    no_due = [i for i in open_iss if not i.get("due_date", "")]
+    ratio = len(no_due) / len(open_iss)
+    if ratio < 0.5:
+        return []
+    return [Insight(
+        rule="NO_DUE_DATE", level="info",
+        title="마감일 미설정 과다",
+        body=f"오픈 이슈 <strong>{len(open_iss)}건 중 {len(no_due)}건 ({round(ratio*100)}%)</strong>에 "
+             f"마감일 없음 — 일정 관리 사각지대. 일괄 설정 권고.",
+        target=f"{len(no_due)}건 미설정",
+    )]
+
+
+# ── Rule: AGED_ISSUES ────────────────────────────────────────────
+def rule_aged_issues(dashboard: dict) -> list[Insight]:
+    """30일 이상 된 오픈 이슈가 전체의 40% 이상"""
+    open_iss = [i for i in _all_issues(dashboard) if _is_open(i) and not _is_hold(i)]
+    if len(open_iss) < 5:
+        return []
+    today = date.today()
+    aged = []
+    for i in open_iss:
+        c = i.get("created_on", "")[:10]
+        if not c:
+            continue
+        try:
+            if (today - date.fromisoformat(c)).days >= 30:
+                aged.append((today - date.fromisoformat(c)).days)
+        except ValueError:
+            pass
+    if not aged or len(aged) / len(open_iss) < 0.4:
+        return []
+    ratio = len(aged) / len(open_iss)
+    avg_age = round(sum(aged) / len(aged))
+    level = "critical" if ratio >= 0.6 else "warning"
+    return [Insight(
+        rule="AGED_ISSUES", level=level,
+        title="고령 이슈 누적",
+        body=f"오픈 이슈 <strong>{len(open_iss)}건 중 {len(aged)}건 ({round(ratio*100)}%)</strong>이 "
+             f"30일 이상 경과 — 평균 <strong>{avg_age}일</strong>. 장기 미처리 이슈 집중 검토 필요.",
+        target=f"{len(aged)}건 · 평균 {avg_age}일",
+    )]
+
+
+# ── Rule: BUG_CONCENTRATION ──────────────────────────────────────
+def rule_bug_concentration(dashboard: dict) -> list[Insight]:
+    """버그 tracker 이슈가 전체 오픈의 50% 이상"""
+    open_iss = [i for i in _all_issues(dashboard) if _is_open(i)]
+    if len(open_iss) < 5:
+        return []
+    bug_kw = {"버그", "bug", "결함", "오류", "error"}
+    bugs = [i for i in open_iss
+            if any(kw in (i.get("tracker", "") or "").lower() for kw in bug_kw)]
+    if not bugs or len(bugs) / len(open_iss) < 0.5:
+        return []
+    ratio = round(len(bugs) / len(open_iss) * 100)
+    return [Insight(
+        rule="BUG_CONCENTRATION", level="warning",
+        title="버그 이슈 집중",
+        body=f"오픈 이슈 <strong>{len(open_iss)}건 중 {len(bugs)}건 ({ratio}%)이 버그</strong> — "
+             f"신규 기능보다 품질 안정화 우선 검토 필요.",
+        target=f"버그 {len(bugs)}건",
+    )]
+
+
+# ── Rule: DEADLINE_ASSIGNEE_SKEW ─────────────────────────────────
+def rule_deadline_assignee_skew(dashboard: dict) -> list[Insight]:
+    """마감 7일 이내 이슈가 특정 담당자에 3건 이상 집중"""
+    skew: dict[str, list] = {}
+    for uname, ud in dashboard.get("users_data", {}).items():
+        for i in ud.get("issues", []):
+            dd = i.get("due_date", "")
+            if dd and 0 <= _days_diff(dd) <= 7 and _is_open(i):
+                skew.setdefault(uname, []).append(i)
+
+    results = []
+    for uname, issues in skew.items():
+        if len(issues) < 3:
+            continue
+        name = short_name(uname)
+        dept = dept_name(uname)
+        min_days = min(_days_diff(i["due_date"]) for i in issues)
+        results.append(Insight(
+            rule="DEADLINE_ASSIGNEE_SKEW", level="warning",
+            title="마감 임박 이슈 편중",
+            body=f"<strong>{name}</strong>에게 7일 내 마감 이슈 <strong>{len(issues)}건</strong> 집중 — "
+                 f"최단 마감 <strong>D-{min_days}</strong>. 분산 배분 검토 권고.",
+            target=name + (f" · {dept}" if dept else ""),
+        ))
+    results.sort(key=lambda x: -len(skew.get(
+        next((k for k in skew if short_name(k) == x.target.split(' ·')[0].strip()), ''), []
+    )))
+    return results[:2]
+
+
+# ── Rule A1: RISK_TREND_UP ───────────────────────────────────────
+def rule_risk_trend(dashboard: dict) -> list[Insight]:
+    """3주 이상 연속 리스크 점수 상승"""
+    history = sorted(dashboard.get("history", []), key=lambda x: x.get("date", ""))
+    if len(history) < 3:
+        return []
+    scores = [h["score"] for h in history[-4:]]
+    # 연속 상승 구간 길이 체크
+    streak = 1
+    for i in range(len(scores) - 1, 0, -1):
+        if scores[i] > scores[i - 1]:
+            streak += 1
+        else:
+            break
+    if streak < 3:
+        return []
+    delta = round(scores[-1] - scores[-streak], 1)
+    return [Insight(
+        rule="RISK_TREND_UP", level="warning",
+        title="리스크 연속 상승",
+        body=f"최근 <strong>{streak}주 연속</strong> 리스크 점수 상승 — "
+             f"<strong>{scores[-streak]}→{scores[-1]}</strong> (+{delta}점). 추세 반전 조치 필요.",
+        target=f"{streak}주 연속 상승",
+    )]
+
+
+# ── Rule A2: OVERDUE_TREND ───────────────────────────────────────
+def rule_overdue_trend(dashboard: dict) -> list[Insight]:
+    """최근 4주 평균 대비 현재 초과 이슈 30% 이상 증가"""
+    history = sorted(dashboard.get("history", []), key=lambda x: x.get("date", ""))
+    if len(history) < 3:
+        return []
+    past = history[max(0, len(history) - 5):-1]
+    if not past:
+        return []
+    avg_overdue = sum(h.get("overdue", 0) for h in past) / len(past)
+    current = history[-1].get("overdue", 0)
+    delta = current - avg_overdue
+    if avg_overdue <= 0 or delta < 2 or delta / avg_overdue < 0.3:
+        return []
+    pct = round(delta / avg_overdue * 100)
+    return [Insight(
+        rule="OVERDUE_TREND", level="warning",
+        title="초과 이슈 증가 추세",
+        body=f"최근 평균({round(avg_overdue, 1)}건) 대비 초과 이슈 "
+             f"<strong>+{round(delta)}건 (+{pct}%)</strong> 증가 — 지속적 일정 지연 신호.",
+        target=f"초과 {int(current)}건",
+    )]
+
+
+# ── Rule B: VERSION_DELAY_FORECAST ──────────────────────────────
+def rule_version_delay_forecast(dashboard: dict) -> list[Insight]:
+    """현재 처리 속도 기반 버전 완료 예상일 계산 → 마감 초과 예측"""
+    results = []
+    today = date.today()
+    for v in dashboard.get("versions", []):
+        due = v.get("due_date", "")
+        if not due or v.get("status") == "closed":
+            continue
+        days_left = _days_diff(due)
+        if not (1 <= days_left <= 90):
+            continue
+        total = v.get("total", 0)
+        closed = v.get("closed", 0)
+        if total < 4 or closed == 0:
+            continue
+        remaining = total - closed
+        # 이슈 created_on 중 가장 오래된 날짜를 시작점으로 추정
+        v_issues = v.get("issues", [])
+        created_dates = [i.get("created_on", "")[:10] for i in v_issues if i.get("created_on", "")[:10]]
+        if not created_dates:
+            continue
+        try:
+            start = date.fromisoformat(min(created_dates))
+        except ValueError:
+            continue
+        elapsed = max((today - start).days, 1)
+        daily_rate = closed / elapsed
+        if daily_rate <= 0:
+            continue
+        days_needed = remaining / daily_rate
+        predicted = today + timedelta(days=int(days_needed))
+        delay = (predicted - date.fromisoformat(due)).days
+        if delay >= 3:
+            results.append(Insight(
+                rule="VERSION_DELAY_FORECAST", level="warning" if delay < 14 else "critical",
+                title="버전 지연 예측",
+                body=f"<strong>{v.get('name', '?')}</strong> 현재 처리 속도 기준 예상 완료 "
+                     f"<strong>{predicted}</strong> — 마감일 대비 <strong>D+{delay}</strong> 지연 예측.",
+                target=v.get("name", "?"),
+            ))
+    return results
+
+
+# ── Rule C: OVERDUE_SPIKE ────────────────────────────────────────
+def rule_overdue_spike(dashboard: dict) -> list[Insight]:
+    """전주 대비 초과 이슈 3건 이상 급증"""
+    history = sorted(dashboard.get("history", []), key=lambda x: x.get("date", ""))
+    if len(history) < 2:
+        return []
+    now_overdue  = history[-1].get("overdue", 0)
+    prev_overdue = history[-2].get("overdue", 0)
+    delta = now_overdue - prev_overdue
+    if delta < 3:
+        return []
+    pct_str = f" (+{round(delta / prev_overdue * 100)}%)" if prev_overdue > 0 else ""
+    return [Insight(
+        rule="OVERDUE_SPIKE", level="critical",
+        title="초과 이슈 주간 급증",
+        body=f"전주 대비 초과 이슈 <strong>+{delta}건{pct_str}</strong> 급증 "
+             f"({prev_overdue}건 → {now_overdue}건) — 이번 주 집중 점검 필요.",
+        target=f"+{delta}건",
+    )]
+
+
+# ── Rule D: BURNOUT_RISK ─────────────────────────────────────────
+def rule_burnout_risk(dashboard: dict) -> list[Insight]:
+    """이슈 수 평균 1.5배 이상 + 초과율 30% 이상인 담당자"""
+    results = []
+    counts: dict[str, dict] = {}
+    for uname, ud in dashboard.get("users_data", {}).items():
+        issues = ud.get("issues", [])
+        open_cnt    = sum(1 for i in issues if _is_open(i) and not _is_hold(i))
+        overdue_cnt = sum(1 for i in issues if _is_overdue(i))
+        counts[uname] = {"open": open_cnt, "overdue": overdue_cnt}
+
+    if not counts:
+        return []
+    avg_open = sum(v["open"] for v in counts.values()) / len(counts)
+
+    for uname, c in counts.items():
+        open_cnt, overdue_cnt = c["open"], c["overdue"]
+        if open_cnt < 6:
+            continue
+        overdue_ratio = overdue_cnt / open_cnt
+        load_ratio    = open_cnt / max(avg_open, 1)
+        if load_ratio < 1.5 or overdue_ratio < 0.3:
+            continue
+        name = short_name(uname)
+        dept = dept_name(uname)
+        level = "critical" if load_ratio >= 2.0 and overdue_ratio >= 0.5 else "warning"
+        results.append(Insight(
+            rule="BURNOUT_RISK", level=level,
+            title="담당자 번아웃 위험",
+            body=f"<strong>{name}</strong> 오픈 이슈 <strong>{open_cnt}건</strong> "
+                 f"(팀 평균 {round(avg_open, 1)}건의 <strong>{round(load_ratio, 1)}배</strong>), "
+                 f"초과율 <strong>{round(overdue_ratio * 100)}%</strong> — 즉각적인 업무 재배분 검토 필요.",
+            target=f"{name}" + (f" · {dept}" if dept else ""),
+        ))
+
+    results.sort(key=lambda x: 0 if x.level == "critical" else 1)
+    return results[:2]
+
+
 # ── 전체 실행 ────────────────────────────────────────────────────
 RULES = [
-    rule_version_overrun,
+    # 즉각 위험
     rule_mass_overdue,
     rule_unassigned_urgent,
+    rule_overdue_spike,
     rule_deadline_cluster,
-    rule_test_buffer,
+    rule_version_overrun,
+    # 예측·추세
+    rule_version_delay_forecast,
+    rule_risk_trend,
+    rule_overdue_trend,
+    # 담당자
+    rule_burnout_risk,
     rule_assignee_delay_pattern,
+    rule_deadline_assignee_skew,
     rule_dept_bottleneck,
+    # 이슈 상태·패턴
+    rule_resolution_velocity,
+    rule_aged_issues,
+    rule_bug_concentration,
+    rule_no_due_date,
     rule_stale_issue,
+    # 버전
+    rule_test_buffer,
     rule_high_risk_version,
     rule_long_pending,
 ]

@@ -940,15 +940,13 @@ html, body {
 .matrix .cell.g2 { background: rgba(255,255,255,0.06); }
 .matrix .cell.g3 { background: rgba(255,255,255,0.10); }
 .matrix .total-cell {
-  padding: 14px 14px 18px; text-align: center;
+  padding: 14px; text-align: center;
   display: flex; flex-direction: column; align-items: center; justify-content: center;
   border-bottom: 1px solid var(--ghost);
-  background: var(--surface-mid); font-size: 14px; font-weight: 700; color: var(--text); position: relative; font-variant-numeric: tabular-nums;
+  background: var(--surface-mid); font-size: 14px; font-weight: 700; color: var(--text); font-variant-numeric: tabular-nums;
 }
 .matrix .total-cell .pct { display: block; font-size: 9px; font-weight: 400; color: var(--text-mid); margin-top: 2px; letter-spacing: 0.1em; }
-.matrix .total-cell .tinybar { position: absolute; left: 4px; right: 4px; bottom: 4px; height: 2px; background: var(--surface-hi); }
-.matrix .total-cell .tinybar .fl { height: 100%; background: var(--text-mid); }
-.matrix .total-cell .tinybar .fl.red { background: var(--red); }
+.matrix .total-cell .tinybar { display: none; }
 .matrix > .last { border-bottom: none; }
 .matrix.compact .cell { padding: 8px; }
 .matrix.compact .row-h { padding: 8px; }
@@ -1165,6 +1163,7 @@ html, body {
 .modal-box {
   width: 100%; max-width: 580px; max-height: 90vh;
   background: var(--surface-low); border: 1px solid var(--ghost-2);
+  border-radius: 0;
   display: flex; flex-direction: column;
 }
 .modal-header {
@@ -1480,10 +1479,11 @@ html, body {
         <div class="sec-head">
           <div class="sec-head-l">
             <span class="sec-head-num">04</span>
-            <span class="sec-head-name">AI INSIGHTS — 자동 분석</span>
+            <span class="sec-head-name" style="color:#0040ff;">AI INSIGHTS — 자동 분석</span>
           </div>
-          <div style="display:flex;align-items:center;gap:12px;">
+          <div style="display:flex;align-items:center;gap:8px;">
             <span class="sec-head-r" id="ins-summary">로딩 중</span>
+            <button id="ins-next-btn" onclick="nextInsights()" style="display:none;background:none;border:1px solid var(--ghost-2);color:var(--text-dim);font-size:11px;font-family:var(--dm);letter-spacing:0.06em;padding:3px 10px;cursor:pointer;line-height:1.6;transition:border-color 0.15s,color 0.15s;">▶ —</button>
             <button id="ins-refresh-btn" onclick="refreshInsights()" title="인사이트 다시 분석" style="background:none;border:1px solid var(--ghost-2);color:var(--text-dim);font-size:11px;font-family:var(--dm);letter-spacing:0.08em;padding:3px 10px;cursor:pointer;line-height:1.6;transition:border-color 0.15s,color 0.15s;">↺ 갱신</button>
           </div>
         </div>
@@ -1732,7 +1732,17 @@ var _currentSubView = 'issues';
 var _initialView = new URLSearchParams(window.location.search).get('v') || 'overview';
 var _expandedProjects = new Set();  // 하위메뉴가 열린 프로젝트 identifier 목록
 var _lastDashData = null;
+var _lastDashProjectId = null;
+var _lastDashAfter = null;
 var _lastForecast = null;
+var _allInsights = [];
+var _insightPage = 0;
+var _prevInsightRuleKey = null;
+var INS_PAGE = 6;
+var _lastGroupsData = null;
+var _lastGroupsProjectId = null;
+var _lastVersionsData = null;
+var _lastVersionsProjectId = null;
 var _projectRiskMap = {};        // project name → risk_level
 var _allProjectsRiskLevel = '';  // 전체 프로젝트 최고 리스크 레벨
 var _currentIssueId = null;
@@ -2246,6 +2256,8 @@ async function loadAll() {
 function renderDashboard(d, forecast) {
   if (!d) return;
   _lastDashData = d;
+  _lastDashProjectId = currentProjectId;
+  _lastDashAfter = currentUpdatedAfter;
   _lastForecast = forecast;
 
   // 리스크 맵 갱신 — 전체/개별 모두 merge (기존 데이터 유지하며 추가)
@@ -2508,6 +2520,17 @@ function _updateNavBadges(d) {
     _allProjectsRiskLevel = newLevel;
     renderProjectNav(_allProjects);
   }
+
+  // 이슈 탭이 열려 있으면 새 데이터로 즉시 re-render
+  if (_currentSubView === 'issues') {
+    var el = document.getElementById('sub-issues');
+    if (el) {
+      _buildMxData(d);
+      _renderMatrix(el, d);
+      _updateMxCrown(d);
+      _applyTweaks();
+    }
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -2654,13 +2677,42 @@ async function refreshInsights() {
   var btn = document.getElementById('ins-refresh-btn');
   var summary = document.getElementById('ins-summary');
   if (btn) { btn.textContent = '...'; btn.disabled = true; }
-  if (summary) summary.textContent = '분석 중';
+  if (summary) { summary.textContent = '분석 중'; summary._showingMsg = false; }
+
+  var prevRuleKey = _prevInsightRuleKey;
+
   try {
     await fetch('/api/cache/clear');
     var params = new URLSearchParams({ project_id: currentProjectId, updated_after: currentUpdatedAfter });
     var res = await fetch('/api/insights?' + params, { signal: AbortSignal.timeout(20000) });
     var data = res.ok ? await res.json() : null;
-    renderInsights((data && data.insights) || []);
+    var newInsights = (data && data.insights) || [];
+    renderInsights(newInsights);
+
+    // 변경 건수 비교
+    var newKey = newInsights.map(function(i) { return i.rule; }).sort().join(',');
+    var msg;
+    if (prevRuleKey === null) {
+      msg = null; // 첫 로드는 메시지 없음
+    } else {
+      var prevSet = {}, newSet = {};
+      (prevRuleKey || '').split(',').filter(Boolean).forEach(function(r) { prevSet[r] = 1; });
+      newKey.split(',').filter(Boolean).forEach(function(r) { newSet[r] = 1; });
+      var added   = Object.keys(newSet).filter(function(r) { return !prevSet[r]; }).length;
+      var removed = Object.keys(prevSet).filter(function(r) { return !newSet[r]; }).length;
+      var changed = added + removed;
+      msg = changed > 0 ? '방금 분석 · ' + changed + '건 변경' : '방금 분석 · 변동 없음';
+    }
+    _prevInsightRuleKey = newKey;
+
+    if (msg && summary) {
+      summary._showingMsg = true;
+      summary.textContent = msg;
+      setTimeout(function() {
+        summary._showingMsg = false;
+        _renderInsightPage();
+      }, 3000);
+    }
   } catch(e) {
     if (summary) summary.textContent = '갱신 실패';
   } finally {
@@ -2669,26 +2721,43 @@ async function refreshInsights() {
 }
 
 function renderInsights(insights) {
-  var grid = document.getElementById('ins-grid');
+  _allInsights = insights || [];
+  _insightPage = 0;
+  var newKey = _allInsights.map(function(i) { return i.rule; }).sort().join(',');
+  if (_prevInsightRuleKey === null) _prevInsightRuleKey = newKey;
+  _renderInsightPage();
+}
+
+function _renderInsightPage() {
+  var grid    = document.getElementById('ins-grid');
   var summary = document.getElementById('ins-summary');
+  var nextBtn = document.getElementById('ins-next-btn');
+  if (!grid) return;
+
+  var start     = _insightPage * INS_PAGE;
+  var pageItems = _allInsights.slice(start, start + INS_PAGE);
+  var remaining = _allInsights.length - (start + pageItems.length);
+
   grid.innerHTML = '';
 
-  if (!insights || !insights.length) {
+  if (!pageItems.length) {
     grid.innerHTML = '<div class="ins-card info" style="grid-column:span 3"><div class="ins-body" style="color:var(--text-dim)">인사이트 데이터 없음 — 데이터가 충분히 쌓이면 자동 분석됩니다.</div></div>';
-    if (summary) summary.textContent = '데이터 없음';
+    if (summary && !summary._showingMsg) summary.textContent = '데이터 없음';
+    if (nextBtn) nextBtn.style.display = 'none';
     return;
   }
 
   var critCount = 0, warnCount = 0, infoCount = 0;
-
-  insights.slice(0, 6).forEach(function(ins) {
+  _allInsights.forEach(function(ins) {
     var lvl = (ins.level || 'info').toLowerCase();
-    if (lvl === 'critical') { critCount++; }
-    else if (lvl === 'warning') { warnCount++; }
-    else { infoCount++; }
+    if (lvl === 'critical') critCount++;
+    else if (lvl === 'warning') warnCount++;
+    else infoCount++;
+  });
 
+  pageItems.forEach(function(ins) {
+    var lvl = (ins.level || 'info').toLowerCase();
     var cssClass = lvl === 'critical' ? 'crit' : lvl === 'warning' ? 'warn' : 'info';
-
     var card = document.createElement('div');
     card.className = 'ins-card ' + cssClass;
     card.innerHTML =
@@ -2700,23 +2769,46 @@ function renderInsights(insights) {
     grid.appendChild(card);
   });
 
-  // 빈 셀이 ghost 배경 노출하지 않도록 3의 배수로 filler 추가
-  var rendered = Math.min(insights.length, 6);
-  var remainder = rendered % 3;
-  if (remainder !== 0) {
-    for (var f = 0; f < 3 - remainder; f++) {
+  // 실제 그리드 컬럼 수에 맞게 filler
+  var cols = (getComputedStyle(grid).gridTemplateColumns || '').split(' ').filter(Boolean).length || 3;
+  var rem = pageItems.length % cols;
+  if (cols > 1 && rem !== 0) {
+    for (var f = 0; f < cols - rem; f++) {
       var filler = document.createElement('div');
-      filler.style.background = 'var(--bg)';
+      filler.className = 'ins-card';
       grid.appendChild(filler);
     }
   }
 
-  if (summary) {
+  // summary
+  if (summary && !summary._showingMsg) {
+    var total = _allInsights.length;
+    var pageInfo = total > INS_PAGE ? ' · ' + (start + 1) + '–' + (start + pageItems.length) + '/' + total : '';
     summary.innerHTML =
       '<span class="crit">' + critCount + '</span> CRITICAL · ' +
       '<span class="warn">' + warnCount + '</span> WARNING · ' +
-      '<span class="info">' + infoCount + '</span> INFO';
+      '<span class="info">' + infoCount + '</span> INFO' + pageInfo;
   }
+
+  // 다음 버튼
+  if (nextBtn) {
+    if (remaining > 0) {
+      nextBtn.style.display = '';
+      nextBtn.textContent = '▶ ' + remaining + '개 더';
+    } else if (_allInsights.length > INS_PAGE) {
+      nextBtn.style.display = '';
+      nextBtn.textContent = '↩ 처음으로';
+    } else {
+      nextBtn.style.display = 'none';
+    }
+  }
+}
+
+function nextInsights() {
+  if (!_allInsights.length) return;
+  var totalPages = Math.ceil(_allInsights.length / INS_PAGE);
+  _insightPage = (_insightPage + 1) % totalPages;
+  _renderInsightPage();
 }
 
 // ────────────────────────────────────────────────────────────
@@ -2741,8 +2833,12 @@ function setLiveStatus(state) {
 // ────────────────────────────────────────────────────────────
 async function handleRefresh() {
   try {
+    _lastGroupsData = null; _lastGroupsProjectId = null;
+    _lastVersionsData = null; _lastVersionsProjectId = null;
     await fetch('/api/cache/clear');
     await loadAll();
+    if (_currentSubView === 'groups') loadGroups();
+    else if (_currentSubView === 'milestones') loadMilestones();
   } catch(e) { console.error('refresh:', e); }
 }
 
@@ -3306,12 +3402,19 @@ function switchSubTab(view) {
 // ────────────────────────────────────────────────────────────
 async function loadGroups() {
   var el = document.getElementById('sub-groups');
-  el.innerHTML = '<div class="no-data-msg loading-pulse">그룹 로딩 중...</div>';
   try {
     if (currentProjectId) {
-      var res = await fetch('/api/groups?project_id=' + encodeURIComponent(currentProjectId));
-      if (!res.ok) throw new Error(res.status);
-      var data = await res.json();
+      var data;
+      if (_lastGroupsData && _lastGroupsProjectId === currentProjectId) {
+        data = _lastGroupsData;
+      } else {
+        el.innerHTML = '<div class="no-data-msg loading-pulse">그룹 로딩 중...</div>';
+        var res = await fetch('/api/groups?project_id=' + encodeURIComponent(currentProjectId));
+        if (!res.ok) throw new Error(res.status);
+        data = await res.json();
+        _lastGroupsData = data;
+        _lastGroupsProjectId = currentProjectId;
+      }
       window._groupsCache = {};
       (data.groups || []).forEach(function(g) { window._groupsCache[g.name] = g.members || []; });
       el.innerHTML = '<div class="groups-grid" id="grp-grid"></div><div id="group-detail-panel" style="display:none;padding:20px 24px;border-top:1px solid var(--ghost);margin-top:4px;"></div>';
@@ -3510,11 +3613,18 @@ function renderGroupDetail(groupName) {
 // ────────────────────────────────────────────────────────────
 async function loadMilestones() {
   var el = document.getElementById('sub-milestones');
-  el.innerHTML = '<div class="no-data-msg loading-pulse">마일스톤 로딩 중...</div>';
   try {
-    var res = await fetch('/api/versions?project_id=' + encodeURIComponent(currentProjectId));
-    if (!res.ok) throw new Error(res.status);
-    var versions = await res.json();
+    var versions;
+    if (_lastVersionsData && _lastVersionsProjectId === currentProjectId) {
+      versions = _lastVersionsData;
+    } else {
+      el.innerHTML = '<div class="no-data-msg loading-pulse">마일스톤 로딩 중...</div>';
+      var res = await fetch('/api/versions?project_id=' + encodeURIComponent(currentProjectId));
+      if (!res.ok) throw new Error(res.status);
+      versions = await res.json();
+      _lastVersionsData = versions;
+      _lastVersionsProjectId = currentProjectId;
+    }
     renderMilestonesView(versions, el);
     _updateMsCrown(versions);
   } catch(e) {
@@ -3807,8 +3917,18 @@ function _mxDDay(issue) {
 // ──────────────────────────────────────────────────────────────
 async function loadIssues() {
   var el = document.getElementById('sub-issues');
-  el.innerHTML = '<div class="drill-empty" style="padding:80px 0;">이슈 매트릭스 로딩 중...</div>';
   _hideMxTweaks();
+  var cached = _lastDashData
+    && _lastDashProjectId === currentProjectId
+    && _lastDashAfter === currentUpdatedAfter;
+  if (cached) {
+    _buildMxData(_lastDashData);
+    _renderMatrix(el, _lastDashData);
+    _updateMxCrown(_lastDashData);
+    _applyTweaks();
+    return;
+  }
+  el.innerHTML = '<div class="drill-empty" style="padding:80px 0;">이슈 매트릭스 로딩 중...</div>';
   try {
     var params = new URLSearchParams({ project_id: currentProjectId, updated_after: currentUpdatedAfter });
     var res = await fetch('/api/data?' + params);
@@ -4174,7 +4294,7 @@ function _issueTableHTML(issues) {
     return '<tr' + trCls + '>' +
       '<td class="ctr"><input type="checkbox" aria-label="이슈 #' + iss.id + ' 선택"></td>' +
       '<td class="id" onclick="openIssue(' + iss.id + ')">#' + iss.id + '</td>' +
-      '<td class="title">' + tracker + escapeHtml(iss.subject || '') +
+      '<td class="title" onclick="openIssue(' + iss.id + ')" style="cursor:pointer;">' + tracker + escapeHtml(iss.subject || '') +
         '<span class="meta-sub">' + escapeHtml(iss.project || '') + '</span></td>' +
       '<td><span class="t-status ' + stCls + '">' + stLabel + '</span></td>' +
       '<td class="assignee">' + escapeHtml(getShortName(iss._assignee || '')) + '</td>' +

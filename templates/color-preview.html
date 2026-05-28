@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8" />
+<title>AI Insights 색상 추천</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0c0c0c;
+  font-family: 'DM Sans', -apple-system, sans-serif;
+  padding: 40px;
+  min-height: 100vh;
+}
+h1 { color: #5a5550; font-size: 11px; letter-spacing: 0.18em; text-transform: uppercase; margin-bottom: 32px; }
+.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; max-width: 780px; }
+.card {
+  background: #141414;
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 24px 22px;
+  display: flex; align-items: center; gap: 20px;
+  cursor: pointer;
+  transition: border-color .15s;
+}
+.card:hover { border-color: rgba(255,255,255,0.18); }
+.swatch { width: 44px; height: 44px; flex-shrink: 0; }
+.info { flex: 1; }
+.label { font-size: 13px; font-weight: 600; margin-bottom: 5px; }
+.code {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  color: #5a5550;
+  background: #1a1a1a;
+  padding: 3px 8px;
+  display: inline-block;
+  letter-spacing: 0.06em;
+}
+.preview {
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  font-weight: 700;
+  margin-top: 8px;
+  text-transform: uppercase;
+}
+.copy-msg {
+  position: fixed; bottom: 24px; right: 24px;
+  background: #222; color: #f2efea; font-size: 12px;
+  padding: 10px 18px; border: 1px solid rgba(255,255,255,0.12);
+  opacity: 0; transition: opacity .2s;
+}
+.copy-msg.show { opacity: 1; }
+</style>
+</head>
+<body>
+
+<h1>AI Insights 텍스트 색상 추천 — 다크 배경 기준 · 클릭하면 코드 복사</h1>
+
+<div class="grid" id="grid"></div>
+<div class="copy-msg" id="copy-msg"></div>
+
+<script>
+var colors = [
+  { name: "Electric Blue",   hex: "#4f8ef7", desc: "선명한 로열 블루 — Admin 액센트 계열" },
+  { name: "Sky Blue",        hex: "#60a5fa", desc: "밝고 깔끔한 하늘색 — 가독성 최상" },
+  { name: "Indigo Glow",     hex: "#818cf8", desc: "인디고 블루 — 차분하고 고급스러운 느낌" },
+  { name: "Cyan Ice",        hex: "#38bdf8", desc: "시안 블루 — AI·테크 느낌 강함" },
+  { name: "Soft Periwinkle", hex: "#93c5fd", desc: "연한 파스텔 블루 — 부드럽고 밝은 인상" },
+  { name: "Deep Cobalt",     hex: "#3b82f6", desc: "진한 코발트 블루 — 강하고 명확한 포인트" },
+  { name: "Polar Blue",      hex: "#7dd3fc", desc: "밝은 하늘빛 — 선명하고 시원한 느낌" },
+  { name: "Neon Azure",      hex: "#22d3ee", desc: "네온 시안 — 미래적, 강한 존재감" },
+  { name: "Muted Steel",     hex: "#94a3b8", desc: "스틸 블루그레이 — 절제된 톤, 노이즈 없음" },
+  { name: "Violet Blue",     hex: "#a78bfa", desc: "바이올렛 블루 — 독창적, AI 감성" },
+
+  { name: "Vivid Navy",      hex: "#1d4ed8", desc: "맑고 선명한 딥 블루 — 가장 깔끔한 네이비" },
+  { name: "Royal Blue",      hex: "#2563eb", desc: "순수한 로열 블루 — 잡색 없는 중간 딥 톤" },
+  { name: "True Navy",       hex: "#1e40af", desc: "트루 네이비 — 진하지만 맑은 정통 네이비" },
+  { name: "Cobalt Pure",     hex: "#0040ff", desc: "코발트 퓨어 — 가장 순수한 딥 블루" },
+  { name: "Azure Deep",      hex: "#0d47a1", desc: "아주르 딥 — 선명한 머티리얼 딥 블루" },
+  { name: "Klein Blue",      hex: "#002fa7", desc: "클라인 블루 — 예술가들이 쓰는 순수 딥 블루" },
+  { name: "Sapphire",        hex: "#1648cc", desc: "사파이어 — 보석처럼 맑고 깊은 블루" },
+  { name: "Clear Navy",      hex: "#1565c0", desc: "클리어 네이비 — 그레이 없는 깨끗한 네이비" },
+  { name: "Electric Navy",   hex: "#1a3fcf", desc: "일렉트릭 네이비 — 네이비와 일렉트릭의 중간" },
+  { name: "Deep Azure",      hex: "#2855d8", desc: "딥 아주르 — 밝지 않지만 탁하지 않은 블루" },
+];
+
+var grid = document.getElementById('grid');
+grid.innerHTML = colors.map(function(c, i) {
+  return '<div class="card" onclick="copyHex(\'' + c.hex + '\')">' +
+    '<div class="swatch" style="background:' + c.hex + ';"></div>' +
+    '<div class="info">' +
+      '<div class="label" style="color:' + c.hex + '">' + (i+1) + '. ' + c.name + '</div>' +
+      '<div class="code">' + c.hex + '</div>' +
+      '<div class="preview" style="color:' + c.hex + '">AI Insights — 자동 분석</div>' +
+      '<div style="font-size:11px;color:#5a5550;margin-top:6px;">' + c.desc + '</div>' +
+    '</div>' +
+  '</div>';
+}).join('');
+
+function copyHex(hex) {
+  navigator.clipboard.writeText(hex).catch(function() {});
+  var msg = document.getElementById('copy-msg');
+  msg.textContent = hex + ' 복사됨';
+  msg.classList.add('show');
+  setTimeout(function() { msg.classList.remove('show'); }, 1500);
+}
+</script>
+</body>
+</html>
