@@ -1645,6 +1645,13 @@ async def api_admin_login(request: Request):
     return resp
 
 
+@app.post("/api/admin/logout")
+async def api_admin_logout():
+    resp = JSONResponse({"ok": True})
+    resp.delete_cookie("vx_admin")
+    return resp
+
+
 @app.get("/api/admin/stats")
 async def api_admin_stats(request: Request, _=Depends(_require_admin)):
     if not _DATABASE_URL:
@@ -1693,7 +1700,15 @@ async def api_admin_stats(request: Request, _=Depends(_require_admin)):
                 """)
                 daily = [{"day": r[0], "visitors": r[1]} for r in cur.fetchall()]
 
-        return {"pages": pages, "clicks": clicks, "exits": exits, "sessions": total_sessions, "daily": daily}
+                # 오늘 방문자 수
+                cur.execute("""
+                    SELECT COUNT(DISTINCT session_id)
+                    FROM analytics_events
+                    WHERE ts > EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date)
+                """)
+                today_visitors = cur.fetchone()[0]
+
+        return {"pages": pages, "clicks": clicks, "exits": exits, "sessions": total_sessions, "daily": daily, "today_visitors": today_visitors}
     except Exception as e:
         print(f"[admin/stats] 오류: {e}")
         return {"pages": [], "clicks": [], "exits": [], "sessions": 0, "daily": []}
