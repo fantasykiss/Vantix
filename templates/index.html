@@ -4419,14 +4419,14 @@ document.addEventListener('click', function() {
 
 <!-- ══ FEEDBACK MODAL ══════════════════════════════════════════ -->
 <div id="feedback-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:9000;align-items:center;justify-content:center;">
-  <div style="background:var(--bg);border:1px solid var(--ghost);border-radius:0;width:420px;max-width:90vw;padding:28px;box-shadow:0 8px 32px rgba(0,0,0,.5);font-family:var(--dm);">
+  <div style="background:var(--surface-hi);border:1px solid var(--ghost-2);border-radius:0;width:420px;max-width:90vw;padding:28px;box-shadow:0 8px 40px rgba(0,0,0,.7);font-family:var(--dm);">
     <!-- 헤더 -->
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
       <h3 style="margin:0;font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--text);font-family:var(--dm);">의견 남기기</h3>
       <button onclick="closeFeedback()" style="background:none;border:none;color:var(--text-dim);cursor:pointer;font-size:14px;padding:0;line-height:1;font-family:var(--dm);transition:color .12s;" onmouseover="this.style.color='var(--text)'" onmouseout="this.style.color='var(--text-dim)'">✕</button>
     </div>
     <!-- 서브텍스트 -->
-    <p style="margin:0 0 18px;font-size:11px;color:var(--text-mid);font-family:var(--dm);letter-spacing:.02em;">의견하나가 Vantix 개선에 큰 도움이 됩니다 _ _)</p>
+    <p style="margin:0 0 18px;font-size:11px;color:var(--text-mid);font-family:var(--dm);letter-spacing:.02em;">의견 하나 하나가 Vantix 개선에 큰 도움이 됩니다 _ _)</p>
     <!-- 타입 토글 -->
     <div style="display:flex;gap:6px;margin-bottom:14px;">
       <button id="fb-toggle-inquiry" onclick="setFbType('inquiry')"
