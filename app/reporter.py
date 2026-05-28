@@ -70,7 +70,7 @@ def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트
             })
 
         user_summaries.append(UserSummary(
-            name           = short_name(uname),
+            name           = short_name(uname) or uname,
             dept           = dept_name(uname),
             total          = total,
             open_cnt       = open_cnt,
