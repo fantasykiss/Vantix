@@ -1741,6 +1741,13 @@ async def admin_page(request: Request):
         return HTMLResponse(content=f.read())
 
 
+@app.get("/color-preview", response_class=HTMLResponse)
+async def color_preview():
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "color-preview.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+
 @app.get("/report-mockup", response_class=HTMLResponse)
 async def report_mockup():
     template_path = os.path.join(os.path.dirname(__file__), "templates", "report-mockup.html")
@@ -2627,9 +2634,21 @@ async def api_insights(
         except Exception:
             versions = []
 
-    # 인사이트용 dashboard에 버전(issues 포함) 주입
+    # 인사이트용 dashboard에 버전(issues 포함) + 히스토리 주입
     insight_dash = dict(dashboard)
     insight_dash["versions"] = versions or []
+
+    try:
+        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as _hf:
+            _hist_all = json.load(_hf)
+        if project_id:
+            _hist_key = f"project_{project_id}"
+            _hist_records = _hist_all.get(_hist_key) or _hist_all.get("all", [])
+        else:
+            _hist_records = _hist_all.get("all", [])
+        insight_dash["history"] = sorted(_hist_records, key=lambda x: x.get("date", ""))
+    except Exception:
+        insight_dash["history"] = []
 
     try:
         insights = run_all_insights(insight_dash)
