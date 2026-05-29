@@ -4112,6 +4112,7 @@ function _renderMatrix(container, d) {
 
   container.innerHTML = html;
   _bindMatrixCells();
+  if (_mxSel) setTimeout(_renderDrill, 0);
 }
 
 function _bindMatrixCells() {
@@ -4186,6 +4187,13 @@ function _renderDrill() {
   if (!drillEl) return;
   var sel = _mxSel;
   if (!sel) { drillEl.innerHTML = '<div class="drill-empty">셀을 클릭하면 이슈 매트릭스이 표시됩니다.</div>'; return; }
+
+  // Restore selected cell highlight
+  document.querySelectorAll('#mx-grid .cell').forEach(function(c) {
+    var match = c.getAttribute('data-who') === sel.who && c.getAttribute('data-bucket') === sel.bucket;
+    c.classList.toggle('selected', match);
+    c.setAttribute('aria-pressed', match ? 'true' : 'false');
+  });
 
   // Gather issues for selected cell
   var issues;
