@@ -133,9 +133,59 @@ def _init_analytics_tables():
                         created DOUBLE PRECISION NOT NULL
                     )
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS risk_history (
+                        hist_key TEXT NOT NULL,
+                        date     TEXT NOT NULL,
+                        score    REAL NOT NULL,
+                        level    TEXT NOT NULL,
+                        overdue  INTEGER DEFAULT 0,
+                        urgent   INTEGER DEFAULT 0,
+                        PRIMARY KEY (hist_key, date)
+                    )
+                """)
             conn.commit()
     except Exception as e:
         print(f"[analytics] DB 테이블 초기화 실패: {e}")
+
+def _db_load_history(key: str) -> list:
+    """DB에서 hist_key에 해당하는 히스토리 엔트리 반환 (날짜 오름차순)."""
+    if not _DATABASE_URL:
+        return []
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT date, score, level, overdue, urgent FROM risk_history WHERE hist_key=%s ORDER BY date ASC",
+                    (key,)
+                )
+                return [{"date": r[0], "score": r[1], "level": r[2], "overdue": r[3], "urgent": r[4]} for r in cur.fetchall()]
+    except Exception:
+        return []
+
+def _db_save_history_entry(key: str, date: str, score: float, level: str, overdue: int, urgent: int):
+    """DB에 히스토리 엔트리 upsert. 52개 초과분은 오래된 것부터 삭제."""
+    if not _DATABASE_URL:
+        return
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO risk_history (hist_key, date, score, level, overdue, urgent)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (hist_key, date) DO UPDATE
+                        SET score=EXCLUDED.score, level=EXCLUDED.level,
+                            overdue=EXCLUDED.overdue, urgent=EXCLUDED.urgent
+                """, (key, date, score, level, overdue, urgent))
+                # 52주 초과분 정리
+                cur.execute("""
+                    DELETE FROM risk_history WHERE hist_key=%s AND date NOT IN (
+                        SELECT date FROM risk_history WHERE hist_key=%s ORDER BY date DESC LIMIT 52
+                    )
+                """, (key, key))
+            conn.commit()
+    except Exception as e:
+        print(f"[risk_history] DB 저장 실패: {e}")
 
 def _save_session(token: str, url: str, key: str, created: float):
     encrypted_key = _encrypt_key(key)
@@ -517,12 +567,6 @@ def save_risk_snapshot():
     from datetime import date
     today = date.today().isoformat()
 
-    try:
-        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
-            history = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        history = {}
-
     # 캐시에서 project_risk가 있는 첫 항목 탐색
     cached = None
     for entry in _cache.values():
@@ -542,13 +586,7 @@ def save_risk_snapshot():
     avg_level = "Critical" if avg_score >= 30 else "High" if avg_score >= 15 else "Medium" if avg_score >= 5 else "Low"
     avg_overdue = sum(p.get("overdue", 0) for p in projects)
     avg_urgent  = sum(p.get("urgent",  0) for p in projects)
-    history.setdefault("all", [])
-    if not history["all"] or history["all"][-1]["date"] != today:
-        history["all"].append({"date": today, "score": avg_score, "level": avg_level,
-                               "overdue": avg_overdue, "urgent": avg_urgent})
-    history["all"] = history["all"][-52:]  # 최대 52주 보관
 
-    # 캐시 키에서 project_id → project_name 역매핑 구성
     # 캐시 키(identifier)→project_name 역매핑 구성
     pid_to_name = {}
     for cache_key, entry in _cache.items():
@@ -561,24 +599,49 @@ def save_risk_snapshot():
             if pname:
                 pid_to_name[pname] = identifier
 
-    # 프로젝트별 스냅샷 (키: project_{identifier})
-    for p in projects:
-        pname = p.get("name", "")
-        if not pname:
-            continue
-        identifier = pid_to_name.get(pname, pname)
-        key = f"project_{identifier}"
+    if _DATABASE_URL:
+        # DB 저장
+        _db_save_history_entry("all", today, avg_score, avg_level, avg_overdue, avg_urgent)
+        for p in projects:
+            pname = p.get("name", "")
+            if not pname:
+                continue
+            identifier = pid_to_name.get(pname, pname)
+            _db_save_history_entry(
+                f"project_{identifier}", today,
+                round(p["risk_score"], 1), p["risk_level"],
+                p.get("overdue", 0), p.get("urgent", 0)
+            )
+    else:
+        # JSON 폴백 (로컬)
+        try:
+            with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+                history = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            history = {}
 
-        history.setdefault(key, [])
-        score = round(p["risk_score"], 1)
-        level = p["risk_level"]
-        if not history[key] or history[key][-1]["date"] != today:
-            history[key].append({"date": today, "score": score, "level": level,
-                                 "overdue": p.get("overdue", 0), "urgent": p.get("urgent", 0)})
-        history[key] = history[key][-52:]
+        history.setdefault("all", [])
+        if not history["all"] or history["all"][-1]["date"] != today:
+            history["all"].append({"date": today, "score": avg_score, "level": avg_level,
+                                   "overdue": avg_overdue, "urgent": avg_urgent})
+        history["all"] = history["all"][-52:]
 
-    with open(RISK_HISTORY_PATH, "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False, indent=2)
+        for p in projects:
+            pname = p.get("name", "")
+            if not pname:
+                continue
+            identifier = pid_to_name.get(pname, pname)
+            key = f"project_{identifier}"
+            history.setdefault(key, [])
+            score = round(p["risk_score"], 1)
+            level = p["risk_level"]
+            if not history[key] or history[key][-1]["date"] != today:
+                history[key].append({"date": today, "score": score, "level": level,
+                                     "overdue": p.get("overdue", 0), "urgent": p.get("urgent", 0)})
+            history[key] = history[key][-52:]
+
+        with open(RISK_HISTORY_PATH, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
 
 def _job_risk_snapshot():
     print("  리스크 스냅샷 저장 중...")
@@ -1343,10 +1406,15 @@ async def api_forecast(request: Request, project_id: str = "", updated_after: st
     prev_urgent    = None
     prev_date      = None
     try:
-        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
-            hist = json.load(f)
         proj_key = f"project_{project_id}" if project_id else "all"
-        proj_hist = hist.get(proj_key, hist.get("all", []))
+        if _DATABASE_URL:
+            proj_hist = _db_load_history(proj_key)
+            if len(proj_hist) < 2:
+                proj_hist = _db_load_history("all")
+        else:
+            with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+                hist = json.load(f)
+            proj_hist = hist.get(proj_key, hist.get("all", []))
         if len(proj_hist) >= 2:
             prev = proj_hist[-2]
             risk_change  = round(proj_hist[-1]["score"] - prev["score"], 1)
@@ -1477,59 +1545,98 @@ async def clear_cache(s: dict = Depends(_require_session)):
 async def api_risk_history(project_id: str = "", weeks: int = 12, s: dict = Depends(_require_session)):
     """
     저장된 스냅샷에서 최근 N주 반환.
-    스냅샷 없으면 빈 배열 반환 (역산 제거).
+    DB 우선, 없으면 JSON 폴백.
     """
-    try:
-        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
-            history = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {"history": []}
+    from datetime import date as _date
 
-    if not project_id:
-        key = "all"
-    else:
-        all_keys = list(history.keys())
-        proj_keys = [k for k in all_keys if k.startswith("project_")]
-        direct_key = f"project_{project_id}"
-        if direct_key in history:
-            key = direct_key
+    # ── 히스토리 로드 (DB or JSON)
+    if _DATABASE_URL:
+        # DB 모드: key 결정
+        if not project_id:
+            key = "all"
         else:
-            # identifier 기반 부분 매칭 시도 (예: nd_project → project_nd_project)
-            matched = [k for k in history if project_id in k]
-            if matched:
-                key = matched[0]
+            direct_key = f"project_{project_id}"
+            records_try = _db_load_history(direct_key)
+            if records_try:
+                key = direct_key
             else:
+                # 부분 매칭: DB에서 project_id 포함 키 탐색
                 try:
-                    dashboard = build_dashboard_data(project_id, "2020-01-01")
-                    pname = dashboard.get("project_name", "")
-                    name_key = f"project_{pname}"
-                    key = name_key if name_key in history else "all"
+                    with _db_conn() as conn:
+                        with conn.cursor() as cur:
+                            cur.execute(
+                                "SELECT DISTINCT hist_key FROM risk_history WHERE hist_key LIKE %s LIMIT 1",
+                                (f"%{project_id}%",)
+                            )
+                            row = cur.fetchone()
+                            key = row[0] if row else "all"
                 except Exception:
                     key = "all"
-    records = history.get(key, [])
 
-    # 프로젝트 데이터가 너무 적으면 "all" 키로 폴백 (레드마인 인스턴스 변경 등으로 키가 달라진 경우 대응)
-    if key != "all" and len(records) < 3:
-        records = history.get("all", [])
+        records = _db_load_history(key)
+        if key != "all" and len(records) < 3:
+            records = _db_load_history("all")
+            key = "all"
 
-    # 월요일 기준 주별 그룹핑 — 같은 주의 마지막(최신) 스냅샷만 사용
-    from datetime import date as _date
+        # All Projects 뷰 — 프로젝트별 breakdown
+        history = {}
+        if key == "all":
+            try:
+                with _db_conn() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "SELECT hist_key, date, score, level FROM risk_history WHERE hist_key LIKE 'project_%' ORDER BY date ASC"
+                        )
+                        for row in cur.fetchall():
+                            history.setdefault(row[0], []).append({"date": row[1], "score": row[2], "level": row[3]})
+            except Exception:
+                pass
+    else:
+        # JSON 폴백
+        try:
+            with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+                history = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {"history": []}
+
+        if not project_id:
+            key = "all"
+        else:
+            direct_key = f"project_{project_id}"
+            if direct_key in history:
+                key = direct_key
+            else:
+                matched = [k for k in history if project_id in k]
+                if matched:
+                    key = matched[0]
+                else:
+                    try:
+                        dashboard = build_dashboard_data(project_id, "2020-01-01")
+                        pname = dashboard.get("project_name", "")
+                        name_key = f"project_{pname}"
+                        key = name_key if name_key in history else "all"
+                    except Exception:
+                        key = "all"
+
+        records = history.get(key, [])
+        if key != "all" and len(records) < 3:
+            records = history.get("all", [])
+            key = "all"
+
+    # ── 월요일 기준 주별 그룹핑
     week_map = {}
     for r in records:
         try:
             d = _date.fromisoformat(r["date"])
-            # 해당 날짜의 월요일 구하기 (weekday: 0=월)
             monday = d - timedelta(days=d.weekday())
-            week_key = monday.isoformat()
-            week_map[week_key] = r  # 같은 주면 나중 것(최신)으로 덮어쓰기
+            week_map[monday.isoformat()] = r
         except Exception:
             continue
 
-    # 월요일 날짜 기준 오름차순 정렬 후 최근 N주만 사용
     sorted_weeks = sorted(week_map.items())[-weeks:]
 
-    # All Projects 뷰일 때 주별 프로젝트 breakdown 수집
-    proj_week_map = {}  # monday_str → {proj_key: record}
+    # All Projects 뷰 — 주별 프로젝트 breakdown
+    proj_week_map = {}
     if key == "all":
         for hkey, hrecords in history.items():
             if not hkey.startswith("project_"):
@@ -1538,29 +1645,17 @@ async def api_risk_history(project_id: str = "", weeks: int = 12, s: dict = Depe
             for pr in hrecords:
                 try:
                     pd = _date.fromisoformat(pr["date"])
-                    pm = pd - timedelta(days=pd.weekday())
-                    pm_str = pm.isoformat()
+                    pm_str = (pd - timedelta(days=pd.weekday())).isoformat()
                     proj_week_map.setdefault(pm_str, {})[proj_name] = pr
                 except Exception:
                     continue
 
     result = []
     for idx, (monday_str, r) in enumerate(sorted_weeks, 1):
-        item = {
-            "week": f"W{idx}",
-            "score": r["score"],
-            "level": r["level"],
-            "date": monday_str
-        }
-        # All Projects — 해당 주의 프로젝트 목록 추가 (점수 내림차순)
+        item = {"week": f"W{idx}", "score": r["score"], "level": r["level"], "date": monday_str}
         if key == "all" and monday_str in proj_week_map:
-            projs = []
-            for pname, pr in proj_week_map[monday_str].items():
-                projs.append({
-                    "name": pname,
-                    "score": pr["score"],
-                    "level": pr["level"]
-                })
+            projs = [{"name": pn, "score": pr["score"], "level": pr["level"]}
+                     for pn, pr in proj_week_map[monday_str].items()]
             projs.sort(key=lambda x: x["score"], reverse=True)
             item["projects"] = projs
         result.append(item)
@@ -2445,11 +2540,16 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
 
     # 전주 대비 리스크 변화
     try:
-        import json as _json
-        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
-            hist = _json.load(f)
         proj_key = f"project_{project_id}" if project_id else "all"
-        proj_hist = hist.get(proj_key, hist.get("all", []))
+        if _DATABASE_URL:
+            proj_hist = _db_load_history(proj_key)
+            if len(proj_hist) < 2:
+                proj_hist = _db_load_history("all")
+        else:
+            import json as _json
+            with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+                hist = _json.load(f)
+            proj_hist = hist.get(proj_key, hist.get("all", []))
         if len(proj_hist) >= 2:
             delta = round(proj_hist[-1]["score"] - proj_hist[-2]["score"], 1)
             delta_str = f"+{delta}" if delta > 0 else str(delta)
