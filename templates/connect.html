@@ -1225,7 +1225,7 @@
             <div style="flex:1;height:1px;background:rgba(255,255,255,0.08);"></div>
           </div>
           <button class="try-vantix-btn" type="button" onclick="handleTryVantix()">
-            <span>Try Vantix</span>
+            <span>LAUNCH DEMO</span>
             <span style="font-size:13px;">→</span>
           </button>
           <div style="margin-top:10px;font-size:10px;letter-spacing:0.1em;color:rgba(255,255,255,0.2);text-align:center;">LIVE DEMO · 실제 프로젝트 데이터</div>
@@ -1384,10 +1384,10 @@
         .then(data => {
           if (data.ok) {
             btn.querySelector('span').textContent = 'LOADING DASHBOARD...';
-            window.location.href = '/';
+            window.location.href = '/?p=';
           } else {
             btn.disabled = false;
-            btn.querySelector('span').textContent = 'Try Vantix';
+            btn.querySelector('span').textContent = 'LAUNCH DEMO';
             alert('데모 연결 실패');
           }
         })
