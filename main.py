@@ -280,6 +280,10 @@ if os.path.isdir("etc"):
 # ==================== 캐시 ====================
 _cache = {}
 
+# ==================== 리포트 공유 저장소 ====================
+_report_store: dict = {}   # token → {html, created_at}
+REPORT_TTL = 86400         # 24시간
+
 # ==================== AI 캐시 ====================
 _ai_cache: dict = {}
 AI_CACHE_TTL = 3600  # 1시간
@@ -494,7 +498,7 @@ def _job_weekly_report():
         dashboard = get_cache(DEFAULT_PROJECT_ID, DEFAULT_UPDATED_AFTER)
         if not dashboard:
             dashboard = build_dashboard_data(DEFAULT_PROJECT_ID, DEFAULT_UPDATED_AFTER)
-        report  = build_report_data(dashboard, project_label=DEFAULT_PROJECT_ID or "전체")
+        report  = build_report_data(dashboard, project_label=DEFAULT_PROJECT_ID or "전체", project_id=DEFAULT_PROJECT_ID or "")
         html    = render_html_report(report)
         subject = f"[Vantix] 주간 리포트 {report.period_label}"
         result  = send_report_email(html, subject, EMAIL_CFG)
@@ -2201,7 +2205,8 @@ async def api_report_preview(
                 )
                 summary_val = ai_resp.get("summary", "") if isinstance(ai_resp, dict) else ""
                 dashboard["ai_summary"] = summary_val
-        except Exception:
+        except Exception as e:
+            print(f"[report] AI 요약 생성 실패: {e}")
             dashboard["ai_summary"] = ""
 
     # 인사이트 생성 — 버전 데이터(issues 포함) 필요
@@ -2230,9 +2235,41 @@ async def api_report_preview(
     except Exception:
         insights_data = []
 
-    report = build_report_data(dashboard, project_label=proj_name, insights=insights_data)
+    report = build_report_data(dashboard, project_label=proj_name, insights=insights_data, project_id=project_id or "")
     html   = render_html_report(report, sections=section_list, memo=memo)
     return HTMLResponse(content=html)
+
+
+@app.post("/api/report/share")
+async def api_report_share(
+    request: Request,
+    s: dict = Depends(_require_session),
+):
+    import uuid, time
+    body = await request.json()
+    html = body.get("html", "")
+    if not html:
+        return JSONResponse({"ok": False, "error": "html이 없습니다"}, status_code=400)
+    token = uuid.uuid4().hex
+    now   = time.time()
+    # 만료된 리포트 정리
+    expired = [k for k, v in _report_store.items() if now - v["created_at"] > REPORT_TTL]
+    for k in expired:
+        del _report_store[k]
+    _report_store[token] = {"html": html, "created_at": now}
+    return {"ok": True, "token": token}
+
+
+@app.get("/report/{token}")
+async def view_shared_report(token: str):
+    import time
+    entry = _report_store.get(token)
+    if not entry:
+        return HTMLResponse("<h2>리포트를 찾을 수 없거나 만료되었습니다.</h2>", status_code=404)
+    if time.time() - entry["created_at"] > REPORT_TTL:
+        del _report_store[token]
+        return HTMLResponse("<h2>리포트가 만료되었습니다 (24시간).</h2>", status_code=410)
+    return HTMLResponse(content=entry["html"])
 
 
 @app.get("/api/report/tsv")
@@ -2250,7 +2287,7 @@ async def api_report_tsv(
     if not dashboard:
         dashboard = build_dashboard_data(project_id, updated_after, redmine_url=redmine_url, api_key=api_key)
     section_list = [sec.strip() for sec in sections.split(",") if sec.strip()] if sections else None
-    report = build_report_data(dashboard, project_label=project_id or "전체 프로젝트")
+    report = build_report_data(dashboard, project_label=project_id or "전체 프로젝트", project_id=project_id or "")
     tsv    = render_tsv_report(report, sections=section_list)
     return PlainTextResponse(content=tsv, media_type="text/plain; charset=utf-8")
 
@@ -2260,7 +2297,7 @@ async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01
     dashboard = get_cache(project_id, updated_after, s["url"])
     if not dashboard:
         dashboard = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
-    report  = build_report_data(dashboard, project_label=project_id or "전체 프로젝트")
+    report  = build_report_data(dashboard, project_label=project_id or "전체 프로젝트", project_id=project_id or "")
     html    = render_html_report(report)
     subject = f"[Vantix] 주간 리포트 {report.period_label}"
     return send_report_email(html, subject, EMAIL_CFG)
