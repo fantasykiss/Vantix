@@ -620,15 +620,21 @@
     .connect-btn:hover { transform: translateY(-1px); box-shadow: 0 14px 32px rgba(0,122,255,0.38), inset 0 1px 0 rgba(255,255,255,0.3); }
     .connect-btn-arrow { font-size: 16px; }
     .try-vantix-btn {
-      width: 100%; padding: 14px 24px;
-      display: flex; align-items: center; justify-content: center; gap: 10px;
-      background: transparent;
-      border: 1.5px solid rgba(255,255,255,0.55);
-      color: #f2efea; font-family: inherit; font-size: 13px; font-weight: 600;
-      letter-spacing: 0.08em; cursor: pointer;
-      transition: border-color 0.15s, background 0.15s;
+      width: 100%; padding: 18px 0;
+      display: flex; align-items: center; justify-content: center; gap: 14px;
+      background: linear-gradient(135deg, #1a1a1a 0%, #2a2a2a 100%);
+      border: 1px solid rgba(255,255,255,0.12);
+      border-radius: 16px;
+      box-shadow: 0 10px 28px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.08);
+      color: #f2efea; font-family: inherit; font-size: 12px; font-weight: 700;
+      letter-spacing: 0.22em; cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+      backdrop-filter: blur(8px);
     }
-    .try-vantix-btn:hover { border-color: #fff; background: rgba(255,255,255,0.04); }
+    .try-vantix-btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 14px 32px rgba(0,0,0,0.45), inset 0 1px 0 rgba(255,255,255,0.12);
+    }
     .connect-secure {
       display: flex; align-items: center; gap: 6px; justify-content: center;
       font-size: 10px; color: var(--text-tertiary);
