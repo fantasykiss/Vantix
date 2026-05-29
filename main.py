@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 # ==================== 서버 설정 ====================
-from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY, ADMIN_PASSWORD
+from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY, ADMIN_PASSWORD, DEMO_URL, DEMO_KEY
 import uuid as _uuid
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -1778,7 +1778,21 @@ async def connect_page(request: Request):
     template_path = os.path.join(os.path.dirname(__file__), "templates", "connect.html")
     with open(template_path, "r", encoding="utf-8") as f:
         html = f.read()
+    # DEMO_URL/DEMO_KEY 환경변수가 있으면 "Try Vantix" 버튼 활성화
+    demo_flag = "true" if (DEMO_URL and DEMO_KEY) else "false"
+    html = html.replace("__DEMO_AVAILABLE__", demo_flag)
     return HTMLResponse(content=html)
+
+@app.post("/api/connect/demo")
+async def api_connect_demo(request: Request):
+    """DEMO_URL/DEMO_KEY 환경변수로 자동 세션 발급 — Try Vantix 버튼용"""
+    if not DEMO_URL or not DEMO_KEY:
+        raise HTTPException(status_code=404, detail="데모 미설정")
+    token = str(_uuid.uuid4())
+    _save_session(token, DEMO_URL, DEMO_KEY, time.time())
+    response = JSONResponse({"ok": True})
+    response.set_cookie("vx_session", token, httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
+    return response
 
 @app.post("/api/connect")
 async def api_connect(request: Request):
