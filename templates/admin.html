@@ -26,96 +26,77 @@
   --yellow:       #f0b429;
   --yellow-dim:   rgba(240,180,41,.12);
   --red:          #e05252;
+  --red-dim:      rgba(224,82,82,.12);
   --radius:       8px;
 }
 
 body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; min-height: 100vh; }
 
-/* ── Login screen ── */
-#login-screen {
-  display: flex; align-items: center; justify-content: center; min-height: 100vh;
-}
-.login-box {
-  background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-  padding: 40px 36px; width: 360px; max-width: 90vw;
-}
+/* ── Login ── */
+#login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
+.login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 40px 36px; width: 360px; max-width: 90vw; }
 .login-logo { font-size: 13px; font-weight: 700; letter-spacing: .12em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 24px; }
 .login-logo span { color: var(--accent); }
 .login-box h2 { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
-.login-box input {
-  width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius);
-  background: var(--bg); color: var(--text); font-size: 14px; outline: none; margin-bottom: 12px;
-}
+.login-box input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 14px; outline: none; margin-bottom: 12px; }
 .login-box input:focus { border-color: var(--accent); }
-.login-box button {
-  width: 100%; padding: 11px; border: none; border-radius: var(--radius);
-  background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s;
-}
+.login-box button { width: 100%; padding: 11px; border: none; border-radius: var(--radius); background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
 .login-box button:hover { opacity: .85; }
 .login-err { font-size: 12px; color: var(--red); margin-top: 8px; min-height: 16px; text-align: center; }
 
-/* ── App layout ── */
+/* ── App ── */
 #app { display: none; }
-.topbar {
-  height: 52px; background: var(--surface); border-bottom: 1px solid var(--border);
-  display: flex; align-items: center; padding: 0 24px; gap: 16px; position: sticky; top: 0; z-index: 100;
-}
+.topbar { height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 16px; position: sticky; top: 0; z-index: 100; }
 .topbar-logo { font-size: 12px; font-weight: 700; letter-spacing: .12em; color: var(--text-muted); text-transform: uppercase; }
 .topbar-logo span { color: var(--accent); }
 .topbar-sep { width: 1px; height: 16px; background: var(--border); }
 .topbar-title { font-size: 14px; font-weight: 600; }
 .topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
 .topbar-badge { font-size: 11px; padding: 3px 8px; border-radius: 20px; background: var(--accent-dim); color: var(--accent); font-weight: 600; }
-.logout-btn {
-  font-size: 12px; padding: 5px 12px; border-radius: var(--radius);
-  border: 1px solid var(--border); background: transparent; color: var(--text-muted);
-  cursor: pointer; transition: all .15s;
-}
+.logout-btn { font-size: 12px; padding: 5px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; transition: all .15s; }
 .logout-btn:hover { border-color: var(--red); color: var(--red); }
 
-.tabs {
-  display: flex; gap: 2px; padding: 0 24px; border-bottom: 1px solid var(--border);
-  background: var(--surface);
-}
-.tab-btn {
-  padding: 14px 18px; font-size: 13px; font-weight: 500; cursor: pointer;
-  background: none; border: none; color: var(--text-muted); border-bottom: 2px solid transparent;
-  transition: color .15s; display: flex; align-items: center; gap: 6px;
-}
+/* ── Tabs + filter bar ── */
+.tabs-wrap { background: var(--surface); border-bottom: 1px solid var(--border); }
+.tabs { display: flex; gap: 2px; padding: 0 24px; align-items: center; }
+.tab-btn { padding: 14px 18px; font-size: 13px; font-weight: 500; cursor: pointer; background: none; border: none; color: var(--text-muted); border-bottom: 2px solid transparent; transition: color .15s; display: flex; align-items: center; gap: 6px; }
 .tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
 .tab-btn:hover { color: var(--text-dim); }
-.tab-cnt {
-  font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 20px;
-  background: var(--surface2); color: var(--text-muted); min-width: 18px; text-align: center;
-}
+.tab-cnt { font-size: 10px; font-weight: 700; padding: 2px 6px; border-radius: 20px; background: var(--surface2); color: var(--text-muted); min-width: 18px; text-align: center; }
 .tab-btn.active .tab-cnt { background: var(--accent-dim); color: var(--accent); }
 
-.main { padding: 24px; max-width: 1100px; }
+.filter-bar { display: flex; align-items: center; gap: 12px; padding: 8px 24px; border-top: 1px solid var(--border-light); flex-wrap: wrap; }
+.filter-group { display: flex; align-items: center; gap: 5px; }
+.filter-label { font-size: 10px; color: var(--text-muted); letter-spacing: .06em; text-transform: uppercase; font-weight: 600; white-space: nowrap; }
+.filter-sep { width: 1px; height: 14px; background: var(--border); }
+.filter-btn { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; transition: all .15s; }
+.filter-btn:hover { border-color: var(--accent); color: var(--accent); }
+.filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+
+/* auto-refresh toggle */
+.refresh-btn { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px; }
+.refresh-btn:hover { border-color: var(--green); color: var(--green); }
+.refresh-btn.active { background: var(--green-dim); border-color: var(--green); color: var(--green); }
+
+.main { padding: 24px; max-width: 1140px; }
 
 /* ── Stat cards ── */
-.cards { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 24px; }
-.card {
-  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 18px 20px;
-}
+.cards { display: grid; grid-template-columns: repeat(5, 1fr); gap: 14px; margin-bottom: 24px; }
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
 .card-label { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
 .card-value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
 .card-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
-.card-trend {
-  display: inline-flex; align-items: center; gap: 3px; font-size: 11px; font-weight: 600;
-  padding: 2px 7px; border-radius: 20px; margin-top: 6px;
-}
-.card-trend.up { background: var(--green-dim); color: var(--green); }
-.card-trend.neutral { background: var(--surface2); color: var(--text-muted); }
+.anomaly-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; margin-top: 5px; }
+.anomaly-badge.spike { background: var(--green-dim); color: var(--green); }
+.anomaly-badge.drop { background: var(--red-dim); color: var(--red); }
 
 /* ── Section ── */
 .section { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); margin-bottom: 16px; }
-.section-head {
-  padding: 14px 18px; border-bottom: 1px solid var(--border);
-  font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted);
-  display: flex; align-items: center; justify-content: space-between;
-}
+.section-head { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between; }
 .section-body { padding: 0; }
+
+/* ── Line chart ── */
+.line-chart-wrap { padding: 16px 18px 12px; }
 
 /* ── Bar chart ── */
 .bar-row { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-bottom: 1px solid var(--border-light); }
@@ -129,42 +110,52 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple
 .bar-fill.yellow { background: var(--yellow); }
 .bar-val { font-size: 12px; color: var(--text-muted); width: 64px; text-align: right; flex-shrink: 0; }
 
-/* ── Daily chart ── */
-.daily-chart { display: flex; align-items: flex-end; gap: 6px; padding: 20px 18px 16px; height: 120px; }
-.daily-col { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; height: 100%; justify-content: flex-end; }
-.daily-bar { width: 100%; border-radius: 3px 3px 0 0; background: var(--accent); opacity: .6; min-height: 3px; transition: height .4s, opacity .15s; }
-.daily-bar.today { opacity: 1; background: var(--accent); }
-.daily-bar:hover { opacity: 1; }
-.daily-label { font-size: 10px; color: var(--text-muted); white-space: nowrap; }
-.daily-label.today { color: var(--accent); font-weight: 600; }
-.daily-val { font-size: 10px; color: var(--text-muted); }
+/* ── Funnel ── */
+.funnel-wrap { padding: 20px 18px; display: flex; align-items: flex-start; gap: 0; }
+.funnel-step { flex: 1; text-align: center; padding: 0 8px; }
+.funnel-step-val { font-size: 26px; font-weight: 700; color: var(--text); }
+.funnel-step-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .05em; }
+.funnel-step-rate { font-size: 11px; color: var(--green); font-weight: 600; margin-top: 4px; }
+.funnel-bar-wrap { margin-top: 12px; height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+.funnel-bar-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .4s; }
+.funnel-arrow { align-self: center; color: var(--text-muted); font-size: 18px; flex-shrink: 0; padding-bottom: 24px; }
 
 /* ── Feedback ── */
 .fb-item { padding: 16px 18px; border-bottom: 1px solid var(--border-light); }
 .fb-item:last-child { border-bottom: none; }
 .fb-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.fb-badge {
-  font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: .05em;
-}
+.fb-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; border-radius: 20px; text-transform: uppercase; letter-spacing: .05em; }
 .fb-badge.inquiry { background: var(--accent-dim); color: var(--accent); }
 .fb-badge.suggestion { background: var(--green-dim); color: var(--green); }
 .fb-meta { font-size: 11px; color: var(--text-muted); }
 .fb-message { font-size: 13px; color: var(--text); line-height: 1.6; }
 .fb-sender { font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
-.fb-sender span { display: flex; align-items: center; gap: 3px; }
+
+/* ── Events table ── */
+.events-table-wrap { overflow-x: auto; }
+.events-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 700px; }
+.events-table th { padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--border); background: var(--surface2); white-space: nowrap; }
+.events-table td { padding: 7px 12px; border-bottom: 1px solid var(--border-light); color: var(--text-dim); vertical-align: middle; }
+.events-table tr:last-child td { border-bottom: none; }
+.events-table tr:hover td { background: rgba(255,255,255,.02); }
+.evt-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; border-radius: 3px; text-transform: uppercase; letter-spacing: .03em; }
+.evt-tag.dwell { background: var(--accent-dim); color: var(--accent); }
+.evt-tag.click { background: var(--green-dim); color: var(--green); }
+.evt-tag.exit  { background: var(--yellow-dim); color: var(--yellow); }
 
 .empty { padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px; }
 
 /* ── Responsive ── */
+@media (max-width: 1000px) { .cards { grid-template-columns: repeat(3, 1fr); } }
 @media (max-width: 860px) {
   .cards { grid-template-columns: 1fr 1fr; }
-  #two-col { grid-template-columns: 1fr !important; }
+  .two-col { grid-template-columns: 1fr !important; }
 }
 @media (max-width: 600px) {
   .main { padding: 16px; }
-  .cards { grid-template-columns: 1fr 1fr; }
   .topbar { padding: 0 16px; }
   .tabs { padding: 0 16px; }
+  .filter-bar { padding: 8px 16px; }
   .bar-label { width: 120px; }
 }
 </style>
@@ -195,32 +186,50 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple
     </div>
   </div>
 
-  <div class="tabs">
-    <button class="tab-btn active" onclick="switchTab('analytics',this)">
-      Analytics
-    </button>
-    <button class="tab-btn" onclick="switchTab('feedback',this)">
-      문의 · 건의 <span class="tab-cnt" id="tab-fb-cnt">—</span>
-    </button>
+  <div class="tabs-wrap">
+    <div class="tabs">
+      <button class="tab-btn active" onclick="switchTab('analytics',this)">Analytics</button>
+      <button class="tab-btn" onclick="switchTab('feedback',this)">
+        문의 · 건의 <span class="tab-cnt" id="tab-fb-cnt">—</span>
+      </button>
+      <button class="tab-btn" onclick="switchTab('events',this)">이벤트 로그</button>
+    </div>
+    <div class="filter-bar">
+      <div class="filter-group period-filter">
+        <span class="filter-label">기간</span>
+        <button class="filter-btn active" onclick="setPeriod('7d',this)">7일</button>
+        <button class="filter-btn" onclick="setPeriod('30d',this)">30일</button>
+        <button class="filter-btn" onclick="setPeriod('today',this)">오늘</button>
+        <button class="filter-btn" onclick="setPeriod('all',this)">전체</button>
+      </div>
+      <div class="filter-sep"></div>
+      <button class="refresh-btn" onclick="loadAnalytics()">↻ 새로고침</button>
+    </div>
   </div>
 
   <!-- Analytics Tab -->
   <div class="main" id="tab-analytics">
 
-    <div class="cards" id="stat-cards">
+    <div class="cards">
       <div class="card">
         <div class="card-label">누적 세션</div>
         <div class="card-value" id="stat-sessions">—</div>
-        <div class="card-sub">전체 기간</div>
+        <div class="card-sub">선택 기간</div>
       </div>
       <div class="card">
         <div class="card-label">오늘 방문자</div>
         <div class="card-value" id="stat-today">—</div>
-        <div class="card-sub" id="stat-today-sub">명</div>
+        <div id="anomaly-badge" style="display:none;"></div>
+        <div class="card-sub" id="stat-today-sub">7일 평균 <span id="stat-weekly-avg">—</span>명</div>
+      </div>
+      <div class="card">
+        <div class="card-label">고유 IP</div>
+        <div class="card-value" id="stat-unique-ips">—</div>
+        <div class="card-sub">누적 순방문자</div>
       </div>
       <div class="card">
         <div class="card-label">가장 오래 머문 페이지</div>
-        <div class="card-value" id="stat-top-page" style="font-size:20px;margin-top:4px;">—</div>
+        <div class="card-value" id="stat-top-page" style="font-size:18px;margin-top:4px;">—</div>
         <div class="card-sub" id="stat-top-page-sec"></div>
       </div>
       <div class="card">
@@ -230,34 +239,65 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple
       </div>
     </div>
 
-    <!-- 최근 7일 방문자 -->
+    <!-- 방문자 추이 라인 차트 -->
     <div class="section" style="margin-bottom:16px;">
-      <div class="section-head">최근 7일 방문자</div>
+      <div class="section-head">
+        <span>방문자 추이</span>
+        <span id="chart-period-label" style="font-size:11px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;"></span>
+      </div>
       <div class="section-body">
-        <div class="daily-chart" id="daily-chart"></div>
+        <div class="line-chart-wrap">
+          <div id="line-chart-svg"></div>
+        </div>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" id="two-col">
-      <!-- 페이지별 체류시간 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" class="two-col">
       <div class="section">
         <div class="section-head">페이지별 평균 체류시간</div>
         <div class="section-body" id="pages-bars"></div>
       </div>
-      <!-- 클릭 Top 10 -->
       <div class="section">
         <div class="section-head">가장 많이 클릭한 영역 Top 10</div>
         <div class="section-body" id="clicks-bars"></div>
       </div>
     </div>
 
-    <!-- 이탈 페이지 -->
-    <div class="section">
+    <div class="section" style="margin-bottom:16px;">
       <div class="section-head">
         <span>이탈 페이지</span>
         <span id="exit-hint" style="font-size:11px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;"></span>
       </div>
       <div class="section-body" id="exits-bars"></div>
+    </div>
+
+    <!-- 퍼널 -->
+    <div class="section" style="margin-bottom:16px;">
+      <div class="section-head">전환 퍼널</div>
+      <div class="section-body">
+        <div class="funnel-wrap" id="funnel-steps"></div>
+      </div>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" class="two-col">
+      <div class="section">
+        <div class="section-head">환경 (로컬 / 프로덕션)</div>
+        <div class="section-body" id="env-bars"></div>
+      </div>
+      <div class="section">
+        <div class="section-head">기기 타입</div>
+        <div class="section-body" id="device-bars"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" class="two-col">
+      <div class="section">
+        <div class="section-head">브라우저</div>
+        <div class="section-body" id="browser-bars"></div>
+      </div>
+      <div class="section">
+        <div class="section-head">운영체제</div>
+        <div class="section-body" id="os-bars"></div>
+      </div>
     </div>
 
   </div>
@@ -272,18 +312,47 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple
       <div class="section-body" id="feedback-list"></div>
     </div>
   </div>
+
+  <!-- Events Tab -->
+  <div class="main" id="tab-events" style="display:none;">
+    <div class="section">
+      <div class="section-head">
+        <span>이벤트 로그</span>
+        <span id="events-count" style="font-size:11px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;"></span>
+      </div>
+      <div class="section-body events-table-wrap">
+        <table class="events-table">
+          <thead>
+            <tr>
+              <th>세션</th>
+              <th>이벤트</th>
+              <th>페이지</th>
+              <th>요소</th>
+              <th>IP</th>
+              <th>기기 / 브라우저</th>
+              <th>환경</th>
+              <th>시각</th>
+            </tr>
+          </thead>
+          <tbody id="events-table-body">
+            <tr><td colspan="8" class="empty">로딩 중…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
-// ── Init: 쿠키 세션 확인 ──────────────────────────────────────
+// ── State ──────────────────────────��───────────────────────────
+var _currentPeriod = '7d';
+
+// ── Init ───────────────────────────────────────────────────────
 (function checkSession() {
-  fetch('/api/admin/stats', {credentials: 'same-origin'})
+  fetch('/api/admin/stats?period=7d', {credentials: 'same-origin'})
     .then(function(r) {
-      if (r.ok) {
-        return r.json().then(function(d) { showApp(d); });
-      } else {
-        showLogin();
-      }
+      if (r.ok) return r.json().then(function(d) { showApp(d); });
+      else showLogin();
     })
     .catch(function() { showLogin(); });
 })();
@@ -291,181 +360,266 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple
 function showLogin() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
-  setTimeout(function() {
-    var el = document.getElementById('pw-input');
-    if (el) el.focus();
-  }, 50);
+  setTimeout(function() { var el = document.getElementById('pw-input'); if (el) el.focus(); }, 50);
 }
-
-function showApp(preloadedData) {
+function showApp(preloaded) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
-  if (preloadedData) {
-    renderAnalytics(preloadedData);
-  } else {
-    loadAnalytics();
-  }
+  if (preloaded) renderAnalytics(preloaded); else loadAnalytics();
   loadFeedback();
 }
 
-// ── Login / Logout ────────────────────────────────────────────
+// ── Auth ───────────────────────────────────────────────────────
 function doLogin() {
   var pw = document.getElementById('pw-input').value;
   document.getElementById('login-err').textContent = '';
-  fetch('/api/admin/login', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({password: pw})
-  }).then(function(r) {
-    if (r.ok) { showApp(null); }
-    else { document.getElementById('login-err').textContent = '비밀번호가 틀렸습니다.'; }
-  }).catch(function() {
-    document.getElementById('login-err').textContent = '서버 연결에 실패했습니다.';
-  });
+  fetch('/api/admin/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pw})})
+    .then(function(r) {
+      if (r.ok) showApp(null);
+      else document.getElementById('login-err').textContent = '비밀번호가 틀렸습니다.';
+    }).catch(function() { document.getElementById('login-err').textContent = '서버 연결 실패'; });
 }
-
 function doLogout() {
-  fetch('/api/admin/logout', {method: 'POST'}).finally(function() {
-    showLogin();
-  });
+  fetch('/api/admin/logout', {method:'POST'}).finally(function() { showLogin(); });
 }
 
-// ── Tabs ──────────────────────────────────────────────────────
+// ── Tabs ───────────────────────────────────────────────────────
 function switchTab(name, btn) {
   document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
   document.getElementById('tab-analytics').style.display = name === 'analytics' ? '' : 'none';
-  document.getElementById('tab-feedback').style.display = name === 'feedback' ? '' : 'none';
+  document.getElementById('tab-feedback').style.display  = name === 'feedback'  ? '' : 'none';
+  document.getElementById('tab-events').style.display    = name === 'events'    ? '' : 'none';
+  if (name === 'events') loadEvents();
 }
 
-// ── Analytics ─────────────────────────────────────────────────
+// ── Filters ────────────────────────────────────────────────────
+function setPeriod(period, btn) {
+  _currentPeriod = period;
+  document.querySelectorAll('.period-filter .filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  loadAnalytics();
+}
+function _qs() {
+  return '?period=' + _currentPeriod;
+}
+
+// ── Analytics ──────────────────────────────────────────────────
 function loadAnalytics() {
-  fetch('/api/admin/stats').then(function(r) { return r.json(); }).then(renderAnalytics).catch(console.error);
+  fetch('/api/admin/stats' + _qs(), {credentials: 'same-origin'})
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(renderAnalytics).catch(console.error);
 }
 
 function renderAnalytics(d) {
-  var sessions = d.sessions || 0;
+  var sessions      = d.sessions || 0;
   var todayVisitors = d.today_visitors || 0;
+  var weeklyAvg     = d.weekly_avg || 0;
 
-  document.getElementById('stat-sessions').textContent = sessions.toLocaleString();
-  document.getElementById('badge-sessions').textContent = sessions.toLocaleString() + ' 세션';
+  document.getElementById('stat-sessions').textContent    = sessions.toLocaleString();
+  document.getElementById('badge-sessions').textContent   = sessions.toLocaleString() + ' 세션';
+  document.getElementById('stat-today').textContent       = todayVisitors.toLocaleString();
+  document.getElementById('badge-today').textContent      = '오늘 ' + todayVisitors + '명';
+  document.getElementById('stat-unique-ips').textContent  = (d.unique_ips || 0).toLocaleString();
+  document.getElementById('stat-weekly-avg').textContent  = weeklyAvg;
 
-  document.getElementById('stat-today').textContent = todayVisitors.toLocaleString();
-  document.getElementById('badge-today').textContent = '오늘 ' + todayVisitors + '명';
+  // 이상 감지
+  var badge = document.getElementById('anomaly-badge');
+  if (d.anomaly === 'spike') {
+    badge.style.display = 'inline-flex'; badge.className = 'anomaly-badge spike';
+    badge.textContent = '▲ 급증 (평균 2배+)';
+  } else if (d.anomaly === 'drop') {
+    badge.style.display = 'inline-flex'; badge.className = 'anomaly-badge drop';
+    badge.textContent = '▼ 급감 (평균 30% 미만)';
+  } else {
+    badge.style.display = 'none';
+  }
 
   if (d.pages && d.pages.length) {
-    document.getElementById('stat-top-page').textContent = d.pages[0].page;
+    document.getElementById('stat-top-page').textContent    = d.pages[0].page;
     document.getElementById('stat-top-page-sec').textContent = '평균 체류 ' + d.pages[0].avg_sec + '초';
   }
 
-  renderDailyChart(d.daily || []);
-  renderBars('pages-bars', d.pages || [], 'page', 'avg_sec', function(v) { return v + '초'; }, 'accent');
+  var periodLabels = {today:'오늘 시간별', '7d':'최근 7일', '30d':'최근 30일', all:'전체'};
+  var pl = document.getElementById('chart-period-label');
+  if (pl) pl.textContent = periodLabels[_currentPeriod] || '';
+
+  renderLineChart(d.daily || []);
+  renderBars('pages-bars', d.pages || [], 'page', 'avg_sec', function(v) { return v + '초'; }, '');
   renderClickBars('clicks-bars', d.clicks || []);
   renderExitBars('exits-bars', d.exits || [], sessions);
+  renderFunnel(d.funnel || []);
+  renderSimpleBars('env-bars',     d.env_stats     || [], 'env',  'sessions', function(v) { return v + '세션'; });
+  renderSimpleBars('device-bars',  d.device_stats  || [], 'name', 'cnt',      function(v) { return v + '세션'; });
+  renderSimpleBars('browser-bars', d.browser_stats || [], 'name', 'cnt',      function(v) { return v + '세션'; });
+  renderSimpleBars('os-bars',      d.os_stats      || [], 'name', 'cnt',      function(v) { return v + '세션'; });
 }
 
+// ── Line Chart (SVG) ───────────────────────────────────────────
+function renderLineChart(daily) {
+  var el = document.getElementById('line-chart-svg');
+  if (!daily.length) {
+    el.innerHTML = '<div style="height:150px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;">데이터 없음</div>';
+    return;
+  }
+  var VW = 560, VH = 130;
+  var pL = 28, pR = 10, pT = 8, pB = 22;
+  var cW = VW - pL - pR, cH = VH - pT - pB;
+  var n = daily.length;
+  var maxV = Math.max.apply(null, daily.map(function(d) { return d.visitors; })) || 1;
+  var nMax = maxV <= 5 ? maxV : Math.ceil(maxV / 5) * 5;
+
+  var pts = daily.map(function(d, i) {
+    var x = pL + (n > 1 ? i / (n - 1) * cW : cW / 2);
+    var y = pT + cH - (d.visitors / nMax) * cH;
+    return [+x.toFixed(1), +y.toFixed(1), d.visitors, d.day];
+  });
+
+  var poly = pts.map(function(p) { return p[0] + ',' + p[1]; }).join(' ');
+  var area = 'M' + pts[0][0] + ',' + (pT + cH) +
+    pts.map(function(p) { return ' L' + p[0] + ',' + p[1]; }).join('') +
+    ' L' + pts[n - 1][0] + ',' + (pT + cH) + ' Z';
+
+  var grid = '';
+  for (var i = 0; i <= 3; i++) {
+    var v  = Math.round(nMax * i / 3);
+    var gy = +(pT + cH - (v / nMax) * cH).toFixed(1);
+    grid += '<line x1="' + pL + '" y1="' + gy + '" x2="' + (VW - pR) + '" y2="' + gy + '" stroke="rgba(255,255,255,.04)" stroke-width="1"/>';
+    grid += '<text x="' + (pL - 3) + '" y="' + (gy + 3.5).toFixed(1) + '" text-anchor="end" font-size="8" fill="#6b7280">' + v + '</text>';
+  }
+
+  var xLbls = '', step = Math.max(1, Math.floor(n / 7)), shown = {};
+  for (var i = 0; i < n; i += step) {
+    shown[i] = 1;
+    xLbls += '<text x="' + pts[i][0] + '" y="' + (pT + cH + 14) + '" text-anchor="middle" font-size="8" fill="#6b7280">' + pts[i][3] + '</text>';
+  }
+  if (n > 1 && !shown[n - 1]) {
+    xLbls += '<text x="' + pts[n-1][0] + '" y="' + (pT + cH + 14) + '" text-anchor="middle" font-size="8" fill="#6b7280">' + pts[n-1][3] + '</text>';
+  }
+
+  var todayStr = getTodayLabel();
+  var dots = pts.map(function(p) {
+    var isToday = (p[3] === todayStr);
+    return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (isToday ? 4 : 2.5) + '" fill="' + (isToday ? '#4f8ef7' : '#181c27') + '" stroke="#4f8ef7" stroke-width="1.5"><title>' + p[3] + ': ' + p[2] + '명</title></circle>';
+  }).join('');
+
+  el.innerHTML = '<svg viewBox="0 0 ' + VW + ' ' + VH + '" style="width:100%;height:150px;display:block;" preserveAspectRatio="none">' +
+    '<defs><linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4f8ef7" stop-opacity=".25"/><stop offset="100%" stop-color="#4f8ef7" stop-opacity=".02"/></linearGradient></defs>' +
+    grid +
+    '<path d="' + area + '" fill="url(#lg1)"/>' +
+    '<polyline points="' + poly + '" fill="none" stroke="#4f8ef7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+    xLbls + dots + '</svg>';
+}
+
+// ── Funnel ─────────────────────────────────────────────────────
+function renderFunnel(steps) {
+  var el = document.getElementById('funnel-steps');
+  if (!steps.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
+  var max = steps[0].cnt || 1;
+  var html = '';
+  steps.forEach(function(s, i) {
+    var pct  = max > 0 ? Math.round(s.cnt / max * 100) : 0;
+    var rate = (i > 0 && steps[i-1].cnt > 0) ? Math.round(s.cnt / steps[i-1].cnt * 100) : 100;
+    if (i > 0) html += '<div class="funnel-arrow">→</div>';
+    html += '<div class="funnel-step">' +
+      '<div class="funnel-step-val">' + s.cnt.toLocaleString() + '</div>' +
+      '<div class="funnel-step-label">' + escHtml(s.step) + '</div>' +
+      (i > 0 ? '<div class="funnel-step-rate">' + rate + '% 전환</div>' : '<div style="height:18px;"></div>') +
+      '<div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:' + pct + '%"></div></div>' +
+    '</div>';
+  });
+  el.innerHTML = html;
+}
+
+// ── Bar charts ─────────────────────────────────────────────────
 function isUiSymbol(str) {
   return /^[\s…×↵\.\,\!\?\-\_\+\=\/\\\|\@\#\$\%\^\&\*\(\)\[\]\{\}\<\>\"\'`~]{1,3}$/.test(str.trim());
 }
 
-function renderBars(containerId, items, labelKey, valKey, fmt, colorClass) {
-  var el = document.getElementById(containerId);
+function renderBars(cid, items, lk, vk, fmt, colorClass) {
+  var el = document.getElementById(cid);
   if (!items.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
-  var max = Math.max.apply(null, items.map(function(i) { return i[valKey]; }));
+  var max = Math.max.apply(null, items.map(function(i) { return i[vk]; }));
   el.innerHTML = items.map(function(item) {
-    var pct = max > 0 ? Math.round(item[valKey] / max * 100) : 0;
-    return '<div class="bar-row">' +
-      '<div class="bar-label" title="' + escHtml(item[labelKey]) + '">' +
-        '<span class="bar-label-text">' + escHtml(item[labelKey]) + '</span>' +
-      '</div>' +
+    var pct = max > 0 ? Math.round(item[vk] / max * 100) : 0;
+    return '<div class="bar-row"><div class="bar-label" title="' + escHtml(item[lk]) + '"><span class="bar-label-text">' + escHtml(item[lk]) + '</span></div>' +
       '<div class="bar-track"><div class="bar-fill ' + colorClass + '" style="width:' + pct + '%"></div></div>' +
-      '<div class="bar-val">' + fmt(item[valKey]) + '</div>' +
-    '</div>';
+      '<div class="bar-val">' + fmt(item[vk]) + '</div></div>';
   }).join('');
 }
 
-function renderClickBars(containerId, items) {
-  var el = document.getElementById(containerId);
+function renderClickBars(cid, items) {
+  var el = document.getElementById(cid);
   if (!items.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
   var max = Math.max.apply(null, items.map(function(i) { return i.cnt; }));
   el.innerHTML = items.map(function(item) {
     var pct = max > 0 ? Math.round(item.cnt / max * 100) : 0;
     var sym = isUiSymbol(item.element);
-    var labelHtml = '<span class="bar-label-text">' + escHtml(item.element) + '</span>' +
-      (sym ? '<span class="ui-tag">UI</span>' : '');
-    return '<div class="bar-row">' +
-      '<div class="bar-label" title="' + escHtml(item.element) + '">' + labelHtml + '</div>' +
+    return '<div class="bar-row"><div class="bar-label" title="' + escHtml(item.element) + '"><span class="bar-label-text">' + escHtml(item.element) + '</span>' + (sym ? '<span class="ui-tag">UI</span>' : '') + '</div>' +
       '<div class="bar-track"><div class="bar-fill green" style="width:' + pct + '%"></div></div>' +
-      '<div class="bar-val">' + item.cnt + '회</div>' +
-    '</div>';
+      '<div class="bar-val">' + item.cnt + '회</div></div>';
   }).join('');
 }
 
-function renderExitBars(containerId, items, totalSessions) {
-  var el = document.getElementById(containerId);
+function renderExitBars(cid, items, totalSessions) {
+  var el = document.getElementById(cid);
   var hint = document.getElementById('exit-hint');
-  if (!items.length) {
-    el.innerHTML = '<div class="empty">데이터 없음</div>';
-    if (hint) hint.textContent = '';
-    return;
-  }
-  if (hint && totalSessions > 0) {
-    hint.textContent = '총 세션 ' + totalSessions.toLocaleString() + '개 기준';
-  }
+  if (!items.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; if (hint) hint.textContent = ''; return; }
+  if (hint && totalSessions > 0) hint.textContent = '총 세션 ' + totalSessions.toLocaleString() + '개 기준';
   var max = Math.max.apply(null, items.map(function(i) { return i.cnt; }));
   el.innerHTML = items.map(function(item) {
-    var pct = max > 0 ? Math.round(item.cnt / max * 100) : 0;
+    var pct  = max > 0 ? Math.round(item.cnt / max * 100) : 0;
     var rate = totalSessions > 0 ? Math.round(item.cnt / totalSessions * 100) : 0;
-    var rateLabel = totalSessions > 0 ? (rate + '%') : item.cnt + '회';
-    return '<div class="bar-row">' +
-      '<div class="bar-label" title="' + escHtml(item.page) + '">' +
-        '<span class="bar-label-text">' + escHtml(item.page) + '</span>' +
-      '</div>' +
+    return '<div class="bar-row"><div class="bar-label" title="' + escHtml(item.page) + '"><span class="bar-label-text">' + escHtml(item.page) + '</span></div>' +
       '<div class="bar-track"><div class="bar-fill yellow" style="width:' + pct + '%"></div></div>' +
-      '<div class="bar-val" title="' + item.cnt + '회">' + rateLabel + '</div>' +
-    '</div>';
+      '<div class="bar-val" title="' + item.cnt + '회">' + (totalSessions > 0 ? rate + '%' : item.cnt + '회') + '</div></div>';
   }).join('');
 }
 
-function getTodayLabel() {
-  var now = new Date();
-  var mm = String(now.getMonth() + 1).padStart(2, '0');
-  var dd = String(now.getDate()).padStart(2, '0');
-  return mm + '/' + dd;
-}
-
-function getYesterdayLabel() {
-  var d = new Date();
-  d.setDate(d.getDate() - 1);
-  var mm = String(d.getMonth() + 1).padStart(2, '0');
-  var dd = String(d.getDate()).padStart(2, '0');
-  return mm + '/' + dd;
-}
-
-function renderDailyChart(daily) {
-  var el = document.getElementById('daily-chart');
-  if (!daily.length) {
-    el.innerHTML = '<div style="color:var(--text-muted);font-size:12px;align-self:center;">데이터 없음</div>';
-    return;
-  }
-  var todayStr = getTodayLabel();
-  var yesterdayStr = getYesterdayLabel();
-  var max = Math.max.apply(null, daily.map(function(d) { return d.visitors; }));
-  el.innerHTML = daily.map(function(d) {
-    var isToday = d.day === todayStr;
-    var isYesterday = d.day === yesterdayStr;
-    var h = max > 0 ? Math.max(3, Math.round(d.visitors / max * 72)) : 3;
-    var label = isToday ? '오늘' : isYesterday ? '어제' : d.day;
-    return '<div class="daily-col">' +
-      '<div class="daily-val" style="font-size:10px;color:' + (isToday ? 'var(--accent)' : 'var(--text-muted)') + ';">' + d.visitors + '</div>' +
-      '<div class="daily-bar' + (isToday ? ' today' : '') + '" style="height:' + h + 'px;" title="' + d.visitors + '명"></div>' +
-      '<div class="daily-label' + (isToday ? ' today' : '') + '">' + label + '</div>' +
-    '</div>';
+function renderSimpleBars(cid, items, lk, vk, fmt) {
+  var el = document.getElementById(cid);
+  if (!items.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
+  var max = Math.max.apply(null, items.map(function(i) { return i[vk]; }));
+  el.innerHTML = items.map(function(item) {
+    var pct = max > 0 ? Math.round(item[vk] / max * 100) : 0;
+    return '<div class="bar-row"><div class="bar-label"><span class="bar-label-text">' + escHtml(item[lk]) + '</span></div>' +
+      '<div class="bar-track"><div class="bar-fill" style="width:' + pct + '%"></div></div>' +
+      '<div class="bar-val">' + fmt(item[vk]) + '</div></div>';
   }).join('');
 }
 
-// ── Feedback ──────────────────────────────────────────────────
+// ── Events Log ─────────────────────────────────────────────────
+function loadEvents() {
+  fetch('/api/admin/events' + _qs(), {credentials: 'same-origin'})
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(renderEvents).catch(console.error);
+}
+
+function renderEvents(d) {
+  var items = d.items || [];
+  var cnt = document.getElementById('events-count');
+  if (cnt) cnt.textContent = items.length + '건 (최근 200)';
+  var tbody = document.getElementById('events-table-body');
+  if (!items.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">이벤트 없음</td></tr>'; return; }
+  tbody.innerHTML = items.map(function(item) {
+    var tagCls = item.event === 'click' ? 'click' : item.event === 'exit' ? 'exit' : 'dwell';
+    return '<tr>' +
+      '<td><code style="font-size:10px;color:var(--text-muted);">' + escHtml(item.session) + '…</code></td>' +
+      '<td><span class="evt-tag ' + tagCls + '">' + escHtml(item.event) + '</span></td>' +
+      '<td>' + escHtml(item.page) + '</td>' +
+      '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(item.element) + '">' + escHtml(item.element) + '</td>' +
+      '<td style="font-family:monospace;font-size:11px;">' + escHtml(item.ip) + '</td>' +
+      '<td>' + escHtml(item.device) + ' / ' + escHtml(item.browser) + '</td>' +
+      '<td><span style="font-size:10px;padding:2px 6px;border-radius:3px;background:var(--surface2);color:var(--text-muted);">' + escHtml(item.env) + '</span></td>' +
+      '<td style="color:var(--text-muted);font-size:11px;white-space:nowrap;">' + escHtml(item.ts) + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+// ── Feedback ───────────────────────────────────────────────────
 function loadFeedback() {
-  fetch('/api/admin/feedback').then(function(r) { return r.json(); }).then(function(d) {
+  fetch('/api/admin/feedback', {credentials: 'same-origin'})
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function(d) {
     var items = d.items || [];
     document.getElementById('stat-feedback-cnt').textContent = items.length.toLocaleString();
     document.getElementById('tab-fb-cnt').textContent = items.length;
@@ -476,32 +630,33 @@ function loadFeedback() {
       var badge = item.type === 'suggestion'
         ? '<span class="fb-badge suggestion">건의</span>'
         : '<span class="fb-badge inquiry">문의</span>';
-      var senderParts = [];
-      if (item.name) senderParts.push('<span>👤 ' + escHtml(item.name) + '</span>');
-      if (item.email) senderParts.push('<span>✉ ' + escHtml(item.email) + '</span>');
-      if (item.ip) senderParts.push('<span>🌐 ' + escHtml(item.ip) + '</span>');
-      var sender = senderParts.length
-        ? '<div class="fb-sender">' + senderParts.join('') + '</div>'
-        : '';
-      return '<div class="fb-item">' +
-        '<div class="fb-item-head">' + badge + '<span class="fb-meta">' + escHtml(item.ts) + '</span></div>' +
+      var parts = [];
+      if (item.name)  parts.push('<span>👤 ' + escHtml(item.name) + '</span>');
+      if (item.email) parts.push('<span>✉ ' + escHtml(item.email) + '</span>');
+      if (item.ip)    parts.push('<span>🌐 ' + escHtml(item.ip) + '</span>');
+      return '<div class="fb-item"><div class="fb-item-head">' + badge + '<span class="fb-meta">' + escHtml(item.ts) + '</span></div>' +
         '<div class="fb-message">' + escHtml(item.message) + '</div>' +
-        sender +
+        (parts.length ? '<div class="fb-sender">' + parts.join('') + '</div>' : '') +
       '</div>';
     }).join('');
   }).catch(console.error);
 }
 
+// ── Helpers ────────────────────────────────────────────────────
+function getTodayLabel() {
+  var now = new Date();
+  return String(now.getMonth() + 1).padStart(2,'0') + '/' + String(now.getDate()).padStart(2,'0');
+}
 function escHtml(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
-// ── Responsive ────────────────────────────────────────────────
+// ── Responsive ─────────────────────────────────────────────────
 function checkLayout() {
-  var tc = document.getElementById('two-col');
-  if (!tc) return;
-  tc.style.gridTemplateColumns = window.innerWidth < 700 ? '1fr' : '1fr 1fr';
+  document.querySelectorAll('.two-col').forEach(function(tc) {
+    tc.style.gridTemplateColumns = window.innerWidth < 700 ? '1fr' : '1fr 1fr';
+  });
 }
 window.addEventListener('resize', checkLayout);
 checkLayout();

@@ -121,6 +121,9 @@ def _init_analytics_tables():
                 cur.execute("""
                     ALTER TABLE vantix_feedback ADD COLUMN IF NOT EXISTS ip TEXT
                 """)
+                cur.execute("ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS ip TEXT")
+                cur.execute("ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS user_agent TEXT")
+                cur.execute("ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS env TEXT")
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS vantix_callouts (
                         id      TEXT PRIMARY KEY,
@@ -386,6 +389,40 @@ def _check_rate_limit(ip: str):
     _connect_attempts[ip] = attempts
 
 # ==================== 접속자 관리 ====================
+def _parse_ua(ua: str) -> dict:
+    u = ua.lower()
+    if "ipad" in u or ("android" in u and "mobile" not in u):
+        device = "태블릿"
+    elif "mobile" in u or "android" in u or "iphone" in u:
+        device = "모바일"
+    else:
+        device = "데스크탑"
+    if "edg/" in u or "edge/" in u:
+        browser = "Edge"
+    elif "opr/" in u or "opera" in u:
+        browser = "Opera"
+    elif "chrome/" in u:
+        browser = "Chrome"
+    elif "firefox/" in u:
+        browser = "Firefox"
+    elif "safari/" in u:
+        browser = "Safari"
+    else:
+        browser = "기타"
+    if "windows" in u:
+        os_name = "Windows"
+    elif "iphone" in u or "ipad" in u:
+        os_name = "iOS"
+    elif "android" in u:
+        os_name = "Android"
+    elif "macintosh" in u or "mac os" in u:
+        os_name = "macOS"
+    elif "linux" in u:
+        os_name = "Linux"
+    else:
+        os_name = "기타"
+    return {"device": device, "browser": browser, "os": os_name}
+
 _visitors = {}  # ip → last_seen
 VISITOR_TTL = 300  # 5분
 
@@ -1686,11 +1723,15 @@ async def api_track(request: Request):
         element    = body.get("element", "")
         duration   = body.get("duration")
         ts         = time.time()
+        ip         = request.headers.get("X-Forwarded-For", request.client.host or "").split(",")[0].strip()
+        user_agent = request.headers.get("User-Agent", "")
+        host       = request.headers.get("host", "").split(":")[0]
+        env        = "로컬" if host in ("localhost", "127.0.0.1") else "프로덕션"
         with _db_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO analytics_events (session_id, event_type, page, element, duration, ts) VALUES (%s,%s,%s,%s,%s,%s)",
-                    (session_id, event_type, page, element, duration, ts)
+                    "INSERT INTO analytics_events (session_id, event_type, page, element, duration, ts, ip, user_agent, env) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (session_id, event_type, page, element, duration, ts, ip, user_agent, env)
                 )
             conn.commit()
     except Exception as e:
@@ -1726,6 +1767,22 @@ async def api_feedback(request: Request):
     return {"ok": True}
 
 
+def _build_filters(period: str, env: str) -> tuple[str, tuple]:
+    parts: list[str] = []
+    params: list = []
+    if period == "today":
+        parts.append("ts > EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date)")
+    elif period == "30d":
+        parts.append("ts > EXTRACT(EPOCH FROM NOW()) - 2592000")
+    elif period != "all":  # default 7d
+        parts.append("ts > EXTRACT(EPOCH FROM NOW()) - 604800")
+    if env:
+        parts.append("env = %s")
+        params.append(env)
+    clause = (" AND " + " AND ".join(parts)) if parts else ""
+    return clause, tuple(params)
+
+
 def _require_admin(request: Request):
     auth = request.cookies.get("vx_admin")
     if not ADMIN_PASSWORD or auth != ADMIN_PASSWORD:
@@ -1752,62 +1809,128 @@ async def api_admin_logout():
 
 
 @app.get("/api/admin/stats")
-async def api_admin_stats(request: Request, _=Depends(_require_admin)):
+async def api_admin_stats(request: Request, env: str = "", period: str = "7d", _=Depends(_require_admin)):
     if not _DATABASE_URL:
         return {"pages": [], "clicks": [], "exits": [], "sessions": 0}
+    tf, tp = _build_filters(period, env)
+    ef, ep = (" AND env = %s", (env,)) if env else ("", ())
     try:
         with _db_conn() as conn:
             with conn.cursor() as cur:
-                # 총 세션 수
-                cur.execute("SELECT COUNT(DISTINCT session_id) FROM analytics_events")
+                cur.execute(f"SELECT COUNT(DISTINCT session_id) FROM analytics_events WHERE 1=1 {tf}", tp)
                 total_sessions = cur.fetchone()[0]
 
-                # 페이지별 평균 체류 시간 (dwell 이벤트)
-                cur.execute("""
+                cur.execute(f"""
                     SELECT page, COUNT(*) as views, COALESCE(AVG(duration),0)::int as avg_sec
                     FROM analytics_events
-                    WHERE event_type='dwell' AND page IS NOT NULL AND page != ''
+                    WHERE event_type='dwell' AND page IS NOT NULL AND page != '' {tf}
                     GROUP BY page ORDER BY avg_sec DESC
-                """)
+                """, tp)
                 pages = [{"page": r[0], "views": r[1], "avg_sec": r[2]} for r in cur.fetchall()]
 
-                # 클릭 Top 10
-                cur.execute("""
+                cur.execute(f"""
                     SELECT element, COUNT(*) as cnt
                     FROM analytics_events
-                    WHERE event_type='click' AND element IS NOT NULL AND element != ''
+                    WHERE event_type='click' AND element IS NOT NULL AND element != '' {tf}
                     GROUP BY element ORDER BY cnt DESC LIMIT 10
-                """)
+                """, tp)
                 clicks = [{"element": r[0], "cnt": r[1]} for r in cur.fetchall()]
 
-                # 이탈 페이지 (exit 이벤트)
-                cur.execute("""
+                cur.execute(f"""
                     SELECT page, COUNT(*) as cnt
                     FROM analytics_events
-                    WHERE event_type='exit' AND page IS NOT NULL AND page != ''
+                    WHERE event_type='exit' AND page IS NOT NULL AND page != '' {tf}
                     GROUP BY page ORDER BY cnt DESC
-                """)
+                """, tp)
                 exits = [{"page": r[0], "cnt": r[1]} for r in cur.fetchall()]
 
-                # 최근 7일 일별 방문자 수
-                cur.execute("""
-                    SELECT TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul', 'MM/DD') as day,
-                           COUNT(DISTINCT session_id) as visitors
-                    FROM analytics_events
-                    WHERE ts > EXTRACT(EPOCH FROM NOW()) - 604800
-                    GROUP BY day ORDER BY day
-                """)
+                if period == "today":
+                    cur.execute(f"""
+                        SELECT LPAD(TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','HH24'),2,'0') || 'h',
+                               COUNT(DISTINCT session_id)
+                        FROM analytics_events
+                        WHERE ts > EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date) {ef}
+                        GROUP BY 1 ORDER BY 1
+                    """, ep)
+                else:
+                    cur.execute(f"""
+                        SELECT TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','MM/DD'),
+                               COUNT(DISTINCT session_id)
+                        FROM analytics_events WHERE 1=1 {tf}
+                        GROUP BY 1 ORDER BY 1
+                    """, tp)
                 daily = [{"day": r[0], "visitors": r[1]} for r in cur.fetchall()]
 
-                # 오늘 방문자 수
-                cur.execute("""
-                    SELECT COUNT(DISTINCT session_id)
-                    FROM analytics_events
-                    WHERE ts > EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date)
-                """)
+                cur.execute(f"""
+                    SELECT COUNT(DISTINCT session_id) FROM analytics_events
+                    WHERE ts > EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date) {ef}
+                """, ep)
                 today_visitors = cur.fetchone()[0]
 
-        return {"pages": pages, "clicks": clicks, "exits": exits, "sessions": total_sessions, "daily": daily, "today_visitors": today_visitors}
+                cur.execute(f"""
+                    SELECT COALESCE(AVG(cnt),0) FROM (
+                        SELECT COUNT(DISTINCT session_id) as cnt
+                        FROM analytics_events
+                        WHERE ts > EXTRACT(EPOCH FROM NOW()) - 604800
+                          AND ts < EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date) {ef}
+                        GROUP BY TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','YYYY-MM-DD')
+                    ) sub
+                """, ep)
+                weekly_avg = float(cur.fetchone()[0] or 0)
+                anomaly = None
+                if weekly_avg > 0:
+                    ratio = today_visitors / weekly_avg
+                    if ratio >= 2.0:   anomaly = "spike"
+                    elif ratio <= 0.3 and today_visitors < weekly_avg - 1: anomaly = "drop"
+
+                cur.execute(f"SELECT COUNT(DISTINCT ip) FROM analytics_events WHERE ip IS NOT NULL AND ip != '' {tf}", tp)
+                unique_ips = cur.fetchone()[0]
+
+                cur.execute("""
+                    SELECT COALESCE(env,'미분류'), COUNT(DISTINCT session_id)
+                    FROM analytics_events WHERE env IS NOT NULL
+                    GROUP BY env ORDER BY COUNT(DISTINCT session_id) DESC
+                """)
+                env_stats = [{"env": r[0], "sessions": r[1]} for r in cur.fetchall()]
+
+                cur.execute(f"""
+                    SELECT user_agent, session_id FROM analytics_events
+                    WHERE user_agent IS NOT NULL AND user_agent != '' {tf}
+                    GROUP BY user_agent, session_id
+                """, tp)
+                ua_rows = cur.fetchall()
+                device_map: dict = {}; browser_map: dict = {}; os_map: dict = {}; seen: dict = {}
+                for ua_str, sid in ua_rows:
+                    if sid in seen: continue
+                    seen[sid] = True
+                    p = _parse_ua(ua_str)
+                    device_map[p["device"]]   = device_map.get(p["device"], 0) + 1
+                    browser_map[p["browser"]] = browser_map.get(p["browser"], 0) + 1
+                    os_map[p["os"]]           = os_map.get(p["os"], 0) + 1
+                device_stats  = sorted([{"name": k, "cnt": v} for k,v in device_map.items()],  key=lambda x: -x["cnt"])
+                browser_stats = sorted([{"name": k, "cnt": v} for k,v in browser_map.items()], key=lambda x: -x["cnt"])
+                os_stats      = sorted([{"name": k, "cnt": v} for k,v in os_map.items()],      key=lambda x: -x["cnt"])
+
+                cur.execute(f"SELECT COUNT(DISTINCT session_id) FROM analytics_events WHERE event_type='click' {tf}", tp)
+                funnel_clicked = cur.fetchone()[0]
+                cur.execute(f"""
+                    SELECT COUNT(DISTINCT session_id) FROM analytics_events
+                    WHERE event_type='dwell' AND page IS NOT NULL AND page NOT ILIKE '%connect%' {tf}
+                """, tp)
+                funnel_dashboard = cur.fetchone()[0]
+                funnel = [
+                    {"step": "방문", "cnt": total_sessions},
+                    {"step": "인터랙션", "cnt": funnel_clicked},
+                    {"step": "대시보드 진입", "cnt": funnel_dashboard},
+                ]
+
+        return {
+            "pages": pages, "clicks": clicks, "exits": exits,
+            "sessions": total_sessions, "daily": daily, "today_visitors": today_visitors,
+            "unique_ips": unique_ips, "env_stats": env_stats,
+            "device_stats": device_stats, "browser_stats": browser_stats, "os_stats": os_stats,
+            "funnel": funnel, "anomaly": anomaly, "weekly_avg": round(weekly_avg, 1),
+        }
     except Exception as e:
         print(f"[admin/stats] 오류: {e}")
         return {"pages": [], "clicks": [], "exits": [], "sessions": 0, "daily": []}
@@ -1830,6 +1953,41 @@ async def api_admin_feedback(request: Request, _=Depends(_require_admin)):
         return {"items": items}
     except Exception as e:
         print(f"[admin/feedback] 오류: {e}")
+        return {"items": []}
+
+
+@app.get("/api/admin/events")
+async def api_admin_events(request: Request, env: str = "", period: str = "7d", limit: int = 200, _=Depends(_require_admin)):
+    if not _DATABASE_URL:
+        return {"items": []}
+    tf, tp = _build_filters(period, env)
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"""
+                    SELECT session_id, event_type, page, element, ip, user_agent, env,
+                           TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','MM/DD HH24:MI:SS') as ts_str
+                    FROM analytics_events WHERE 1=1 {tf}
+                    ORDER BY ts DESC LIMIT %s
+                """, tp + (limit,))
+                rows = cur.fetchall()
+        items = []
+        for r in rows:
+            ua_p = _parse_ua(r[5] or "")
+            items.append({
+                "session": (r[0] or "")[:8],
+                "event": r[1] or "",
+                "page": r[2] or "",
+                "element": (r[3] or "")[:40],
+                "ip": r[4] or "",
+                "device": ua_p["device"],
+                "browser": ua_p["browser"],
+                "env": r[6] or "",
+                "ts": r[7] or "",
+            })
+        return {"items": items}
+    except Exception as e:
+        print(f"[admin/events] 오류: {e}")
         return {"items": []}
 
 
