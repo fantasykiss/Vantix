@@ -1915,7 +1915,7 @@ async def api_admin_stats(request: Request, env: str = "", period: str = "7d", _
                 funnel_clicked = cur.fetchone()[0]
                 cur.execute(f"""
                     SELECT COUNT(DISTINCT session_id) FROM analytics_events
-                    WHERE event_type='dwell' AND page IS NOT NULL AND page NOT ILIKE '%connect%' {tf}
+                    WHERE event_type='dwell' AND page IS NOT NULL AND page NOT ILIKE '%%connect%%' {tf}
                 """, tp)
                 funnel_dashboard = cur.fetchone()[0]
                 funnel = [
