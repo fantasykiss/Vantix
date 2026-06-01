@@ -203,7 +203,15 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple
         <button class="filter-btn" onclick="setPeriod('all',this)">전체</button>
       </div>
       <div class="filter-sep"></div>
-      <button class="refresh-btn" onclick="loadAnalytics()">↻ 새로고침</button>
+      <div class="filter-sep"></div>
+      <div class="filter-group env-filter">
+        <span class="filter-label">환경</span>
+        <button class="filter-btn active" onclick="setEnv('',this)">전체</button>
+        <button class="filter-btn" onclick="setEnv('프로덕션',this)">프로덕션</button>
+        <button class="filter-btn" onclick="setEnv('로컬',this)">로컬</button>
+      </div>
+      <div class="filter-sep"></div>
+      <button class="refresh-btn" onclick="location.reload()">↻ 새로고침</button>
     </div>
   </div>
 
@@ -346,6 +354,7 @@ body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple
 <script>
 // ── State ──────────────────────────��───────────────────────────
 var _currentPeriod = '7d';
+var _currentEnv    = '';
 
 // ── Init ───────────────────────────────────────────────────────
 (function checkSession() {
@@ -394,6 +403,12 @@ function switchTab(name, btn) {
 }
 
 // ── Filters ────────────────────────────────────────────────────
+function setEnv(env, btn) {
+  _currentEnv = env;
+  document.querySelectorAll('.env-filter .filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  btn.classList.add('active');
+  loadAnalytics();
+}
 function setPeriod(period, btn) {
   _currentPeriod = period;
   document.querySelectorAll('.period-filter .filter-btn').forEach(function(b) { b.classList.remove('active'); });
@@ -401,7 +416,9 @@ function setPeriod(period, btn) {
   loadAnalytics();
 }
 function _qs() {
-  return '?period=' + _currentPeriod;
+  var q = '?period=' + _currentPeriod;
+  if (_currentEnv) q += '&env=' + encodeURIComponent(_currentEnv);
+  return q;
 }
 
 // ── Analytics ──────────────────────────────────────────────────
