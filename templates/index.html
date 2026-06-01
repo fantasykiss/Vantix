@@ -1905,14 +1905,18 @@ function renderTrend(history, weeks) {
   var maxScore = Math.max.apply(null, slice.map(function(r) { return r.score || 0; }));
   maxScore = Math.max(maxScore, 75);
 
-  // ghost bars for missing historical weeks
+  // ghost bars for missing historical weeks — varied heights, dark tones only
   var ghostCount = Math.max(0, weeks - slice.length);
   for (var g = 0; g < ghostCount; g++) {
+    var t = (g / Math.max(ghostCount - 1, 1)) * 52;
+    var base = 28 + Math.sin(t / 6) * 12;
+    var noise = Math.sin(t * 1.7) * 6 + Math.cos(t * 0.9) * 4;
+    var v = Math.max(8, Math.min(65, base + noise));
     var ghost = document.createElement('div');
-    ghost.className = 'bar b1';
-    ghost.style.height = '4px';
-    ghost.style.opacity = '0.5';
+    ghost.className = 'bar ' + (v > 45 ? 'b2' : 'b1');
+    ghost.style.height = (v / 75 * 100) + '%';
     ghost.style.cursor = 'default';
+    ghost.style.opacity = '0.6';
     bars.appendChild(ghost);
   }
 
