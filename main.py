@@ -1924,12 +1924,31 @@ async def api_admin_stats(request: Request, env: str = "", period: str = "7d", _
                     {"step": "대시보드 진입", "cnt": funnel_dashboard},
                 ]
 
+                # 신규 방문자 — 이 기간 내 처음 등장한 IP
+                if period == "today":
+                    ps = "EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date)"
+                elif period == "30d":
+                    ps = "EXTRACT(EPOCH FROM NOW()) - 2592000"
+                elif period == "all":
+                    ps = "0"
+                else:
+                    ps = "EXTRACT(EPOCH FROM NOW()) - 604800"
+                cur.execute(f"""
+                    SELECT COUNT(*) FROM (
+                        SELECT ip FROM analytics_events
+                        WHERE ip IS NOT NULL AND ip != '' {ef}
+                        GROUP BY ip HAVING MIN(ts) >= {ps}
+                    ) sub
+                """, ep)
+                new_visitors = cur.fetchone()[0]
+
         return {
             "pages": pages, "clicks": clicks, "exits": exits,
             "sessions": total_sessions, "daily": daily, "today_visitors": today_visitors,
             "unique_ips": unique_ips, "env_stats": env_stats,
             "device_stats": device_stats, "browser_stats": browser_stats, "os_stats": os_stats,
             "funnel": funnel, "anomaly": anomaly, "weekly_avg": round(weekly_avg, 1),
+            "new_visitors": new_visitors,
         }
     except Exception as e:
         print(f"[admin/stats] 오류: {e}")
@@ -1961,6 +1980,14 @@ async def api_admin_events(request: Request, env: str = "", period: str = "7d", 
     if not _DATABASE_URL:
         return {"items": []}
     tf, tp = _build_filters(period, env)
+    import time as _t
+    now = _t.time()
+    period_start = (
+        now - 86400 * 365 * 10 if period == "all" else
+        now - 2592000           if period == "30d" else
+        now - 604800            if period != "today" else
+        None  # today는 DB에서 계산
+    )
     try:
         with _db_conn() as conn:
             with conn.cursor() as cur:
@@ -1971,19 +1998,35 @@ async def api_admin_events(request: Request, env: str = "", period: str = "7d", 
                     ORDER BY ts DESC LIMIT %s
                 """, tp + (limit,))
                 rows = cur.fetchall()
+
+                # IP별 최초 등장 시각
+                result_ips = list({r[4] for r in rows if r[4]})
+                ip_first: dict = {}
+                if result_ips:
+                    cur.execute("SELECT ip, MIN(ts) FROM analytics_events WHERE ip = ANY(%s) GROUP BY ip", (result_ips,))
+                    ip_first = {r[0]: r[1] for r in cur.fetchall()}
+
+                if period == "today":
+                    cur.execute("SELECT EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date)")
+                    period_start = cur.fetchone()[0]
+
         items = []
         for r in rows:
             ua_p = _parse_ua(r[5] or "")
+            ip = r[4] or ""
+            first_ts = ip_first.get(ip, 0)
+            is_new = bool(ip and period_start is not None and first_ts >= period_start)
             items.append({
                 "session": (r[0] or "")[:8],
                 "event": r[1] or "",
                 "page": r[2] or "",
                 "element": (r[3] or "")[:40],
-                "ip": r[4] or "",
+                "ip": ip,
                 "device": ua_p["device"],
                 "browser": ua_p["browser"],
                 "env": r[6] or "",
                 "ts": r[7] or "",
+                "is_new": is_new,
             })
         return {"items": items}
     except Exception as e:
