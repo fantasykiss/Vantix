@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vantix · Overview</title>
+<title>Vantix · Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -2186,6 +2186,7 @@ function switchProject(pid, pname, projects, _noHistory) {
   renderProjectNav(projects || _allProjects);
   document.getElementById('crown-eyebrow').textContent =
     (pname || '전체 프로젝트').toUpperCase() + ' — OVERVIEW';
+  document.title = 'Vantix · ' + (pname || '전체 프로젝트');
   if (!_noHistory) _pushNav(pid, 'overview');
   showSubView('overview', true);
   loadAll();
