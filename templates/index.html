@@ -1905,6 +1905,17 @@ function renderTrend(history, weeks) {
   var maxScore = Math.max.apply(null, slice.map(function(r) { return r.score || 0; }));
   maxScore = Math.max(maxScore, 75);
 
+  // ghost bars for missing historical weeks
+  var ghostCount = Math.max(0, weeks - slice.length);
+  for (var g = 0; g < ghostCount; g++) {
+    var ghost = document.createElement('div');
+    ghost.className = 'bar b1';
+    ghost.style.height = '4px';
+    ghost.style.opacity = '0.5';
+    ghost.style.cursor = 'default';
+    bars.appendChild(ghost);
+  }
+
   slice.forEach(function(r, i) {
     var bar = document.createElement('div');
     bar.className = 'bar';
@@ -1922,14 +1933,17 @@ function renderTrend(history, weeks) {
     bars.appendChild(bar);
   });
 
-  // Axis labels — pick ~5 evenly
-  var labelCount = 5;
-  var step = Math.max(1, Math.floor(slice.length / (labelCount - 1)));
-  for (var i = 0; i < slice.length; i++) {
+  // Axis labels — ghost 영역 왼쪽 끝 + 실데이터 구간
+  var totalBars = ghostCount + slice.length;
+  for (var i = 0; i < totalBars; i++) {
     var el = document.createElement('span');
-    if (i === 0 || i % step === 0 || i === slice.length - 1) {
-      el.textContent = i === slice.length - 1 ? 'NOW' : (slice[i].date || slice[i].week || '');
-      if (i === slice.length - 1) el.classList.add('now');
+    var realIdx = i - ghostCount;
+    if (i === 0 && ghostCount > 0) {
+      el.textContent = weeks + 'W 전';
+      el.style.color = 'var(--text-ghost, #3a3633)';
+    } else if (realIdx >= 0 && (realIdx === 0 || realIdx === slice.length - 1)) {
+      el.textContent = realIdx === slice.length - 1 ? 'NOW' : (slice[realIdx].date || slice[realIdx].week || '');
+      if (realIdx === slice.length - 1) el.classList.add('now');
     }
     axis.appendChild(el);
   }
