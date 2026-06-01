@@ -1658,6 +1658,14 @@ html, body {
       <div style="font-size:11px;font-weight:700;letter-spacing:0.2em;color:var(--text);">REDMINE 연결 설정</div>
       <button onclick="closeSettingsModal()" style="background:none;border:none;color:var(--text-mid);font-size:16px;cursor:pointer;line-height:1;">✕</button>
     </div>
+    <div style="padding:14px 24px;border-bottom:1px solid var(--ghost-2);display:flex;align-items:center;gap:12px;">
+      <span style="font-size:9px;font-weight:700;letter-spacing:0.18em;color:var(--text-dim);text-transform:uppercase;flex-shrink:0;">글자 크기</span>
+      <div style="display:flex;gap:4px;">
+        <button onclick="setFontSize('14')" id="fs-btn-14" style="padding:4px 12px;border:1px solid var(--ghost-2);background:none;color:var(--text-mid);font-family:var(--dm);font-size:12px;cursor:pointer;letter-spacing:0.05em;transition:all .12s;">A</button>
+        <button onclick="setFontSize('16')" id="fs-btn-16" style="padding:4px 12px;border:1px solid var(--ghost-2);background:none;color:var(--text-mid);font-family:var(--dm);font-size:14px;cursor:pointer;letter-spacing:0.05em;transition:all .12s;">A</button>
+        <button onclick="setFontSize('18')" id="fs-btn-18" style="padding:4px 12px;border:1px solid var(--ghost-2);background:none;color:var(--text-mid);font-family:var(--dm);font-size:16px;cursor:pointer;letter-spacing:0.05em;transition:all .12s;">A</button>
+      </div>
+    </div>
     <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
       <div style="display:flex;flex-direction:column;gap:6px;">
         <label style="font-size:9px;letter-spacing:0.18em;color:var(--text-dim);text-transform:uppercase;">Redmine URL</label>
@@ -3300,6 +3308,30 @@ function pickSinceCustom(val) {
   closeSinceDd();
   loadAll();
 }
+
+// ────────────────────────────────────────────────────────────
+// 글자 크기
+// ────────────────────────────────────────────────────────────
+var _zoomMap = {'14': '1', '16': '1.143', '18': '1.286'};
+
+function setFontSize(size) {
+  var z = _zoomMap[size] || '1';
+  var content = document.querySelector('main.content');
+  if (content) content.style.zoom = z;
+  localStorage.setItem('vantix-fontsize', size);
+  ['14','16','18'].forEach(function(s) {
+    var btn = document.getElementById('fs-btn-' + s);
+    if (!btn) return;
+    btn.style.background  = s === size ? 'var(--text)' : 'none';
+    btn.style.color       = s === size ? 'var(--bg)'   : 'var(--text-mid)';
+    btn.style.borderColor = s === size ? 'var(--text)'  : 'var(--ghost-2)';
+  });
+}
+
+(function() {
+  var saved = localStorage.getItem('vantix-fontsize') || '14';
+  setFontSize(saved);
+})();
 
 // ────────────────────────────────────────────────────────────
 // 테마 전환
