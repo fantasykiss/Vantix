@@ -15,6 +15,8 @@ ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
 FERNET_KEY        = os.getenv("FERNET_KEY", "")
 ADMIN_PASSWORD    = os.getenv("ADMIN_PASSWORD", "")
 REDMINE_PUBLIC_URL = os.getenv("REDMINE_PUBLIC_URL", "")
+DEMO_URL = os.getenv("DEMO_URL", "")
+DEMO_KEY = os.getenv("DEMO_KEY", "")
 
 @dataclass
 class EmailConfig:

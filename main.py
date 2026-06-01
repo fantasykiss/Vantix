@@ -20,7 +20,7 @@ from fastapi.staticfiles import StaticFiles
 import uvicorn
 
 # ==================== 서버 설정 ====================
-from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY, ADMIN_PASSWORD
+from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY, ADMIN_PASSWORD, DEMO_URL, DEMO_KEY
 import uuid as _uuid
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -121,6 +121,9 @@ def _init_analytics_tables():
                 cur.execute("""
                     ALTER TABLE vantix_feedback ADD COLUMN IF NOT EXISTS ip TEXT
                 """)
+                cur.execute("ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS ip TEXT")
+                cur.execute("ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS user_agent TEXT")
+                cur.execute("ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS env TEXT")
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS vantix_callouts (
                         id      TEXT PRIMARY KEY,
@@ -133,9 +136,59 @@ def _init_analytics_tables():
                         created DOUBLE PRECISION NOT NULL
                     )
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS risk_history (
+                        hist_key TEXT NOT NULL,
+                        date     TEXT NOT NULL,
+                        score    REAL NOT NULL,
+                        level    TEXT NOT NULL,
+                        overdue  INTEGER DEFAULT 0,
+                        urgent   INTEGER DEFAULT 0,
+                        PRIMARY KEY (hist_key, date)
+                    )
+                """)
             conn.commit()
     except Exception as e:
         print(f"[analytics] DB 테이블 초기화 실패: {e}")
+
+def _db_load_history(key: str) -> list:
+    """DB에서 hist_key에 해당하는 히스토리 엔트리 반환 (날짜 오름차순)."""
+    if not _DATABASE_URL:
+        return []
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "SELECT date, score, level, overdue, urgent FROM risk_history WHERE hist_key=%s ORDER BY date ASC",
+                    (key,)
+                )
+                return [{"date": r[0], "score": r[1], "level": r[2], "overdue": r[3], "urgent": r[4]} for r in cur.fetchall()]
+    except Exception:
+        return []
+
+def _db_save_history_entry(key: str, date: str, score: float, level: str, overdue: int, urgent: int):
+    """DB에 히스토리 엔트리 upsert. 52개 초과분은 오래된 것부터 삭제."""
+    if not _DATABASE_URL:
+        return
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    INSERT INTO risk_history (hist_key, date, score, level, overdue, urgent)
+                    VALUES (%s, %s, %s, %s, %s, %s)
+                    ON CONFLICT (hist_key, date) DO UPDATE
+                        SET score=EXCLUDED.score, level=EXCLUDED.level,
+                            overdue=EXCLUDED.overdue, urgent=EXCLUDED.urgent
+                """, (key, date, score, level, overdue, urgent))
+                # 52주 초과분 정리
+                cur.execute("""
+                    DELETE FROM risk_history WHERE hist_key=%s AND date NOT IN (
+                        SELECT date FROM risk_history WHERE hist_key=%s ORDER BY date DESC LIMIT 52
+                    )
+                """, (key, key))
+            conn.commit()
+    except Exception as e:
+        print(f"[risk_history] DB 저장 실패: {e}")
 
 def _save_session(token: str, url: str, key: str, created: float):
     encrypted_key = _encrypt_key(key)
@@ -280,6 +333,10 @@ if os.path.isdir("etc"):
 # ==================== 캐시 ====================
 _cache = {}
 
+# ==================== 리포트 공유 저장소 ====================
+_report_store: dict = {}   # token → {html, created_at}
+REPORT_TTL = 86400         # 24시간
+
 # ==================== AI 캐시 ====================
 _ai_cache: dict = {}
 AI_CACHE_TTL = 3600  # 1시간
@@ -332,6 +389,40 @@ def _check_rate_limit(ip: str):
     _connect_attempts[ip] = attempts
 
 # ==================== 접속자 관리 ====================
+def _parse_ua(ua: str) -> dict:
+    u = ua.lower()
+    if "ipad" in u or ("android" in u and "mobile" not in u):
+        device = "태블릿"
+    elif "mobile" in u or "android" in u or "iphone" in u:
+        device = "모바일"
+    else:
+        device = "데스크탑"
+    if "edg/" in u or "edge/" in u:
+        browser = "Edge"
+    elif "opr/" in u or "opera" in u:
+        browser = "Opera"
+    elif "chrome/" in u:
+        browser = "Chrome"
+    elif "firefox/" in u:
+        browser = "Firefox"
+    elif "safari/" in u:
+        browser = "Safari"
+    else:
+        browser = "기타"
+    if "windows" in u:
+        os_name = "Windows"
+    elif "iphone" in u or "ipad" in u:
+        os_name = "iOS"
+    elif "android" in u:
+        os_name = "Android"
+    elif "macintosh" in u or "mac os" in u:
+        os_name = "macOS"
+    elif "linux" in u:
+        os_name = "Linux"
+    else:
+        os_name = "기타"
+    return {"device": device, "browser": browser, "os": os_name}
+
 _visitors = {}  # ip → last_seen
 VISITOR_TTL = 300  # 5분
 
@@ -494,7 +585,7 @@ def _job_weekly_report():
         dashboard = get_cache(DEFAULT_PROJECT_ID, DEFAULT_UPDATED_AFTER)
         if not dashboard:
             dashboard = build_dashboard_data(DEFAULT_PROJECT_ID, DEFAULT_UPDATED_AFTER)
-        report  = build_report_data(dashboard, project_label=DEFAULT_PROJECT_ID or "전체")
+        report  = build_report_data(dashboard, project_label=DEFAULT_PROJECT_ID or "전체", project_id=DEFAULT_PROJECT_ID or "")
         html    = render_html_report(report)
         subject = f"[Vantix] 주간 리포트 {report.period_label}"
         result  = send_report_email(html, subject, EMAIL_CFG)
@@ -512,12 +603,6 @@ def save_risk_snapshot():
     """
     from datetime import date
     today = date.today().isoformat()
-
-    try:
-        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
-            history = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        history = {}
 
     # 캐시에서 project_risk가 있는 첫 항목 탐색
     cached = None
@@ -538,13 +623,7 @@ def save_risk_snapshot():
     avg_level = "Critical" if avg_score >= 30 else "High" if avg_score >= 15 else "Medium" if avg_score >= 5 else "Low"
     avg_overdue = sum(p.get("overdue", 0) for p in projects)
     avg_urgent  = sum(p.get("urgent",  0) for p in projects)
-    history.setdefault("all", [])
-    if not history["all"] or history["all"][-1]["date"] != today:
-        history["all"].append({"date": today, "score": avg_score, "level": avg_level,
-                               "overdue": avg_overdue, "urgent": avg_urgent})
-    history["all"] = history["all"][-52:]  # 최대 52주 보관
 
-    # 캐시 키에서 project_id → project_name 역매핑 구성
     # 캐시 키(identifier)→project_name 역매핑 구성
     pid_to_name = {}
     for cache_key, entry in _cache.items():
@@ -557,24 +636,49 @@ def save_risk_snapshot():
             if pname:
                 pid_to_name[pname] = identifier
 
-    # 프로젝트별 스냅샷 (키: project_{identifier})
-    for p in projects:
-        pname = p.get("name", "")
-        if not pname:
-            continue
-        identifier = pid_to_name.get(pname, pname)
-        key = f"project_{identifier}"
+    if _DATABASE_URL:
+        # DB 저장
+        _db_save_history_entry("all", today, avg_score, avg_level, avg_overdue, avg_urgent)
+        for p in projects:
+            pname = p.get("name", "")
+            if not pname:
+                continue
+            identifier = pid_to_name.get(pname, pname)
+            _db_save_history_entry(
+                f"project_{identifier}", today,
+                round(p["risk_score"], 1), p["risk_level"],
+                p.get("overdue", 0), p.get("urgent", 0)
+            )
+    else:
+        # JSON 폴백 (로컬)
+        try:
+            with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+                history = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            history = {}
 
-        history.setdefault(key, [])
-        score = round(p["risk_score"], 1)
-        level = p["risk_level"]
-        if not history[key] or history[key][-1]["date"] != today:
-            history[key].append({"date": today, "score": score, "level": level,
-                                 "overdue": p.get("overdue", 0), "urgent": p.get("urgent", 0)})
-        history[key] = history[key][-52:]
+        history.setdefault("all", [])
+        if not history["all"] or history["all"][-1]["date"] != today:
+            history["all"].append({"date": today, "score": avg_score, "level": avg_level,
+                                   "overdue": avg_overdue, "urgent": avg_urgent})
+        history["all"] = history["all"][-52:]
 
-    with open(RISK_HISTORY_PATH, "w", encoding="utf-8") as f:
-        json.dump(history, f, ensure_ascii=False, indent=2)
+        for p in projects:
+            pname = p.get("name", "")
+            if not pname:
+                continue
+            identifier = pid_to_name.get(pname, pname)
+            key = f"project_{identifier}"
+            history.setdefault(key, [])
+            score = round(p["risk_score"], 1)
+            level = p["risk_level"]
+            if not history[key] or history[key][-1]["date"] != today:
+                history[key].append({"date": today, "score": score, "level": level,
+                                     "overdue": p.get("overdue", 0), "urgent": p.get("urgent", 0)})
+            history[key] = history[key][-52:]
+
+        with open(RISK_HISTORY_PATH, "w", encoding="utf-8") as f:
+            json.dump(history, f, ensure_ascii=False, indent=2)
 
 def _job_risk_snapshot():
     print("  리스크 스냅샷 저장 중...")
@@ -1339,10 +1443,15 @@ async def api_forecast(request: Request, project_id: str = "", updated_after: st
     prev_urgent    = None
     prev_date      = None
     try:
-        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
-            hist = json.load(f)
         proj_key = f"project_{project_id}" if project_id else "all"
-        proj_hist = hist.get(proj_key, hist.get("all", []))
+        if _DATABASE_URL:
+            proj_hist = _db_load_history(proj_key)
+            if len(proj_hist) < 2:
+                proj_hist = _db_load_history("all")
+        else:
+            with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+                hist = json.load(f)
+            proj_hist = hist.get(proj_key, hist.get("all", []))
         if len(proj_hist) >= 2:
             prev = proj_hist[-2]
             risk_change  = round(proj_hist[-1]["score"] - prev["score"], 1)
@@ -1473,59 +1582,98 @@ async def clear_cache(s: dict = Depends(_require_session)):
 async def api_risk_history(project_id: str = "", weeks: int = 12, s: dict = Depends(_require_session)):
     """
     저장된 스냅샷에서 최근 N주 반환.
-    스냅샷 없으면 빈 배열 반환 (역산 제거).
+    DB 우선, 없으면 JSON 폴백.
     """
-    try:
-        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
-            history = json.load(f)
-    except (FileNotFoundError, json.JSONDecodeError):
-        return {"history": []}
+    from datetime import date as _date
 
-    if not project_id:
-        key = "all"
-    else:
-        all_keys = list(history.keys())
-        proj_keys = [k for k in all_keys if k.startswith("project_")]
-        direct_key = f"project_{project_id}"
-        if direct_key in history:
-            key = direct_key
+    # ── 히스토리 로드 (DB or JSON)
+    if _DATABASE_URL:
+        # DB 모드: key 결정
+        if not project_id:
+            key = "all"
         else:
-            # identifier 기반 부분 매칭 시도 (예: nd_project → project_nd_project)
-            matched = [k for k in history if project_id in k]
-            if matched:
-                key = matched[0]
+            direct_key = f"project_{project_id}"
+            records_try = _db_load_history(direct_key)
+            if records_try:
+                key = direct_key
             else:
+                # 부분 매칭: DB에서 project_id 포함 키 탐색
                 try:
-                    dashboard = build_dashboard_data(project_id, "2020-01-01")
-                    pname = dashboard.get("project_name", "")
-                    name_key = f"project_{pname}"
-                    key = name_key if name_key in history else "all"
+                    with _db_conn() as conn:
+                        with conn.cursor() as cur:
+                            cur.execute(
+                                "SELECT DISTINCT hist_key FROM risk_history WHERE hist_key LIKE %s LIMIT 1",
+                                (f"%{project_id}%",)
+                            )
+                            row = cur.fetchone()
+                            key = row[0] if row else "all"
                 except Exception:
                     key = "all"
-    records = history.get(key, [])
 
-    # 프로젝트 데이터가 너무 적으면 "all" 키로 폴백 (레드마인 인스턴스 변경 등으로 키가 달라진 경우 대응)
-    if key != "all" and len(records) < 3:
-        records = history.get("all", [])
+        records = _db_load_history(key)
+        if key != "all" and len(records) < 3:
+            records = _db_load_history("all")
+            key = "all"
 
-    # 월요일 기준 주별 그룹핑 — 같은 주의 마지막(최신) 스냅샷만 사용
-    from datetime import date as _date
+        # All Projects 뷰 — 프로젝트별 breakdown
+        history = {}
+        if key == "all":
+            try:
+                with _db_conn() as conn:
+                    with conn.cursor() as cur:
+                        cur.execute(
+                            "SELECT hist_key, date, score, level FROM risk_history WHERE hist_key LIKE 'project_%' ORDER BY date ASC"
+                        )
+                        for row in cur.fetchall():
+                            history.setdefault(row[0], []).append({"date": row[1], "score": row[2], "level": row[3]})
+            except Exception:
+                pass
+    else:
+        # JSON 폴백
+        try:
+            with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+                history = json.load(f)
+        except (FileNotFoundError, json.JSONDecodeError):
+            return {"history": []}
+
+        if not project_id:
+            key = "all"
+        else:
+            direct_key = f"project_{project_id}"
+            if direct_key in history:
+                key = direct_key
+            else:
+                matched = [k for k in history if project_id in k]
+                if matched:
+                    key = matched[0]
+                else:
+                    try:
+                        dashboard = build_dashboard_data(project_id, "2020-01-01")
+                        pname = dashboard.get("project_name", "")
+                        name_key = f"project_{pname}"
+                        key = name_key if name_key in history else "all"
+                    except Exception:
+                        key = "all"
+
+        records = history.get(key, [])
+        if key != "all" and len(records) < 3:
+            records = history.get("all", [])
+            key = "all"
+
+    # ── 월요일 기준 주별 그룹핑
     week_map = {}
     for r in records:
         try:
             d = _date.fromisoformat(r["date"])
-            # 해당 날짜의 월요일 구하기 (weekday: 0=월)
             monday = d - timedelta(days=d.weekday())
-            week_key = monday.isoformat()
-            week_map[week_key] = r  # 같은 주면 나중 것(최신)으로 덮어쓰기
+            week_map[monday.isoformat()] = r
         except Exception:
             continue
 
-    # 월요일 날짜 기준 오름차순 정렬 후 최근 N주만 사용
     sorted_weeks = sorted(week_map.items())[-weeks:]
 
-    # All Projects 뷰일 때 주별 프로젝트 breakdown 수집
-    proj_week_map = {}  # monday_str → {proj_key: record}
+    # All Projects 뷰 — 주별 프로젝트 breakdown
+    proj_week_map = {}
     if key == "all":
         for hkey, hrecords in history.items():
             if not hkey.startswith("project_"):
@@ -1534,29 +1682,17 @@ async def api_risk_history(project_id: str = "", weeks: int = 12, s: dict = Depe
             for pr in hrecords:
                 try:
                     pd = _date.fromisoformat(pr["date"])
-                    pm = pd - timedelta(days=pd.weekday())
-                    pm_str = pm.isoformat()
+                    pm_str = (pd - timedelta(days=pd.weekday())).isoformat()
                     proj_week_map.setdefault(pm_str, {})[proj_name] = pr
                 except Exception:
                     continue
 
     result = []
     for idx, (monday_str, r) in enumerate(sorted_weeks, 1):
-        item = {
-            "week": f"W{idx}",
-            "score": r["score"],
-            "level": r["level"],
-            "date": monday_str
-        }
-        # All Projects — 해당 주의 프로젝트 목록 추가 (점수 내림차순)
+        item = {"week": f"W{idx}", "score": r["score"], "level": r["level"], "date": monday_str}
         if key == "all" and monday_str in proj_week_map:
-            projs = []
-            for pname, pr in proj_week_map[monday_str].items():
-                projs.append({
-                    "name": pname,
-                    "score": pr["score"],
-                    "level": pr["level"]
-                })
+            projs = [{"name": pn, "score": pr["score"], "level": pr["level"]}
+                     for pn, pr in proj_week_map[monday_str].items()]
             projs.sort(key=lambda x: x["score"], reverse=True)
             item["projects"] = projs
         result.append(item)
@@ -1587,11 +1723,15 @@ async def api_track(request: Request):
         element    = body.get("element", "")
         duration   = body.get("duration")
         ts         = time.time()
+        ip         = request.headers.get("X-Forwarded-For", request.client.host or "").split(",")[0].strip()
+        user_agent = request.headers.get("User-Agent", "")
+        host       = request.headers.get("host", "").split(":")[0]
+        env        = "로컬" if host in ("localhost", "127.0.0.1") else "프로덕션"
         with _db_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO analytics_events (session_id, event_type, page, element, duration, ts) VALUES (%s,%s,%s,%s,%s,%s)",
-                    (session_id, event_type, page, element, duration, ts)
+                    "INSERT INTO analytics_events (session_id, event_type, page, element, duration, ts, ip, user_agent, env) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s)",
+                    (session_id, event_type, page, element, duration, ts, ip, user_agent, env)
                 )
             conn.commit()
     except Exception as e:
@@ -1627,6 +1767,22 @@ async def api_feedback(request: Request):
     return {"ok": True}
 
 
+def _build_filters(period: str, env: str) -> tuple[str, tuple]:
+    parts: list[str] = []
+    params: list = []
+    if period == "today":
+        parts.append("ts > EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date)")
+    elif period == "30d":
+        parts.append("ts > EXTRACT(EPOCH FROM NOW()) - 2592000")
+    elif period != "all":  # default 7d
+        parts.append("ts > EXTRACT(EPOCH FROM NOW()) - 604800")
+    if env:
+        parts.append("env = %s")
+        params.append(env)
+    clause = (" AND " + " AND ".join(parts)) if parts else ""
+    return clause, tuple(params)
+
+
 def _require_admin(request: Request):
     auth = request.cookies.get("vx_admin")
     if not ADMIN_PASSWORD or auth != ADMIN_PASSWORD:
@@ -1653,62 +1809,128 @@ async def api_admin_logout():
 
 
 @app.get("/api/admin/stats")
-async def api_admin_stats(request: Request, _=Depends(_require_admin)):
+async def api_admin_stats(request: Request, env: str = "", period: str = "7d", _=Depends(_require_admin)):
     if not _DATABASE_URL:
         return {"pages": [], "clicks": [], "exits": [], "sessions": 0}
+    tf, tp = _build_filters(period, env)
+    ef, ep = (" AND env = %s", (env,)) if env else ("", ())
     try:
         with _db_conn() as conn:
             with conn.cursor() as cur:
-                # 총 세션 수
-                cur.execute("SELECT COUNT(DISTINCT session_id) FROM analytics_events")
+                cur.execute(f"SELECT COUNT(DISTINCT session_id) FROM analytics_events WHERE 1=1 {tf}", tp)
                 total_sessions = cur.fetchone()[0]
 
-                # 페이지별 평균 체류 시간 (dwell 이벤트)
-                cur.execute("""
+                cur.execute(f"""
                     SELECT page, COUNT(*) as views, COALESCE(AVG(duration),0)::int as avg_sec
                     FROM analytics_events
-                    WHERE event_type='dwell' AND page IS NOT NULL AND page != ''
+                    WHERE event_type='dwell' AND page IS NOT NULL AND page != '' {tf}
                     GROUP BY page ORDER BY avg_sec DESC
-                """)
+                """, tp)
                 pages = [{"page": r[0], "views": r[1], "avg_sec": r[2]} for r in cur.fetchall()]
 
-                # 클릭 Top 10
-                cur.execute("""
+                cur.execute(f"""
                     SELECT element, COUNT(*) as cnt
                     FROM analytics_events
-                    WHERE event_type='click' AND element IS NOT NULL AND element != ''
+                    WHERE event_type='click' AND element IS NOT NULL AND element != '' {tf}
                     GROUP BY element ORDER BY cnt DESC LIMIT 10
-                """)
+                """, tp)
                 clicks = [{"element": r[0], "cnt": r[1]} for r in cur.fetchall()]
 
-                # 이탈 페이지 (exit 이벤트)
-                cur.execute("""
+                cur.execute(f"""
                     SELECT page, COUNT(*) as cnt
                     FROM analytics_events
-                    WHERE event_type='exit' AND page IS NOT NULL AND page != ''
+                    WHERE event_type='exit' AND page IS NOT NULL AND page != '' {tf}
                     GROUP BY page ORDER BY cnt DESC
-                """)
+                """, tp)
                 exits = [{"page": r[0], "cnt": r[1]} for r in cur.fetchall()]
 
-                # 최근 7일 일별 방문자 수
-                cur.execute("""
-                    SELECT TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul', 'MM/DD') as day,
-                           COUNT(DISTINCT session_id) as visitors
-                    FROM analytics_events
-                    WHERE ts > EXTRACT(EPOCH FROM NOW()) - 604800
-                    GROUP BY day ORDER BY day
-                """)
+                if period == "today":
+                    cur.execute(f"""
+                        SELECT LPAD(TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','HH24'),2,'0') || 'h',
+                               COUNT(DISTINCT session_id)
+                        FROM analytics_events
+                        WHERE ts > EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date) {ef}
+                        GROUP BY 1 ORDER BY 1
+                    """, ep)
+                else:
+                    cur.execute(f"""
+                        SELECT TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','MM/DD'),
+                               COUNT(DISTINCT session_id)
+                        FROM analytics_events WHERE 1=1 {tf}
+                        GROUP BY 1 ORDER BY 1
+                    """, tp)
                 daily = [{"day": r[0], "visitors": r[1]} for r in cur.fetchall()]
 
-                # 오늘 방문자 수
-                cur.execute("""
-                    SELECT COUNT(DISTINCT session_id)
-                    FROM analytics_events
-                    WHERE ts > EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date)
-                """)
+                cur.execute(f"""
+                    SELECT COUNT(DISTINCT session_id) FROM analytics_events
+                    WHERE ts > EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date) {ef}
+                """, ep)
                 today_visitors = cur.fetchone()[0]
 
-        return {"pages": pages, "clicks": clicks, "exits": exits, "sessions": total_sessions, "daily": daily, "today_visitors": today_visitors}
+                cur.execute(f"""
+                    SELECT COALESCE(AVG(cnt),0) FROM (
+                        SELECT COUNT(DISTINCT session_id) as cnt
+                        FROM analytics_events
+                        WHERE ts > EXTRACT(EPOCH FROM NOW()) - 604800
+                          AND ts < EXTRACT(EPOCH FROM (NOW() AT TIME ZONE 'Asia/Seoul')::date) {ef}
+                        GROUP BY TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','YYYY-MM-DD')
+                    ) sub
+                """, ep)
+                weekly_avg = float(cur.fetchone()[0] or 0)
+                anomaly = None
+                if weekly_avg > 0:
+                    ratio = today_visitors / weekly_avg
+                    if ratio >= 2.0:   anomaly = "spike"
+                    elif ratio <= 0.3 and today_visitors < weekly_avg - 1: anomaly = "drop"
+
+                cur.execute(f"SELECT COUNT(DISTINCT ip) FROM analytics_events WHERE ip IS NOT NULL AND ip != '' {tf}", tp)
+                unique_ips = cur.fetchone()[0]
+
+                cur.execute("""
+                    SELECT COALESCE(env,'미분류'), COUNT(DISTINCT session_id)
+                    FROM analytics_events WHERE env IS NOT NULL
+                    GROUP BY env ORDER BY COUNT(DISTINCT session_id) DESC
+                """)
+                env_stats = [{"env": r[0], "sessions": r[1]} for r in cur.fetchall()]
+
+                cur.execute(f"""
+                    SELECT user_agent, session_id FROM analytics_events
+                    WHERE user_agent IS NOT NULL AND user_agent != '' {tf}
+                    GROUP BY user_agent, session_id
+                """, tp)
+                ua_rows = cur.fetchall()
+                device_map: dict = {}; browser_map: dict = {}; os_map: dict = {}; seen: dict = {}
+                for ua_str, sid in ua_rows:
+                    if sid in seen: continue
+                    seen[sid] = True
+                    p = _parse_ua(ua_str)
+                    device_map[p["device"]]   = device_map.get(p["device"], 0) + 1
+                    browser_map[p["browser"]] = browser_map.get(p["browser"], 0) + 1
+                    os_map[p["os"]]           = os_map.get(p["os"], 0) + 1
+                device_stats  = sorted([{"name": k, "cnt": v} for k,v in device_map.items()],  key=lambda x: -x["cnt"])
+                browser_stats = sorted([{"name": k, "cnt": v} for k,v in browser_map.items()], key=lambda x: -x["cnt"])
+                os_stats      = sorted([{"name": k, "cnt": v} for k,v in os_map.items()],      key=lambda x: -x["cnt"])
+
+                cur.execute(f"SELECT COUNT(DISTINCT session_id) FROM analytics_events WHERE event_type='click' {tf}", tp)
+                funnel_clicked = cur.fetchone()[0]
+                cur.execute(f"""
+                    SELECT COUNT(DISTINCT session_id) FROM analytics_events
+                    WHERE event_type='dwell' AND page IS NOT NULL AND page NOT ILIKE '%connect%' {tf}
+                """, tp)
+                funnel_dashboard = cur.fetchone()[0]
+                funnel = [
+                    {"step": "방문", "cnt": total_sessions},
+                    {"step": "인터랙션", "cnt": funnel_clicked},
+                    {"step": "대시보드 진입", "cnt": funnel_dashboard},
+                ]
+
+        return {
+            "pages": pages, "clicks": clicks, "exits": exits,
+            "sessions": total_sessions, "daily": daily, "today_visitors": today_visitors,
+            "unique_ips": unique_ips, "env_stats": env_stats,
+            "device_stats": device_stats, "browser_stats": browser_stats, "os_stats": os_stats,
+            "funnel": funnel, "anomaly": anomaly, "weekly_avg": round(weekly_avg, 1),
+        }
     except Exception as e:
         print(f"[admin/stats] 오류: {e}")
         return {"pages": [], "clicks": [], "exits": [], "sessions": 0, "daily": []}
@@ -1731,6 +1953,41 @@ async def api_admin_feedback(request: Request, _=Depends(_require_admin)):
         return {"items": items}
     except Exception as e:
         print(f"[admin/feedback] 오류: {e}")
+        return {"items": []}
+
+
+@app.get("/api/admin/events")
+async def api_admin_events(request: Request, env: str = "", period: str = "7d", limit: int = 200, _=Depends(_require_admin)):
+    if not _DATABASE_URL:
+        return {"items": []}
+    tf, tp = _build_filters(period, env)
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(f"""
+                    SELECT session_id, event_type, page, element, ip, user_agent, env,
+                           TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','MM/DD HH24:MI:SS') as ts_str
+                    FROM analytics_events WHERE 1=1 {tf}
+                    ORDER BY ts DESC LIMIT %s
+                """, tp + (limit,))
+                rows = cur.fetchall()
+        items = []
+        for r in rows:
+            ua_p = _parse_ua(r[5] or "")
+            items.append({
+                "session": (r[0] or "")[:8],
+                "event": r[1] or "",
+                "page": r[2] or "",
+                "element": (r[3] or "")[:40],
+                "ip": r[4] or "",
+                "device": ua_p["device"],
+                "browser": ua_p["browser"],
+                "env": r[6] or "",
+                "ts": r[7] or "",
+            })
+        return {"items": items}
+    except Exception as e:
+        print(f"[admin/events] 오류: {e}")
         return {"items": []}
 
 
@@ -1774,7 +2031,21 @@ async def connect_page(request: Request):
     template_path = os.path.join(os.path.dirname(__file__), "templates", "connect.html")
     with open(template_path, "r", encoding="utf-8") as f:
         html = f.read()
+    # DEMO_URL/DEMO_KEY 환경변수가 있으면 "Try Vantix" 버튼 활성화
+    demo_flag = "true" if (DEMO_URL and DEMO_KEY) else "false"
+    html = html.replace("__DEMO_AVAILABLE__", demo_flag)
     return HTMLResponse(content=html)
+
+@app.post("/api/connect/demo")
+async def api_connect_demo(request: Request):
+    """DEMO_URL/DEMO_KEY 환경변수로 자동 세션 발급 — Try Vantix 버튼용"""
+    if not DEMO_URL or not DEMO_KEY:
+        raise HTTPException(status_code=404, detail="데모 미설정")
+    token = str(_uuid.uuid4())
+    _save_session(token, DEMO_URL, DEMO_KEY, time.time())
+    response = JSONResponse({"ok": True})
+    response.set_cookie("vx_session", token, httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
+    return response
 
 @app.post("/api/connect")
 async def api_connect(request: Request):
@@ -2201,7 +2472,8 @@ async def api_report_preview(
                 )
                 summary_val = ai_resp.get("summary", "") if isinstance(ai_resp, dict) else ""
                 dashboard["ai_summary"] = summary_val
-        except Exception:
+        except Exception as e:
+            print(f"[report] AI 요약 생성 실패: {e}")
             dashboard["ai_summary"] = ""
 
     # 인사이트 생성 — 버전 데이터(issues 포함) 필요
@@ -2230,9 +2502,41 @@ async def api_report_preview(
     except Exception:
         insights_data = []
 
-    report = build_report_data(dashboard, project_label=proj_name, insights=insights_data)
+    report = build_report_data(dashboard, project_label=proj_name, insights=insights_data, project_id=project_id or "")
     html   = render_html_report(report, sections=section_list, memo=memo)
     return HTMLResponse(content=html)
+
+
+@app.post("/api/report/share")
+async def api_report_share(
+    request: Request,
+    s: dict = Depends(_require_session),
+):
+    import uuid, time
+    body = await request.json()
+    html = body.get("html", "")
+    if not html:
+        return JSONResponse({"ok": False, "error": "html이 없습니다"}, status_code=400)
+    token = uuid.uuid4().hex
+    now   = time.time()
+    # 만료된 리포트 정리
+    expired = [k for k, v in _report_store.items() if now - v["created_at"] > REPORT_TTL]
+    for k in expired:
+        del _report_store[k]
+    _report_store[token] = {"html": html, "created_at": now}
+    return {"ok": True, "token": token}
+
+
+@app.get("/report/{token}")
+async def view_shared_report(token: str):
+    import time
+    entry = _report_store.get(token)
+    if not entry:
+        return HTMLResponse("<h2>리포트를 찾을 수 없거나 만료되었습니다.</h2>", status_code=404)
+    if time.time() - entry["created_at"] > REPORT_TTL:
+        del _report_store[token]
+        return HTMLResponse("<h2>리포트가 만료되었습니다 (24시간).</h2>", status_code=410)
+    return HTMLResponse(content=entry["html"])
 
 
 @app.get("/api/report/tsv")
@@ -2250,7 +2554,7 @@ async def api_report_tsv(
     if not dashboard:
         dashboard = build_dashboard_data(project_id, updated_after, redmine_url=redmine_url, api_key=api_key)
     section_list = [sec.strip() for sec in sections.split(",") if sec.strip()] if sections else None
-    report = build_report_data(dashboard, project_label=project_id or "전체 프로젝트")
+    report = build_report_data(dashboard, project_label=project_id or "전체 프로젝트", project_id=project_id or "")
     tsv    = render_tsv_report(report, sections=section_list)
     return PlainTextResponse(content=tsv, media_type="text/plain; charset=utf-8")
 
@@ -2260,7 +2564,7 @@ async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01
     dashboard = get_cache(project_id, updated_after, s["url"])
     if not dashboard:
         dashboard = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
-    report  = build_report_data(dashboard, project_label=project_id or "전체 프로젝트")
+    report  = build_report_data(dashboard, project_label=project_id or "전체 프로젝트", project_id=project_id or "")
     html    = render_html_report(report)
     subject = f"[Vantix] 주간 리포트 {report.period_label}"
     return send_report_email(html, subject, EMAIL_CFG)
@@ -2394,11 +2698,16 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
 
     # 전주 대비 리스크 변화
     try:
-        import json as _json
-        with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
-            hist = _json.load(f)
         proj_key = f"project_{project_id}" if project_id else "all"
-        proj_hist = hist.get(proj_key, hist.get("all", []))
+        if _DATABASE_URL:
+            proj_hist = _db_load_history(proj_key)
+            if len(proj_hist) < 2:
+                proj_hist = _db_load_history("all")
+        else:
+            import json as _json
+            with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
+                hist = _json.load(f)
+            proj_hist = hist.get(proj_key, hist.get("all", []))
         if len(proj_hist) >= 2:
             delta = round(proj_hist[-1]["score"] - proj_hist[-2]["score"], 1)
             delta_str = f"+{delta}" if delta > 0 else str(delta)

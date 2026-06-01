@@ -14,13 +14,16 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class UserSummary:
-    name:           str
-    dept:           str
-    total:          int
-    open_cnt:       int
-    overdue_cnt:    int
-    resolved_cnt:   int
-    overdue_issues: list = field(default_factory=list)
+    name:            str
+    dept:            str
+    total:           int
+    open_cnt:        int
+    overdue_cnt:     int
+    resolved_cnt:    int
+    urgent_cnt:      int  = 0
+    in_progress_cnt: int  = 0
+    pending_cnt:     int  = 0
+    overdue_issues:  list = field(default_factory=list)
 
 
 @dataclass
@@ -40,15 +43,25 @@ class ReportData:
     sections:           list  = field(default_factory=list)
     ai_summary:         str   = ""
     insights:           list  = field(default_factory=list)
+    risk_score:         int   = 0
+    risk_level:         str   = ""
+    risk_delta:         float = 0.0
+    urgent_total:       int   = 0
+    milestone_risk:     int   = 0
+    week_history:       list  = field(default_factory=list)
 
 
 
-def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트", insights: list = None) -> ReportData:
+def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트", insights: list = None, project_id: str = "") -> ReportData:
     today_str  = date.today().strftime("%Y-%m-%d")
     users_data = dashboard.get("users_data", {})
 
     user_summaries = []
     all_overdue    = []
+
+    IN_PROGRESS_STATUSES = {"진행", "In Progress"}
+    PENDING_STATUSES     = {"신규", "진행대기", "New", "Pending"}
+    d7_str = (date.today().replace(day=date.today().day) + __import__("datetime").timedelta(days=7)).strftime("%Y-%m-%d")
 
     for uname, ud in users_data.items():
         issues      = ud.get("issues", [])
@@ -61,6 +74,13 @@ def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트
             and i["status"] not in CLOSED_SET
             and i["status"] not in HOLD_SET
         ]
+        urgent_cnt = sum(
+            1 for i in issues
+            if i.get("due_date") and today_str <= i["due_date"] <= d7_str
+            and i["status"] not in CLOSED_SET and i["status"] not in HOLD_SET
+        )
+        in_progress_cnt = sum(1 for i in issues if i["status"] in IN_PROGRESS_STATUSES)
+        pending_cnt     = sum(1 for i in issues if i["status"] in PENDING_STATUSES)
 
         for iss in overdue_issues:
             all_overdue.append({
@@ -70,13 +90,16 @@ def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트
             })
 
         user_summaries.append(UserSummary(
-            name           = short_name(uname) or uname,
-            dept           = dept_name(uname),
-            total          = total,
-            open_cnt       = open_cnt,
-            overdue_cnt    = len(overdue_issues),
-            resolved_cnt   = resolved,
-            overdue_issues = overdue_issues,
+            name            = short_name(uname) or dept_name(uname) or uname,
+            dept            = dept_name(uname),
+            total           = total,
+            open_cnt        = open_cnt,
+            overdue_cnt     = len(overdue_issues),
+            resolved_cnt    = resolved,
+            urgent_cnt      = urgent_cnt,
+            in_progress_cnt = in_progress_cnt,
+            pending_cnt     = pending_cnt,
+            overdue_issues  = overdue_issues,
         ))
 
     user_summaries.sort(key=lambda u: (-u.overdue_cnt, -u.open_cnt))
@@ -137,412 +160,471 @@ def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트
             "bar_color": "#B40023" if overdue_cnt > 0 else "#111111",
         })
 
-    # ── 리스크 스냅샷 최신 타임스탬프 추출 ──
-    snapshot_ts = ""
+    # ── 리스크 히스토리 & 추가 지표 계산 ──
+    snapshot_ts   = ""
+    week_history  = []
+    risk_delta    = 0.0
+    hist_key      = f"project_{project_id}" if project_id else "all"
     try:
         hist_path = os.path.join(os.path.dirname(__file__), "..", "risk_history.json")
         with open(hist_path, "r", encoding="utf-8") as f:
             hist = json.load(f)
-        all_ts = []
-        for entries in hist.values():
-            if isinstance(entries, list):
-                for e in entries:
-                    if e.get("ts"):
-                        all_ts.append(e["ts"])
-        if all_ts:
-            snapshot_ts = max(all_ts)[:16]  # "2026-05-14 23:00"
+        entries = hist.get(hist_key, hist.get("all", []))
+        if entries:
+            snapshot_ts  = entries[-1].get("date", "")
+            week_history = [
+                {"date": e["date"], "score": min(round(e["score"] * 100 / 60), 100), "level": e.get("level", "")}
+                for e in entries[-8:]
+            ]
+            if len(entries) >= 2:
+                # 대시보드와 동일: raw score 차이 그대로 사용
+                risk_delta = round(entries[-1]["score"] - entries[-2]["score"], 1)
     except Exception:
         pass
+
+    # 전체 리스크 점수 — 대시보드와 동일하게 project_risk[0] (최고위험 프로젝트) 기준
+    project_risk_list = dashboard.get("project_risk", [])
+    total_i   = dashboard.get("total_issues", 0)
+    overdue_i = dashboard.get("overdue", 0)
+    urgent_i  = sum(u.urgent_cnt for u in user_summaries)
+    if project_risk_list:
+        raw_score = project_risk_list[0]["risk_score"]   # 대시보드와 동일: topRisk
+    elif total_i:
+        raw_score = (overdue_i / total_i * 60) + (urgent_i / total_i * 30)
+    else:
+        raw_score = 0
+    risk_score_norm = min(round(raw_score * 100 / 60), 100)
+    risk_level_str  = project_risk_list[0].get("risk_level", (
+                       "Critical" if raw_score >= 30 else
+                       "High"     if raw_score >= 15 else
+                       "Medium"   if raw_score >= 5  else "Low"
+                      )) if project_risk_list else "Low"
+
+    milestone_risk = sum(1 for v in version_rows if v["badge"] == "OVERDUE")
 
     return ReportData(
         generated_at     = datetime.now().strftime("%Y-%m-%d %H:%M"),
         period_label     = period_label,
         project_label    = project_label,
-        total_issues     = dashboard.get("total_issues", 0),
+        total_issues     = total_i,
         open_issues      = dashboard.get("open_issues",  0),
-        overdue_total    = dashboard.get("overdue",       0),
+        overdue_total    = overdue_i,
         users            = user_summaries,
         overdue_issues   = all_overdue,
         top_risk         = top_risk,
         versions         = version_rows,
         risk_snapshot_ts = snapshot_ts,
         ai_summary       = dashboard.get("ai_summary", ""),
+        risk_score       = risk_score_norm,
+        risk_level       = risk_level_str,
+        risk_delta       = risk_delta,
+        urgent_total     = urgent_i,
+        milestone_risk   = milestone_risk,
+        week_history     = week_history,
         insights         = insights or [],
     )
 
 
 def render_html_report(report, sections=None, memo="") -> str:
-    if sections is None:
-        sections = ["insights", "signal", "risk", "forecast", "metrics", "versions", "critical", "assignee"]
 
     # ── 데이터 추출 ──
     def _get(key, default):
         val = getattr(report, key, None)
         return val if val is not None else default
 
-    proj_label    = _get("project_label", "프로젝트")
-    period_label  = _get("period_label",  "")
-    gen_ts        = _get("generated_at",  datetime.now().strftime("%Y-%m-%d %H:%M"))
-    ai_text       = _get("ai_summary",    "")
-    total_i       = _get("total_issues",  0)
-    open_i        = _get("open_issues",   0)
-    over_i        = _get("overdue_total", 0)
-    members       = len(_get("users",     []))
-    overdue_list  = _get("overdue_issues", [])
-    risk_list     = _get("top_risk",      [])
-    version_rows  = _get("versions",      [])
-    insights_list = _get("insights",      [])
-    users_list    = _get("users",         [])
+    proj_label     = _get("project_label",  "프로젝트")
+    period_label   = _get("period_label",   "")
+    gen_ts         = _get("generated_at",   datetime.now().strftime("%Y-%m-%d %H:%M"))
+    open_i         = _get("open_issues",    0)
+    over_i         = _get("overdue_total",  0)
+    members        = len(_get("users",      []))
+    overdue_list   = _get("overdue_issues", [])
+    insights_list  = _get("insights",       [])
+    users_list     = _get("users",          [])
+    risk_score     = _get("risk_score",     0)
+    risk_level     = _get("risk_level",     "")
+    risk_delta     = _get("risk_delta",     0.0)
+    urgent_total   = _get("urgent_total",   0)
+    milestone_risk = _get("milestone_risk", 0)
+    week_history   = _get("week_history",   [])
 
-    # ── forecast 계산 ──
-    fc_delay      = len(overdue_list)
-    fc_milestones = sum(1 for v in version_rows if v.get("badge") == "OVERDUE")
+    # ── 색상 ──
+    RED   = "#ef4444"
+    AMBER = "#f59e0b"
+    GREEN = "#22c55e"
+    BLUE  = "#4a8abf"
+    MID   = "#9a958e"
+    DIM   = "#5a5550"
+    GHOST = "#3a3633"
 
-    # 담당자 부하 데이터
-    assignee_list = []
-    for u in sorted(users_list, key=lambda x: -getattr(x, 'overdue_cnt', 0)):
-        assignee_list.append({
-            "name":    getattr(u, "name",        ""),
-            "group":   getattr(u, "dept",        ""),
-            "open":    getattr(u, "open_cnt",    0),
-            "overdue": getattr(u, "overdue_cnt", 0),
-        })
+    LEVEL_COLOR = {"Critical": RED, "High": AMBER, "Medium": BLUE, "Low": GREEN}
+    risk_color  = LEVEL_COLOR.get(risk_level, MID)
 
-    # ── 색상 상수 ──
-    RED   = "#B40023"
-    AMBER = "#c47a00"
-    GREEN = "#2a7a4a"
-    NAVY  = "#3a6ea8"
+    # ── 게이지 (50 tick, 오버뷰와 동일) ──
+    TICKS = 50
+    here  = round((min(risk_score, 100) / 100) * TICKS)
+    gauge_ticks = ""
+    for i in range(TICKS):
+        is_now = (i == here)
+        if i <= here:
+            if   i < TICKS * 0.4: c = "#22c55e"
+            elif i < TICKS * 0.7: c = "#f59e0b"
+            else:                  c = "#ef4444"
+        else:
+            c = "rgba(255,255,255,0.06)"
+        h = "28px" if is_now else ("20px" if i <= here else "12px")
+        gauge_ticks += f"<span style='flex:1;background:{c};height:{h};display:inline-block;align-self:flex-end;'></span>"
 
-    def _sec_label(title):
-        return (f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:9px;font-weight:700;"
-                f"letter-spacing:0.2em;color:#444;text-transform:uppercase;margin-bottom:14px;"
-                f"display:flex;align-items:center;gap:10px;'>"
-                f"{title}"
-                f"<span style='flex:1;height:1px;background:rgba(255,255,255,0.05);display:block;'></span>"
-                f"</div>")
+    # ── 리스크 코멘트 ──
+    delta_sign  = "+" if risk_delta > 0 else ""
+    delta_color = RED if risk_delta > 0 else (GREEN if risk_delta < 0 else MID)
+    risk_comment = (
+        f"마감 초과 <em style='color:{RED};'>{over_i}건</em>, "
+        f"D-7 임박 <em style='color:{AMBER};'>{urgent_total}건</em>이 누적되며 "
+        f"점수가 <em style='color:{delta_color};'>{delta_sign}{risk_delta}</em> 변동했습니다."
+    )
 
-    def _badge_dark(text, bg, color):
-        return (f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:8px;"
-                f"font-weight:700;letter-spacing:0.1em;padding:3px 8px;"
-                f"background:{bg};color:{color};'>{text}</span>")
+    # ── 트렌드 SVG (grid lines + 컬러 바 + NOW 라벨) ──
+    if week_history:
+        n        = len(week_history)
+        W        = 880          # SVG 전체 폭 (viewBox)
+        H_CHART  = 180          # 차트 영역 높이
+        H_AXIS   = 22           # x축 레이블 높이
+        H_TOTAL  = H_CHART + H_AXIS
+        bar_w    = max(18, (W - (n - 1) * 6) // n)
+        gap      = 6
+        total_w  = n * bar_w + (n - 1) * gap
+        x_off    = (W - total_w) // 2
+        max_s    = max((e["score"] for e in week_history), default=1) or 1
+        max_s    = max(max_s, 75)
 
-    def _th(label, align="left"):
-        return (f"<th style='font-family:\"JetBrains Mono\",monospace;font-size:8px;"
-                f"font-weight:700;letter-spacing:0.15em;color:#333;text-transform:uppercase;"
-                f"padding:0 14px 10px;text-align:{align};border-bottom:1px solid rgba(255,255,255,0.05);'>"
-                f"{label}</th>")
+        # grid lines at 25 / 50 / 75
+        grid = ""
+        for gv in (25, 50, 75):
+            gy = round(H_CHART * (1 - gv / 100))
+            grid += (f"<line x1='0' y1='{gy}' x2='{W}' y2='{gy}' "
+                     f"stroke='rgba(255,255,255,0.05)' stroke-dasharray='3,3'/>"
+                     f"<text x='{W - 4}' y='{gy - 3}' fill='{GHOST}' font-size='9' "
+                     f"text-anchor='end' font-family='DM Mono,monospace'>{gv}</text>")
 
-    def _td(val, color="#888", align="left", mono=False, bold=False):
-        fm = "\"JetBrains Mono\",monospace" if mono else "\"Plus Jakarta Sans\",sans-serif"
-        fw = "700" if bold else "400"
-        return (f"<td style='padding:11px 14px;border-bottom:1px solid rgba(255,255,255,0.04);"
-                f"font-size:12px;color:{color};font-weight:{fw};font-family:{fm};"
-                f"text-align:{align};'>{val}</td>")
+        svg_bars = ""
+        for idx, e in enumerate(week_history):
+            x   = x_off + idx * (bar_w + gap)
+            bh  = max(4, round((e["score"] / max_s) * (H_CHART - 10)))
+            y   = H_CHART - bh
+            lv  = e.get("level", "")
+            bc  = LEVEL_COLOR.get(lv, "#3a3633")
+            op  = "1" if idx == n - 1 else "0.35"
+            ds  = e["date"][5:].replace("-", "-") if len(e["date"]) >= 10 else e["date"]
+            svg_bars += (f"<rect x='{x}' y='{y}' width='{bar_w}' height='{bh}' "
+                         f"fill='{bc}' opacity='{op}' rx='2'/>")
+            svg_bars += (f"<text x='{x + bar_w // 2}' y='{H_TOTAL - 4}' fill='{GHOST}' "
+                         f"font-size='8' text-anchor='middle' font-family='DM Mono,monospace'>{ds}</text>")
+            if idx == n - 1:
+                # NOW 라벨
+                lx = x + bar_w // 2
+                svg_bars += (
+                    f"<rect x='{lx - 28}' y='{y - 26}' width='56' height='18' fill='{bc}' rx='2'/>"
+                    f"<text x='{lx}' y='{y - 13}' fill='#0c0c0c' font-size='9' font-weight='700' "
+                    f"text-anchor='middle' font-family='DM Mono,monospace'>NOW · {e['score']}</text>"
+                )
 
-    # ── 0. AI INSIGHTS ──
-    s_insights = ""
-    if "insights" in sections and insights_list:
-        STRIPE = {"critical": RED, "warning": AMBER, "info": "#1d4a7a"}
-        RULE_C = {"critical": "#7a0018", "warning": "#7a4c00", "info": "#1d3d5a"}
-        nc = sum(1 for i in insights_list if i.get("level") == "critical")
-        nw = sum(1 for i in insights_list if i.get("level") == "warning")
-        ni = sum(1 for i in insights_list if i.get("level") == "info")
+        trend_html = (
+            f"<svg viewBox='0 0 {W} {H_TOTAL}' style='width:100%;display:block;overflow:visible;'>"
+            f"{grid}{svg_bars}</svg>"
+        )
+    else:
+        trend_html = f"<span style='font-size:12px;color:{DIM};'>트렌드 데이터 없음</span>"
 
-        chips_html = (
-            f"<div style='display:flex;gap:24px;margin-bottom:20px;'>"
-            f"<div style='display:flex;align-items:baseline;gap:8px;'>"
-            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:22px;font-weight:700;color:{RED};'>{nc}</span>"
-            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#444;'>Critical</span></div>"
-            f"<div style='display:flex;align-items:baseline;gap:8px;'>"
-            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:22px;font-weight:700;color:{AMBER};'>{nw}</span>"
-            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#444;'>Warning</span></div>"
-            f"<div style='display:flex;align-items:baseline;gap:8px;'>"
-            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:22px;font-weight:700;color:#2a5a8a;'>{ni}</span>"
-            f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:9px;font-weight:700;letter-spacing:0.18em;text-transform:uppercase;color:#444;'>Info</span></div>"
-            f"</div>"
+    # ── KPI ribbon 6칸 ──
+    kpi_items = [
+        ("오픈 이슈",   str(open_i),                "#f2efea", "+0 W/W",           MID),
+        ("마감 초과",   str(over_i),                 RED if over_i > 0 else MID,    "건",   MID),
+        ("D-7 임박",    str(urgent_total),           AMBER if urgent_total > 0 else MID, "D-7 이내", MID),
+        ("완료 위험",   str(milestone_risk),         RED if milestone_risk > 0 else MID,  "마일스톤", MID),
+        ("리스크 변화", f"{delta_sign}{risk_delta}", delta_color,                   "전주 대비", delta_color),
+        ("투입 인원",   str(members),                "#f2efea",                     "명 진행 중", MID),
+    ]
+    kpi_cells = ""
+    for label, val, val_c, sub, sub_c in kpi_items:
+        kpi_cells += (
+            f"<div class='kpi-cell'>"
+            f"<div class='kpi-k'>{label}</div>"
+            f"<div class='kpi-vrow'>"
+            f"<span class='kpi-v' style='color:{val_c};'>{val}</span>"
+            f"<span class='kpi-s' style='color:{sub_c};'>{sub}</span>"
+            f"</div></div>"
         )
 
-        cards_html = ""
-        for ins in insights_list:
-            lv  = ins.get("level", "info")
-            sc  = STRIPE.get(lv, "#333")
-            rc  = RULE_C.get(lv, "#444")
-            rl  = ins.get("rule", "").replace("_", " ")
-            tgt = ins.get("target", "")
-            body = ins.get("body", "")
-            cards_html += (
-                f"<div style='display:grid;grid-template-columns:3px 1fr;"
-                f"background:rgba(255,255,255,0.018);margin-bottom:1px;'>"
-                f"<div style='background:{sc};'></div>"
-                f"<div style='padding:11px 20px;'>"
-                f"<div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;'>"
-                f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:8px;font-weight:700;"
-                f"letter-spacing:0.18em;text-transform:uppercase;color:{rc};'>{rl}</span>"
-                f"<span style='font-family:\"JetBrains Mono\",monospace;font-size:8px;color:#2a2a2a;"
-                f"letter-spacing:0.06em;'>{tgt}</span>"
-                f"</div>"
-                f"<div style='font-size:13px;line-height:1.6;color:#777;'>{body}</div>"
-                f"</div></div>"
-            )
+    # ── AI Insights ──
+    LEVEL_C  = {"critical": RED, "warning": AMBER, "info": BLUE}
+    LEVEL_BG = {"critical": "rgba(239,68,68,0.06)", "warning": "rgba(245,158,11,0.06)", "info": "rgba(74,138,191,0.06)"}
+    insight_cards = ""
+    for ins in insights_list[:6]:
+        lv   = ins.get("level", "info")
+        body = ins.get("action", ins.get("body", ""))
+        who  = ins.get("who", "")
+        lc   = LEVEL_C.get(lv, MID)
+        lb   = LEVEL_BG.get(lv, "rgba(255,255,255,0.04)")
+        who_html = f"<div class='ins-who'>{who}</div>" if who else ""
+        insight_cards += (
+            f"<div class='ins-card' style='background:{lb};border-color:{lc}22;'>"
+            f"<span class='ins-badge' style='color:{lc};'>{lv.upper()}</span>"
+            f"<div class='ins-body'>{body}</div>"
+            f"{who_html}</div>"
+        )
+    if not insight_cards:
+        insight_cards = f"<div style='color:{DIM};font-size:12px;padding:8px 0;grid-column:1/-1;'>AI 인사이트 없음</div>"
 
-        s_insights = f"""
-<div style='margin-bottom:32px;'>
-  {_sec_label("AI Insights — 규칙 기반 리스크 탐지")}
-  {chips_html}
-  <div>{cards_html}</div>
-</div>"""
-
-    # ── 1. WEEKLY SIGNAL ──
-    s_signal = ""
-    if "signal" in sections and ai_text:
-        s_signal = f"""
-<div style='margin-bottom:32px;'>
-  {_sec_label("Weekly Signal — AI 주간 요약")}
-  <div style='border-left:2px solid {RED};padding:16px 20px;background:rgba(180,0,35,0.05);'>
-    <div style='font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;line-height:1.8;color:#aaaaaa;'>{ai_text}</div>
-  </div>
-</div>"""
-
-    # ── 2. RISK PROJECTS ──
-    s_risk = ""
-    if "risk" in sections and risk_list:
-        lv_map = {
-            "Critical": (f"rgba(180,0,35,0.15)",   RED),
-            "High":     (f"rgba(196,122,0,0.15)",  AMBER),
-            "Medium":   ("rgba(255,255,255,0.06)", "#666"),
-            "Low":      (f"rgba(42,122,74,0.15)",  GREEN),
-        }
-        def _norm_score(p):
-            raw = p.get("risk_score", p.get("score", 0))
-            try: return min(round(float(raw) * 100 / 60), 100)
-            except: return 0
-        rows_html = ""
-        for p in risk_list:
-            lv  = p.get("risk_level", p.get("level", ""))
-            bb, bc = lv_map.get(lv, ("rgba(255,255,255,0.06)", "#666"))
-            sc  = _norm_score(p)
-            sc_color = RED if lv == "Critical" else AMBER
-            rows_html += f"""
-<div style='display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,0.04);'>
-  <div style='font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:600;color:#dddddd;flex:1;'>{p.get("name","")}</div>
-  {_badge_dark(lv.upper(), bb, bc)}
-  <div style='font-family:"JetBrains Mono",monospace;font-size:22px;font-weight:700;color:{sc_color};width:50px;text-align:right;'>{sc}</div>
-  <div style='font-family:"JetBrains Mono",monospace;font-size:10px;color:#444;width:80px;text-align:right;'>초과 <span style="color:{RED};font-weight:700;">{p.get("overdue",0)}</span> · 오픈 {p.get("open",0)}</div>
-</div>"""
-        s_risk = f"""
-<div style='margin-bottom:32px;'>
-  {_sec_label("Risk Projects — 위험 프로젝트")}
-  <div>{rows_html}</div>
-</div>"""
-
-    # ── 3. RISK FORECAST ──
-    s_forecast = ""
-    if "forecast" in sections:
-        def _fc_card(num, label, sub, color):
-            return (f"<td style='width:33%;padding:0 5px;'>"
-                    f"<div style='background:#111111;border:1px solid rgba(255,255,255,0.06);padding:18px 16px;'>"
-                    f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:8px;font-weight:700;"
-                    f"letter-spacing:0.15em;color:#444;text-transform:uppercase;margin-bottom:10px;'>{label}</div>"
-                    f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:32px;font-weight:700;"
-                    f"color:{color};line-height:1;'>{num}</div>"
-                    f"<div style='font-family:\"Plus Jakarta Sans\",sans-serif;font-size:10px;color:#444;margin-top:6px;'>{sub}</div>"
-                    f"</div></td>")
-        s_forecast = f"""
-<div style='margin-bottom:32px;'>
-  {_sec_label("Risk Forecast — 다음 주 예측")}
-  <table width='100%' cellpadding='0' cellspacing='0'>
-    <tr>
-      {_fc_card(fc_delay,      "차주 지연 예상", "이슈",      RED)}
-      {_fc_card(fc_milestones, "완료 위험",      "마일스톤",  AMBER)}
-      {_fc_card("—",           "리스크 변화",    "전주 대비", "#444")}
-    </tr>
-  </table>
-</div>"""
-
-    # ── 4. KEY METRICS ──
-    s_metrics = ""
-    if "metrics" in sections:
-        def _mc(num, label, sub, color, border_color):
-            return (f"<td style='width:25%;padding:0 5px;'>"
-                    f"<div style='background:#111111;border:1px solid rgba(255,255,255,0.06);"
-                    f"border-top:2px solid {border_color};padding:20px 16px;text-align:center;'>"
-                    f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:36px;"
-                    f"font-weight:700;color:{color};line-height:1;'>{num}</div>"
-                    f"<div style='font-family:\"JetBrains Mono\",monospace;font-size:8px;"
-                    f"font-weight:700;letter-spacing:0.15em;color:#444;text-transform:uppercase;margin-top:10px;'>{label}</div>"
-                    f"<div style='font-family:\"Plus Jakarta Sans\",sans-serif;font-size:10px;"
-                    f"color:#333;margin-top:3px;'>{sub}</div>"
-                    f"</div></td>")
-        s_metrics = f"""
-<div style='margin-bottom:32px;'>
-  {_sec_label("Key Metrics")}
-  <table width='100%' cellpadding='0' cellspacing='0'>
-    <tr>
-      {_mc(total_i, "Open",    "전체 이슈",  NAVY,  NAVY)}
-      {_mc(over_i,  "Overdue", "마감 초과",  RED,   RED)}
-      {_mc(open_i,  "Issues",  "오픈 이슈",  AMBER, AMBER)}
-      {_mc(members, "Members", "참여 인원",  GREEN, GREEN)}
-    </tr>
-  </table>
-</div>"""
-
-    # ── 5. VERSION PROGRESS ──
-    s_versions = ""
-    if "versions" in sections and version_rows:
-        vbadge = {
-            "CLOSED":  ("rgba(255,255,255,0.06)", "#666"),
-            "OVERDUE": (f"rgba(180,0,35,0.15)",   RED),
-            "LOCKED":  ("rgba(255,255,255,0.04)", "#444"),
-            "OPEN":    (f"rgba(42,122,74,0.15)",  GREEN),
-        }
-        rows_html = ""
-        for v in version_rows:
-            bb, bc   = vbadge.get(v["badge"], ("rgba(255,255,255,0.06)", "#666"))
-            due_c    = RED if v["badge"] == "OVERDUE" else "#444"
-            over_c   = RED if v["overdue"] > 0 else "#444"
-            open_cnt = v["total"] - v["closed"]
-            rows_html += f"""
-<div style='padding:14px 0;border-bottom:1px solid rgba(255,255,255,0.04);'>
-  <div style='display:flex;align-items:center;gap:10px;margin-bottom:10px;'>
-    <div style='font-family:"Plus Jakarta Sans",sans-serif;font-size:13px;font-weight:600;color:#cccccc;flex:1;'>{v["name"]}</div>
-    {_badge_dark(v["badge"], bb, bc)}
-    <div style='font-family:"JetBrains Mono",monospace;font-size:10px;color:{due_c};'>{v["due"]}</div>
-  </div>
-  <div style='display:flex;align-items:center;gap:12px;'>
-    <div style='flex:1;height:3px;background:rgba(255,255,255,0.06);'>
-      <div style='height:3px;background:{v["bar_color"]};width:{v["pct"]}%;'></div>
-    </div>
-    <div style='font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;color:{v["bar_color"]};width:36px;text-align:right;'>{v["pct"]}%</div>
-    <div style='display:flex;gap:1px;padding-left:12px;border-left:1px solid rgba(255,255,255,0.05);'>
-      <div style='width:46px;text-align:center;'><div style='font-family:"JetBrains Mono",monospace;font-size:8px;color:#333;margin-bottom:3px;'>완료</div><div style='font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:700;color:#cccccc;'>{v["closed"]}</div></div>
-      <div style='width:46px;text-align:center;'><div style='font-family:"JetBrains Mono",monospace;font-size:8px;color:#333;margin-bottom:3px;'>오픈</div><div style='font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:700;color:#666;'>{open_cnt}</div></div>
-      <div style='width:46px;text-align:center;'><div style='font-family:"JetBrains Mono",monospace;font-size:8px;color:#333;margin-bottom:3px;'>초과</div><div style='font-family:"JetBrains Mono",monospace;font-size:14px;font-weight:700;color:{over_c};'>{v["overdue"]}</div></div>
-    </div>
-  </div>
-</div>"""
-        s_versions = f"""
-<div style='margin-bottom:32px;'>
-  {_sec_label(f"Version Progress — {len(version_rows)}개 버전")}
-  {rows_html}
-</div>"""
-
-    # ── 6. CRITICAL ITEMS ──
-    s_critical = ""
-    if "critical" in sections and overdue_list:
-        def _critical_row(i):
-            iid   = i.get("id", "")
-            link  = f'<a href="#" style="color:{NAVY};font-family:JetBrains Mono,monospace;font-size:11px;text-decoration:none;">#{iid}</a>'
-            return (
-                f"<tr>"
-                + _td(link, NAVY)
-                + _td(i.get("subject", ""), "#cccccc")
-                + _td(i.get("assignee_short", ""))
-                + _td(i.get("status", ""))
-                + _td(i.get("due_date", ""), "#666", mono=True)
-                + _td(str(i.get("dday", "")), RED, align="right", mono=True, bold=True)
-                + "</tr>"
-            )
-        rows_html = "".join(_critical_row(i) for i in overdue_list)
-        s_critical = f"""
-<div style='margin-bottom:32px;'>
-  <div style='display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;'>
-    {_sec_label("Critical Items — 즉시 처리").replace("margin-bottom:14px","margin-bottom:0")}
-    <span style='font-family:"JetBrains Mono",monospace;font-size:9px;font-weight:700;
-    letter-spacing:0.1em;color:{RED};background:rgba(180,0,35,0.12);padding:3px 9px;white-space:nowrap;'>{len(overdue_list)} OVERDUE</span>
-  </div>
-  <table width='100%' cellpadding='0' cellspacing='0'>
-    <thead><tr>
-      {_th("#", "left")}{_th("제목")}{_th("담당")}{_th("상태")}{_th("마감일")}{_th("D-DAY", "right")}
-    </tr></thead>
-    <tbody>{rows_html}</tbody>
-  </table>
-</div>"""
-
-    # ── 7. ASSIGNEE LOAD ──
-    s_assignee = ""
-    if "assignee" in sections and assignee_list:
-        max_open = max((a.get("open", 0) for a in assignee_list), default=1) or 1
-        rows_html = ""
-        for a in assignee_list:
-            pct    = round(a.get("open", 0) / max_open * 100)
-            has_ov = a.get("overdue", 0) > 0
-            bar_c  = RED if has_ov else GREEN
-            stat_c = RED if has_ov else "#666"
-            rows_html += f"""
-<div style='display:flex;align-items:center;gap:14px;padding:10px 0;border-bottom:1px solid rgba(255,255,255,0.04);'>
-  <div style='font-family:"Plus Jakarta Sans",sans-serif;font-size:12px;color:#cccccc;min-width:110px;'>{a.get("name","")}</div>
-  <div style='flex:1;height:3px;background:rgba(255,255,255,0.05);'>
-    <div style='height:3px;background:{bar_c};width:{pct}%;'></div>
-  </div>
-  <div style='font-family:"JetBrains Mono",monospace;font-size:10px;color:{stat_c};min-width:100px;text-align:right;'>오픈 {a.get("open",0)} · 초과 {a.get("overdue",0)}</div>
-</div>"""
-        s_assignee = f"""
-<div style='margin-bottom:32px;'>
-  {_sec_label("Assignee Load — 담당자 부하")}
-  {rows_html}
-</div>"""
+    # ── Issue Matrix ──
+    TD  = "padding:10px 14px;border-bottom:1px solid rgba(255,255,255,0.05);text-align:center;"
+    TDL = TD + "text-align:left;"
+    matrix_rows_html = ""
+    totals = {"ov": 0, "ur": 0, "ip": 0, "pe": 0, "re": 0}
+    for u in sorted(users_list, key=lambda x: (-getattr(x, "overdue_cnt", 0), -getattr(x, "open_cnt", 0))):
+        ov = getattr(u, "overdue_cnt",     0)
+        ur = getattr(u, "urgent_cnt",      0)
+        ip = getattr(u, "in_progress_cnt", 0)
+        pe = getattr(u, "pending_cnt",     0)
+        re = getattr(u, "resolved_cnt",    0)
+        totals["ov"] += ov; totals["ur"] += ur
+        totals["ip"] += ip; totals["pe"] += pe; totals["re"] += re
+        matrix_rows_html += (
+            f"<tr>"
+            f"<td style='{TDL}font-size:10px;color:{MID};white-space:nowrap;'>{u.dept}</td>"
+            f"<td style='{TDL}font-size:13px;font-weight:500;color:#f2efea;'>{u.name}</td>"
+            f"<td class='mn' style='{TD}color:{RED if ov else DIM};font-weight:{'700' if ov else '400'};'>{ov or '—'}</td>"
+            f"<td class='mn' style='{TD}color:{AMBER if ur else DIM};font-weight:{'700' if ur else '400'};'>{ur or '—'}</td>"
+            f"<td class='mn' style='{TD}color:{MID};'>{ip or '—'}</td>"
+            f"<td class='mn' style='{TD}color:{DIM};'>{pe or '—'}</td>"
+            f"<td class='mn' style='{TD}color:{GREEN};'>{re or '—'}</td>"
+            f"</tr>"
+        )
+    matrix_rows_html += (
+        f"<tr class='total-row'>"
+        f"<td colspan='2' style='{TDL}font-size:9px;letter-spacing:0.12em;text-transform:uppercase;color:{GHOST};'>TOTAL</td>"
+        f"<td class='mn' style='{TD}color:{RED};font-weight:700;'>{totals['ov'] or '—'}</td>"
+        f"<td class='mn' style='{TD}color:{AMBER};font-weight:700;'>{totals['ur'] or '—'}</td>"
+        f"<td class='mn' style='{TD}color:{MID};'>{totals['ip'] or '—'}</td>"
+        f"<td class='mn' style='{TD}color:{DIM};'>{totals['pe'] or '—'}</td>"
+        f"<td class='mn' style='{TD}color:{GREEN};'>{totals['re'] or '—'}</td>"
+        f"</tr>"
+    )
 
     # ── PM MEMO ──
-    s_memo = ""
+    memo_html = ""
     if memo and memo.strip():
-        s_memo = f"""
-<div style='margin-bottom:32px;'>
-  <div style='border-left:2px solid #333;padding:14px 18px;background:#111111;'>
-    <div style='font-family:"JetBrains Mono",monospace;font-size:8px;font-weight:700;
-    letter-spacing:0.18em;color:#333;text-transform:uppercase;margin-bottom:8px;'>PM Comment</div>
-    <div style='font-family:"Plus Jakarta Sans",sans-serif;font-size:12px;line-height:1.8;
-    color:#666;white-space:pre-wrap;'>{memo}</div>
-  </div>
-</div>"""
+        memo_html = (
+            f"<section class='report-section'>"
+            f"<div class='sec-label'>COMMENT</div>"
+            f"<div style='font-size:13px;line-height:1.9;color:{MID};white-space:pre-wrap;margin-top:4px;'>{memo}</div>"
+            f"</section>"
+        )
 
-    # ── 최종 반환 ──
     return f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{proj_label} 주간 리포트</title>
+<title>{proj_label} 리스크 브리핑</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
-* {{ box-sizing: border-box; margin: 0; padding: 0; }}
-body {{ background: #0a0a0a; color: #f0f0f0; font-family: 'Plus Jakarta Sans', sans-serif;
-  font-size: 13px; -webkit-font-smoothing: antialiased; padding: 40px 0; }}
-a {{ color: {NAVY}; text-decoration: none; }}
+*,*::before,*::after {{ box-sizing:border-box; margin:0; padding:0; }}
+body {{ background:#0c0c0c; color:#f2efea; font-family:'DM Sans',sans-serif; -webkit-font-smoothing:antialiased; }}
+table {{ border-collapse:collapse; width:100%; }}
+
+.page {{ max-width:960px; margin:0 auto; padding:0 40px 80px; }}
+
+/* ── header ── */
+.report-header {{
+  display:flex; justify-content:space-between; align-items:flex-end;
+  padding:48px 0 28px;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+  margin-bottom:0;
+}}
+.hd-eyebrow {{ font-family:'DM Mono',monospace; font-size:9px; font-weight:500; letter-spacing:0.22em; color:{GHOST}; text-transform:uppercase; margin-bottom:10px; }}
+.hd-title   {{ font-size:32px; font-weight:700; letter-spacing:-0.03em; color:#f2efea; line-height:0.95; }}
+.hd-period  {{ font-family:'DM Mono',monospace; font-size:11px; color:{DIM}; margin-top:10px; }}
+.hd-right   {{ text-align:right; }}
+.hd-gen-lbl {{ font-family:'DM Mono',monospace; font-size:9px; color:{GHOST}; letter-spacing:0.15em; text-transform:uppercase; }}
+.hd-gen-ts  {{ font-family:'DM Mono',monospace; font-size:11px; color:{DIM}; margin-top:5px; }}
+
+/* ── section ── */
+.report-section {{
+  padding:32px 0;
+  border-bottom:1px solid rgba(255,255,255,0.07);
+}}
+.sec-label {{
+  font-family:'DM Mono',monospace; font-size:9px; font-weight:500;
+  letter-spacing:0.22em; color:{GHOST}; text-transform:uppercase;
+  margin-bottom:22px;
+}}
+
+/* ── HERO ── */
+.hero {{ display:grid; grid-template-columns:300px 1fr; gap:0; border-bottom:1px solid rgba(255,255,255,0.07); }}
+.hero-risk   {{ padding:32px 32px 32px 0; border-right:1px solid rgba(255,255,255,0.07); }}
+.hero-trend  {{ padding:32px 0 32px 32px; }}
+
+/* risk number */
+.risk-block {{ display:flex; align-items:flex-start; gap:16px; }}
+.risk-num   {{ font-size:96px; font-weight:700; line-height:0.85; letter-spacing:-0.06em; color:#f2efea; }}
+.risk-meta  {{ padding-top:10px; }}
+.risk-state {{
+  display:inline-flex; align-items:center; gap:8px;
+  padding:5px 12px; font-size:12px; font-weight:700; letter-spacing:0.08em;
+  color:#0c0c0c;
+}}
+.risk-dot {{ width:6px; height:6px; background:#0c0c0c; border-radius:0; flex-shrink:0; }}
+
+/* gauge */
+.gauge {{ margin-top:28px; }}
+.gauge-bars {{
+  display:flex; align-items:flex-end; gap:2px; height:28px;
+}}
+.gauge-axis {{
+  display:flex; justify-content:space-between; margin-top:6px;
+  font-size:9px; font-family:'DM Mono',monospace; color:{DIM}; letter-spacing:0.1em;
+}}
+
+/* risk comment */
+.risk-comment {{
+  margin-top:22px; padding-top:18px;
+  border-top:1px solid rgba(255,255,255,0.06);
+  display:flex; align-items:flex-start; gap:10px;
+}}
+.risk-comment .sparkle {{ color:{AMBER}; font-size:13px; flex-shrink:0; line-height:1.6; }}
+.risk-comment .body    {{ font-size:12px; color:#f2efea; line-height:1.7; font-weight:500; }}
+
+/* trend head */
+.trend-head {{ display:flex; justify-content:space-between; align-items:baseline; margin-bottom:20px; }}
+.trend-label {{ font-family:'DM Mono',monospace; font-size:9px; font-weight:500; letter-spacing:0.22em; color:{GHOST}; text-transform:uppercase; }}
+.trend-sub   {{ font-family:'DM Mono',monospace; font-size:10px; color:{DIM}; margin-top:5px; }}
+
+/* ── KPI ribbon ── */
+.kpi-ribbon {{
+  display:grid; grid-template-columns:repeat(6,1fr);
+  border-bottom:1px solid rgba(255,255,255,0.07);
+}}
+.kpi-cell {{
+  padding:24px 20px;
+  border-right:1px solid rgba(255,255,255,0.07);
+}}
+.kpi-cell:last-child {{ border-right:none; }}
+.kpi-k    {{ font-size:11px; color:{MID}; margin-bottom:10px; }}
+.kpi-vrow {{ display:flex; align-items:baseline; gap:7px; flex-wrap:wrap; }}
+.kpi-v    {{ font-size:32px; font-weight:700; line-height:1; letter-spacing:-0.04em; }}
+.kpi-s    {{ font-size:10px; }}
+
+/* ── AI insights ── */
+.insights-grid {{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }}
+.ins-card  {{ padding:18px 20px; border:1px solid rgba(255,255,255,0.07); }}
+.ins-badge {{ font-family:'DM Mono',monospace; font-size:8px; font-weight:500; letter-spacing:0.1em; }}
+.ins-body  {{ font-size:12px; font-weight:500; color:#f2efea; line-height:1.65; margin-top:8px; }}
+.ins-who   {{ font-size:10px; color:{MID}; margin-top:6px; }}
+
+/* ── matrix ── */
+.matrix-head {{
+  display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;
+}}
+.matrix-badge {{
+  font-family:'DM Mono',monospace; font-size:8px; color:{RED};
+  background:rgba(239,68,68,0.08); padding:3px 10px; letter-spacing:0.08em;
+}}
+.mn {{ font-family:'DM Mono',monospace; font-size:13px; }}
+th  {{
+  font-family:'DM Mono',monospace; font-size:8px; font-weight:500;
+  letter-spacing:0.12em; color:{GHOST}; text-transform:uppercase;
+  border-bottom:1px solid rgba(255,255,255,0.07); padding:9px 14px;
+  white-space:nowrap; text-align:center;
+}}
+th.thl {{ text-align:left; }}
+.total-row {{ background:rgba(255,255,255,0.02); }}
 </style>
 </head>
 <body>
-<div style="max-width:780px;margin:0 auto;padding:0 24px;">
+<div class="page">
 
-  <!-- 헤더 -->
-  <div style="border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:28px;margin-bottom:32px;display:flex;justify-content:space-between;align-items:flex-end;">
+  <!-- HEADER -->
+  <header class="report-header">
     <div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;font-weight:700;letter-spacing:0.22em;color:#444;text-transform:uppercase;margin-bottom:10px;">Vantix · Weekly Report</div>
-      <div style="font-size:26px;font-weight:800;letter-spacing:-0.02em;color:#ffffff;line-height:1;">{proj_label}</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#555;margin-top:8px;">{period_label}</div>
+      <div class="hd-eyebrow">Vantix · Risk Briefing</div>
+      <div class="hd-title">{proj_label}</div>
+      <div class="hd-period">{period_label}</div>
     </div>
-    <div style="text-align:right;">
-      <div style="font-family:'JetBrains Mono',monospace;font-size:9px;color:#333;letter-spacing:0.15em;text-transform:uppercase;">Generated</div>
-      <div style="font-family:'JetBrains Mono',monospace;font-size:11px;color:#444;margin-top:5px;">{gen_ts}</div>
+    <div class="hd-right">
+      <div class="hd-gen-lbl">Generated</div>
+      <div class="hd-gen-ts">{gen_ts}</div>
+    </div>
+  </header>
+
+  <!-- HERO: Risk Score + Trend -->
+  <div class="hero">
+    <div class="hero-risk">
+      <div class="sec-label">CURRENT RISK INDEX <span style="color:{GHOST};font-weight:400;">/100</span></div>
+      <div class="risk-block">
+        <div class="risk-num" style="color:{risk_color};">{risk_score}</div>
+        <div class="risk-meta">
+          <div class="risk-state" style="background:{risk_color};">
+            <span class="risk-dot"></span>{risk_level.upper()}
+          </div>
+        </div>
+      </div>
+      <div class="gauge">
+        <div class="gauge-bars">{gauge_ticks}</div>
+        <div class="gauge-axis">
+          <span>0 LOW</span><span>40</span><span>70 HIGH</span><span>100 CRIT</span>
+        </div>
+      </div>
+      <div class="risk-comment">
+        <span class="sparkle">✦</span>
+        <div class="body">{risk_comment}</div>
+      </div>
+    </div>
+    <div class="hero-trend">
+      <div class="trend-head">
+        <div>
+          <div class="trend-label">RISK SCORE TRENDS</div>
+        </div>
+      </div>
+      {trend_html}
     </div>
   </div>
 
-  {s_insights}
-  {s_signal}
-  {s_risk}
-  {s_forecast}
-  {s_metrics}
-  {s_versions}
-  {s_critical}
-  {s_assignee}
-  {s_memo}
-
-  <!-- 푸터 -->
-  <div style="border-top:1px solid rgba(255,255,255,0.05);margin-top:40px;padding-top:20px;display:flex;justify-content:space-between;align-items:center;">
-    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;font-weight:700;letter-spacing:0.25em;color:#222;">VANTIX</div>
-    <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:#222;">자동 생성 · {gen_ts}</div>
+  <!-- KPI RIBBON -->
+  <div class="kpi-ribbon">
+    {kpi_cells}
   </div>
+
+  <!-- AI INSIGHTS -->
+  <section class="report-section">
+    <div class="sec-label">AI INSIGHTS</div>
+    <div class="insights-grid">
+      {insight_cards}
+    </div>
+  </section>
+
+  <!-- ISSUE MATRIX -->
+  <section class="report-section">
+    <div class="matrix-head">
+      <div class="sec-label" style="margin-bottom:0;">ISSUE MATRIX</div>
+      <span class="matrix-badge">{len(overdue_list)} OVERDUE</span>
+    </div>
+    <table>
+      <thead><tr>
+        <th class="thl">Dept</th>
+        <th class="thl">Name</th>
+        <th>마감초과</th>
+        <th>D-7임박</th>
+        <th>진행중</th>
+        <th>진행대기</th>
+        <th>해결</th>
+      </tr></thead>
+      <tbody>{matrix_rows_html}</tbody>
+    </table>
+  </section>
+
+  {memo_html}
 
 </div>
 </body>

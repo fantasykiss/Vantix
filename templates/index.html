@@ -346,6 +346,11 @@ html, body {
   background: transparent; cursor: pointer;
 }
 .icon-btn:hover { color: var(--text); border-color: var(--ghost-2); }
+.icon-btn-report {
+  border: 1.5px solid rgba(255,255,255,0.55);
+  color: var(--text);
+}
+.icon-btn-report:hover { border-color: #fff; color: #fff; }
 
 /* Sidebar-open panel button (above crown when collapsed) */
 .sidebar-open-btn {
@@ -1292,8 +1297,8 @@ html, body {
       </button>
       <span class="topbar-divider"></span>
       <!-- 리포트 -->
-      <button class="icon-btn" title="리포트 내보내기" onclick="openReport()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 2v7M4.5 6.5L7 9l2.5-2.5" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/><path d="M2 10v1a1 1 0 001 1h8a1 1 0 001-1v-1" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/></svg>
+      <button class="icon-btn icon-btn-report" title="리포트 내보내기" onclick="openReport()">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
       </button>
       <!-- 연결 설정 -->
       <button class="icon-btn" title="연결 설정" onclick="openSettingsModal()">
@@ -1620,41 +1625,20 @@ html, body {
       <div id="report-modal-project" style="font-size:11px;color:var(--text-dim);letter-spacing:0.05em;"></div>
     </div>
     <div style="padding:20px 24px;">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
-        <div style="font-size:9px;font-weight:700;letter-spacing:0.18em;color:var(--text-dim);">포함할 섹션 선택</div>
-        <span id="report-select-all" style="font-size:10px;color:var(--text-mid);cursor:pointer;letter-spacing:0.05em;" onclick="reportToggleAll()">전체 선택</span>
-      </div>
-      <div id="report-cb-list">
-        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="signal"><div class="r-cb-box r-cb-on"></div><div class="r-cb-label">WEEKLY SIGNAL <span style="color:var(--text-dim);">— AI 주간 요약</span></div></div>
-        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="risk"><div class="r-cb-box r-cb-on"></div><div class="r-cb-label">RISK PROJECTS <span style="color:var(--text-dim);">— 위험 프로젝트 순위</span></div></div>
-        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="forecast"><div class="r-cb-box r-cb-on"></div><div class="r-cb-label">RISK FORECAST <span style="color:var(--text-dim);">— 다음 주 리스크 예측</span></div></div>
-        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="metrics"><div class="r-cb-box r-cb-on"></div><div class="r-cb-label">KEY METRICS <span style="color:var(--text-dim);">— 오픈 / 초과 / 인원</span></div></div>
-        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="versions"><div class="r-cb-box r-cb-on"></div><div class="r-cb-label">VERSION PROGRESS <span style="color:var(--text-dim);">— 버전별 진행상태</span></div></div>
-        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="critical"><div class="r-cb-box r-cb-on"></div><div class="r-cb-label">CRITICAL ITEMS <span style="color:var(--text-dim);">— 즉시 처리 이슈</span></div></div>
-        <div class="r-cb-row" onclick="reportToggleCb(this)" data-key="assignee"><div class="r-cb-box r-cb-on"></div><div class="r-cb-label">ASSIGNEE LOAD <span style="color:var(--text-dim);">— 담당자 부하 현황</span></div></div>
-      </div>
-      <div style="height:1px;background:var(--ghost-2);margin:16px 0;"></div>
-      <div style="font-size:9px;font-weight:700;letter-spacing:0.18em;color:var(--text-dim);margin-bottom:8px;">REPORT MEMO <span style="color:var(--text-ghost);font-weight:400;">— 선택사항</span></div>
-      <textarea id="report-memo-input" style="width:100%;border:1px solid var(--ghost-2);padding:10px 12px;font-family:var(--dm);font-size:12px;color:var(--text);resize:none;height:72px;outline:none;background:var(--surface-mid);box-sizing:border-box;" placeholder="이번 주 특이사항, 전달 메시지 등을 입력하세요.&#10;리포트 최하단에 PM 코멘트 형식으로 삽입됩니다."></textarea>
+      <div style="font-size:9px;font-weight:700;letter-spacing:0.18em;color:var(--text-dim);margin-bottom:8px;">COMMENT <span style="color:var(--text-ghost);font-weight:400;">— 선택사항</span></div>
+      <textarea id="report-memo-input" style="width:100%;border:1px solid var(--ghost-2);padding:10px 12px;font-family:var(--dm);font-size:12px;color:var(--text);resize:none;height:80px;outline:none;background:var(--surface-mid);box-sizing:border-box;" placeholder="이번 주 특이사항, 전달 메시지 등을 입력하세요.&#10;리포트 하단에 코멘트로 삽입됩니다."></textarea>
+      <div style="margin-top:12px;font-size:10px;color:var(--text-dim);line-height:1.6;">Weekly Signal · Critical Items · Assignee Load · AI Action Items 포함</div>
     </div>
-    <div style="padding:14px 24px;border-top:1px solid var(--ghost-2);display:flex;gap:8px;align-items:center;">
-      <span id="report-count-label" style="font-size:10px;color:var(--text-dim);margin-right:auto;font-family:var(--dm);">7개 섹션 선택됨</span>
-      <button onclick="closeReportModal()" style="font-size:11px;letter-spacing:0.1em;color:var(--text-mid);background:none;border:1px solid var(--ghost-2);padding:9px 18px;cursor:pointer;font-family:var(--dm);">취소</button>
-      <button id="report-export-btn" onclick="doExportReport()" style="font-size:11px;letter-spacing:0.12em;color:var(--bg);background:var(--text);border:none;padding:9px 22px;cursor:pointer;font-family:var(--dm);font-weight:700;">EXPORT .HTML ↓</button>
+    <div style="padding:12px 24px;border-top:1px solid var(--ghost-2);display:flex;gap:6px;align-items:center;">
+      <button onclick="closeReportModal()" style="font-size:10px;letter-spacing:0.08em;color:var(--text-mid);background:none;border:1px solid var(--ghost-2);padding:8px 14px;cursor:pointer;font-family:var(--dm);flex-shrink:0;">취소</button>
+      <button id="report-copy-btn" onclick="doCopyReport()" style="font-size:10px;letter-spacing:0.08em;color:var(--text-mid);background:none;border:1px solid var(--ghost-2);padding:8px 14px;cursor:pointer;font-family:var(--dm);flex-shrink:0;">복사</button>
+      <button id="report-share-btn" onclick="doShareReport()" style="font-size:10px;letter-spacing:0.08em;color:var(--text-mid);background:none;border:1px solid var(--ghost-2);padding:8px 14px;cursor:pointer;font-family:var(--dm);flex-shrink:0;">링크 공유</button>
+      <button disabled title="준비 중" style="font-size:10px;letter-spacing:0.08em;color:var(--text-ghost);background:none;border:1px solid var(--ghost);padding:8px 14px;cursor:not-allowed;font-family:var(--dm);flex-shrink:0;">Notion</button>
+      <button id="report-export-btn" onclick="doExportReport()" style="font-size:10px;letter-spacing:0.1em;color:var(--bg);background:var(--text);border:none;padding:8px 18px;cursor:pointer;font-family:var(--dm);font-weight:700;margin-left:auto;flex-shrink:0;">EXPORT .HTML ↓</button>
     </div>
   </div>
 </div>
 
-<!-- ── 리포트 체크박스 CSS ── -->
-<style>
-.r-cb-row { display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--ghost);cursor:pointer;user-select:none; }
-.r-cb-row:last-child { border-bottom:none; }
-.r-cb-row:hover .r-cb-box { border-color:var(--text-mid); }
-.r-cb-box { width:14px;height:14px;border:1px solid var(--ghost-2);flex-shrink:0;position:relative;transition:border-color .15s; }
-.r-cb-box.r-cb-on { border-color:var(--text-mid); }
-.r-cb-box.r-cb-on::after { content:'';position:absolute;inset:2px;background:var(--text); }
-.r-cb-label { font-size:11px;color:var(--text-mid);letter-spacing:0.04em; }
-</style>
 
 <!-- ══ 연결 설정 모달 ══════════════════════════════════════════ -->
 <div id="settings-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9000;align-items:center;justify-content:center;" onclick="closeSettingsModal(event)">
@@ -2853,7 +2837,6 @@ function openReport() {
     : 'ALL PROJECTS';
   document.getElementById('report-modal-project').textContent = projLabel;
   document.getElementById('report-memo-input').value = '';
-  reportUpdateCount();
 }
 
 function closeReportModal(e) {
@@ -2861,44 +2844,54 @@ function closeReportModal(e) {
   document.getElementById('report-modal-overlay').style.display = 'none';
 }
 
-function reportToggleCb(row) {
-  row.querySelector('.r-cb-box').classList.toggle('r-cb-on');
-  reportUpdateCount();
-}
-
-function reportToggleAll() {
-  var boxes = document.querySelectorAll('#report-cb-list .r-cb-box');
-  var allOn = Array.from(boxes).every(function(b) { return b.classList.contains('r-cb-on'); });
-  boxes.forEach(function(b) { allOn ? b.classList.remove('r-cb-on') : b.classList.add('r-cb-on'); });
-  document.getElementById('report-select-all').textContent = allOn ? '전체 선택' : '전체 해제';
-  reportUpdateCount();
-}
-
-function reportUpdateCount() {
-  var cnt = document.querySelectorAll('#report-cb-list .r-cb-on').length;
-  document.getElementById('report-count-label').textContent = cnt + '개 섹션 선택됨';
+async function _generateReportHtml() {
+  var memo = document.getElementById('report-memo-input').value.trim();
+  var params = new URLSearchParams({ project_id: currentProjectId || '', updated_after: currentUpdatedAfter || '', memo: memo });
+  var res = await fetch('/api/report/preview?' + params);
+  if (!res.ok) throw new Error('서버 오류 ' + res.status);
+  return await res.text();
 }
 
 async function doExportReport() {
-  var rows = document.querySelectorAll('#report-cb-list .r-cb-row');
-  var selected = [];
-  rows.forEach(function(row) { if (row.querySelector('.r-cb-on')) selected.push(row.getAttribute('data-key')); });
-  if (!selected.length) { alert('최소 1개 섹션을 선택해주세요.'); return; }
-  var memo = document.getElementById('report-memo-input').value.trim();
-  var params = new URLSearchParams({ project_id: currentProjectId || '', updated_after: currentUpdatedAfter || '', sections: selected.join(','), memo: memo });
   var btn = document.getElementById('report-export-btn');
   btn.textContent = '생성 중...'; btn.disabled = true;
   try {
-    var res = await fetch('/api/report/preview?' + params);
-    if (!res.ok) throw new Error('서버 오류 ' + res.status);
-    var html = await res.text();
+    var html = await _generateReportHtml();
     document.getElementById('report-modal-overlay').style.display = 'none';
-    // 새 탭에 미리보기 열기
     var blob = new Blob([html], { type: 'text/html' });
-    var url = URL.createObjectURL(blob);
-    window.open(url, '_blank');
+    window.open(URL.createObjectURL(blob), '_blank');
   } catch(e) { alert('리포트 생성 실패: ' + e.message); }
   finally { btn.textContent = 'EXPORT .HTML ↓'; btn.disabled = false; }
+}
+
+async function doCopyReport() {
+  var btn = document.getElementById('report-copy-btn');
+  btn.textContent = '복사 중...'; btn.disabled = true;
+  try {
+    var html = await _generateReportHtml();
+    await navigator.clipboard.writeText(html);
+    btn.textContent = '복사됨 ✓';
+    setTimeout(function() { btn.textContent = '복사'; btn.disabled = false; }, 2000);
+  } catch(e) { alert('복사 실패: ' + e.message); btn.textContent = '복사'; btn.disabled = false; }
+}
+
+async function doShareReport() {
+  var btn = document.getElementById('report-share-btn');
+  btn.textContent = '생성 중...'; btn.disabled = true;
+  try {
+    var html = await _generateReportHtml();
+    var res = await fetch('/api/report/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ html: html })
+    });
+    if (!res.ok) throw new Error('서버 오류 ' + res.status);
+    var data = await res.json();
+    var shareUrl = window.location.origin + '/report/' + data.token;
+    await navigator.clipboard.writeText(shareUrl);
+    btn.textContent = '링크 복사됨 ✓';
+    setTimeout(function() { btn.textContent = '링크 공유'; btn.disabled = false; }, 2500);
+  } catch(e) { alert('링크 생성 실패: ' + e.message); btn.textContent = '링크 공유'; btn.disabled = false; }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -4119,6 +4112,7 @@ function _renderMatrix(container, d) {
 
   container.innerHTML = html;
   _bindMatrixCells();
+  if (_mxSel) setTimeout(_renderDrill, 0);
 }
 
 function _bindMatrixCells() {
@@ -4193,6 +4187,13 @@ function _renderDrill() {
   if (!drillEl) return;
   var sel = _mxSel;
   if (!sel) { drillEl.innerHTML = '<div class="drill-empty">셀을 클릭하면 이슈 매트릭스이 표시됩니다.</div>'; return; }
+
+  // Restore selected cell highlight
+  document.querySelectorAll('#mx-grid .cell').forEach(function(c) {
+    var match = c.getAttribute('data-who') === sel.who && c.getAttribute('data-bucket') === sel.bucket;
+    c.classList.toggle('selected', match);
+    c.setAttribute('aria-pressed', match ? 'true' : 'false');
+  });
 
   // Gather issues for selected cell
   var issues;
