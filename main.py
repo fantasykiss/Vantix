@@ -7,6 +7,8 @@ Redmine 실시간 웹 대시보드
 
 import json
 import os
+import re
+import sqlite3
 import ssl
 import threading
 import time
@@ -17,10 +19,11 @@ from datetime import date, datetime, timedelta
 from fastapi import FastAPI, HTTPException, Request, Depends
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
+from passlib.context import CryptContext
 import uvicorn
 
 # ==================== 서버 설정 ====================
-from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY, ADMIN_PASSWORD, DEMO_URL, DEMO_KEY
+from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY, ADMIN_PASSWORD, DEMO_URL, DEMO_KEY, OWNER_IPS
 import uuid as _uuid
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -42,7 +45,7 @@ def _decrypt_key(stored: str) -> str:
 
 # ── 세션 스토어 (Postgres 우선, 파일 폴백) ──────────────────
 SESSION_TTL = 86400 * 30      # 30일
-_SESSION_FILE = os.path.join(os.path.dirname(__file__), "sessions.json")
+_SESSION_FILE = os.getenv("SESSIONS_PATH", os.path.join(os.path.dirname(__file__), "sessions.json"))
 _DATABASE_URL = os.getenv("DATABASE_URL", "")
 
 _db_pool = None
@@ -311,6 +314,97 @@ def _require_session(request: Request) -> dict:
 _init_session_table()
 _init_analytics_tables()
 _warm_session_cache()
+
+# ==================== 유저 DB (SQLite) ====================
+_pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
+_USERS_DB = os.getenv("USERS_DB_PATH", os.path.join(os.path.dirname(__file__), "vantix_users.db"))
+
+def _users_db() -> sqlite3.Connection:
+    conn = sqlite3.connect(_USERS_DB, check_same_thread=False)
+    conn.row_factory = sqlite3.Row
+    return conn
+
+def _init_users_db():
+    with _users_db() as conn:
+        conn.executescript("""
+            CREATE TABLE IF NOT EXISTS users (
+                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+                email            TEXT    UNIQUE NOT NULL,
+                hashed_password  TEXT    NOT NULL,
+                created_at       REAL    NOT NULL,
+                is_active        INTEGER DEFAULT 1
+            );
+            CREATE TABLE IF NOT EXISTS redmine_connections (
+                id                INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id           INTEGER NOT NULL REFERENCES users(id),
+                redmine_url       TEXT    NOT NULL,
+                api_key           TEXT    NOT NULL,
+                default_project_id TEXT   DEFAULT '',
+                updated_after     TEXT    DEFAULT '',
+                created_at        REAL    NOT NULL
+            );
+        """)
+
+_init_users_db()
+
+def _create_user(email: str, password: str) -> int:
+    hashed = _pwd_ctx.hash(password)
+    with _users_db() as conn:
+        cur = conn.execute(
+            "INSERT INTO users (email, hashed_password, created_at) VALUES (?,?,?)",
+            (email.lower().strip(), hashed, time.time())
+        )
+        return cur.lastrowid
+
+def _get_user_by_email(email: str) -> dict | None:
+    with _users_db() as conn:
+        row = conn.execute("SELECT * FROM users WHERE email=? AND is_active=1", (email.lower().strip(),)).fetchone()
+        return dict(row) if row else None
+
+def _get_user_by_id(user_id: int) -> dict | None:
+    with _users_db() as conn:
+        row = conn.execute("SELECT * FROM users WHERE id=? AND is_active=1", (user_id,)).fetchone()
+        return dict(row) if row else None
+
+def _verify_password(plain: str, hashed: str) -> bool:
+    return _pwd_ctx.verify(plain, hashed)
+
+def _save_redmine_connection(user_id: int, redmine_url: str, api_key: str,
+                              default_project_id: str = "", updated_after: str = ""):
+    encrypted_key = _encrypt_key(api_key)
+    with _users_db() as conn:
+        existing = conn.execute("SELECT id FROM redmine_connections WHERE user_id=?", (user_id,)).fetchone()
+        if existing:
+            conn.execute(
+                "UPDATE redmine_connections SET redmine_url=?, api_key=?, default_project_id=?, updated_after=? WHERE user_id=?",
+                (redmine_url, encrypted_key, default_project_id, updated_after, user_id)
+            )
+        else:
+            conn.execute(
+                "INSERT INTO redmine_connections (user_id, redmine_url, api_key, default_project_id, updated_after, created_at) VALUES (?,?,?,?,?,?)",
+                (user_id, redmine_url, encrypted_key, default_project_id, updated_after, time.time())
+            )
+
+def _get_redmine_connection(user_id: int) -> dict | None:
+    with _users_db() as conn:
+        row = conn.execute("SELECT * FROM redmine_connections WHERE user_id=?", (user_id,)).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        d["api_key"] = _decrypt_key(d["api_key"])
+        return d
+
+# 세션에 user_id를 태그하기 위한 확장 저장소 (메모리)
+_session_user_map: dict[str, int] = {}  # token → user_id
+
+def _tag_session_user(token: str, user_id: int):
+    _session_user_map[token] = user_id
+
+def _get_session_user_id(token: str) -> int | None:
+    return _session_user_map.get(token)
+
+# ============================================================
+
 from app.reporter import build_report_data, render_html_report, render_tsv_report, send_report_email
 from app.constants import PROGRESS_SET, RESOLVED_SET, CLOSED_SET, HOLD_SET, DEPT_NORMALIZE, dept_name, short_name
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -594,7 +688,7 @@ def _job_weekly_report():
         print(f"  리포트 오류: {e}")
 
 # ── Risk 스냅샷 저장 ──────────────────────────────────────────
-RISK_HISTORY_PATH = os.path.join(os.path.dirname(__file__), "risk_history.json")
+RISK_HISTORY_PATH = os.getenv("RISK_HISTORY_PATH", os.path.join(os.path.dirname(__file__), "risk_history.json"))
 
 def save_risk_snapshot():
     """
@@ -2027,6 +2121,7 @@ async def api_admin_events(request: Request, env: str = "", period: str = "7d", 
                 "env": r[6] or "",
                 "ts": r[7] or "",
                 "is_new": is_new,
+                "is_owner": ip in OWNER_IPS,
             })
         return {"items": items}
     except Exception as e:
@@ -2065,6 +2160,143 @@ async def insights_mockup():
     template_path = os.path.join(os.path.dirname(__file__), "templates", "insights-mockup.html")
     with open(template_path, "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read())
+
+# ==================== AUTH 엔드포인트 ====================
+
+@app.post("/api/auth/signup")
+async def api_auth_signup(request: Request):
+    """이메일 + 비밀번호로 계정 생성"""
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    password = body.get("password") or ""
+
+    if not email or not re.match(r"^[^@]+@[^@]+\.[^@]+$", email):
+        raise HTTPException(status_code=400, detail="유효한 이메일을 입력하세요")
+    if len(password) < 8:
+        raise HTTPException(status_code=400, detail="비밀번호는 8자 이상이어야 합니다")
+
+    if _get_user_by_email(email):
+        raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다")
+
+    user_id = _create_user(email, password)
+    return JSONResponse({"ok": True, "user_id": user_id, "email": email})
+
+
+@app.post("/api/auth/login")
+async def api_auth_login(request: Request):
+    """로그인 → 저장된 Redmine 연결이 있으면 세션 자동 발급"""
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    password = body.get("password") or ""
+
+    user = _get_user_by_email(email)
+    if not user or not _verify_password(password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다")
+
+    conn_info = _get_redmine_connection(user["id"])
+    if conn_info:
+        # Redmine 연결이 저장돼 있으면 세션 자동 발급
+        token = str(_uuid.uuid4())
+        _save_session(token, conn_info["redmine_url"], conn_info["api_key"], time.time())
+        _tag_session_user(token, user["id"])
+        response = JSONResponse({"ok": True, "has_connection": True, "email": email})
+        response.set_cookie("vx_session", token, httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
+        response.set_cookie("vx_user_id", str(user["id"]), httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
+        return response
+    else:
+        # Redmine 연결 없음 — 임시 쿠키로 user_id만 전달
+        response = JSONResponse({"ok": True, "has_connection": False, "email": email})
+        response.set_cookie("vx_pending_uid", str(user["id"]), httponly=True, max_age=600, samesite="lax", secure=True)
+        return response
+
+
+@app.post("/api/auth/logout")
+async def api_auth_logout(request: Request):
+    """로그아웃 — 세션 + 유저 쿠키 삭제"""
+    token = request.cookies.get("vx_session")
+    if token:
+        _delete_session(token)
+    response = JSONResponse({"ok": True})
+    response.delete_cookie("vx_session")
+    response.delete_cookie("vx_user_id")
+    response.delete_cookie("vx_pending_uid")
+    return response
+
+
+@app.get("/api/auth/me")
+async def api_auth_me(request: Request):
+    """현재 로그인 유저 정보"""
+    token = request.cookies.get("vx_session")
+    user_id_str = request.cookies.get("vx_user_id")
+    if not user_id_str:
+        # 세션에 태그된 user_id로 폴백
+        uid = _get_session_user_id(token or "") if token else None
+    else:
+        uid = int(user_id_str) if user_id_str.isdigit() else None
+
+    if not uid:
+        raise HTTPException(status_code=401, detail="not_logged_in")
+
+    user = _get_user_by_id(uid)
+    if not user:
+        raise HTTPException(status_code=401, detail="not_logged_in")
+
+    conn_info = _get_redmine_connection(uid)
+    return JSONResponse({
+        "email": user["email"],
+        "has_connection": conn_info is not None,
+        "redmine_url": conn_info["redmine_url"] if conn_info else None,
+    })
+
+
+@app.post("/api/auth/connect-redmine")
+async def api_auth_connect_redmine(request: Request):
+    """로그인 후 Redmine 연결 저장 (회원가입 Step 2)"""
+    # pending_uid 쿠키 또는 vx_user_id로 유저 확인
+    pending_uid_str = request.cookies.get("vx_pending_uid")
+    user_id_str = request.cookies.get("vx_user_id")
+    uid_str = pending_uid_str or user_id_str
+
+    if not uid_str or not uid_str.isdigit():
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+
+    user_id = int(uid_str)
+    user = _get_user_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=401, detail="유저를 찾을 수 없습니다")
+
+    client_ip = request.headers.get("X-Forwarded-For", request.client.host).split(",")[0].strip()
+    _check_rate_limit(client_ip)
+
+    body = await request.json()
+    rm_url = (body.get("url") or "").strip().rstrip("/")
+    rm_key = (body.get("api_key") or "").strip()
+    if not rm_url or not rm_key:
+        raise HTTPException(status_code=400, detail="url과 api_key 필수")
+
+    # Redmine 연결 검증
+    try:
+        test_url = rm_url + "/users/current.json"
+        req = urllib.request.Request(test_url, headers={"X-Redmine-API-Key": rm_key})
+        with urllib.request.urlopen(req, timeout=30, context=SSL_CONTEXT) as resp:
+            user_data = json.loads(resp.read().decode())
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Redmine 연결 실패: {str(e)}")
+
+    _save_redmine_connection(user_id, rm_url, rm_key)
+
+    # 세션 발급
+    token = str(_uuid.uuid4())
+    _save_session(token, rm_url, rm_key, time.time())
+    _tag_session_user(token, user_id)
+
+    response = JSONResponse({"ok": True, "user": user_data.get("user", {}).get("login", "")})
+    response.set_cookie("vx_session", token, httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
+    response.set_cookie("vx_user_id", str(user_id), httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
+    response.delete_cookie("vx_pending_uid")
+    return response
+
+# ============================================================
 
 @app.get("/connect", response_class=HTMLResponse)
 async def connect_page(request: Request):

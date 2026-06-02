@@ -632,7 +632,7 @@ function renderEvents(d) {
       '<td><span class="evt-tag ' + tagCls + '">' + escHtml(item.event) + '</span>' + (item.is_new ? ' <span class="new-badge">NEW</span>' : '') + '</td>' +
       '<td>' + escHtml(item.page) + '</td>' +
       '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(item.element) + '">' + escHtml(item.element) + '</td>' +
-      '<td style="font-size:11px;">' + escHtml(item.ip) + '</td>' +
+      '<td style="font-size:11px;">' + escHtml(item.ip) + (item.is_owner ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;background:#e0f0ff;color:#1d4ed8;border-radius:3px;font-family:monospace;">나</span>' : '') + '</td>' +
       '<td>' + escHtml(item.device) + ' / ' + escHtml(item.browser) + '</td>' +
       '<td><span style="font-size:10px;padding:2px 6px;background:var(--surface2);color:var(--text-muted);">' + escHtml(item.env) + '</span></td>' +
       '<td style="color:var(--text-muted);font-size:11px;white-space:nowrap;">' + escHtml(item.ts) + '</td>' +
@@ -657,7 +657,7 @@ function loadFeedback() {
       var parts = [];
       if (item.name)  parts.push('<span>👤 ' + escHtml(item.name) + '</span>');
       if (item.email) parts.push('<span>✉ ' + escHtml(item.email) + '</span>');
-      if (item.ip)    parts.push('<span>🌐 ' + escHtml(item.ip) + '</span>');
+      if (item.ip)    parts.push('<span>🌐 ' + escHtml(item.ip) + (item.is_owner ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;background:#e0f0ff;color:#1d4ed8;border-radius:3px;font-family:monospace;">나</span>' : '') + '</span>');
       return '<div class="fb-item"><div class="fb-item-head">' + badge + '<span class="fb-meta">' + escHtml(item.ts) + '</span></div>' +
         '<div class="fb-message">' + escHtml(item.message) + '</div>' +
         (parts.length ? '<div class="fb-sender">' + parts.join('') + '</div>' : '') +
