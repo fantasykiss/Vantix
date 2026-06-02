@@ -3,11 +3,22 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vantix · Overview</title>
+<title>Vantix · Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
-<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMGMwYzBjIi8+PHRleHQgeD0iMTYiIHk9IjI0IiBmb250LWZhbWlseT0iRE0gU2FucyxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZjJlZmVhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5WPC90ZXh0Pjwvc3ZnPg==">
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PHJlY3Qgd2lkdGg9IjMyIiBoZWlnaHQ9IjMyIiBmaWxsPSIjMGMwYzBjIi8+PHRleHQgeD0iMTYiIHk9IjI0IiBmb250LWZhbWlseT0iRE0gU2FucyxBcmlhbCxzYW5zLXNlcmlmIiBmb250LXNpemU9IjIyIiBmb250LXdlaWdodD0iNzAwIiBmaWxsPSIjZjJlZmVhIiB0ZXh0LWFuY2hvcj0ibWlkZGxlIj5WPC90ZXh0Pjwvc3ZnPg==" id="favicon">
+<script>(function(){
+  var h = location.hostname;
+  if (h === 'localhost' || h === '127.0.0.1') {
+    var c = document.createElement('canvas'); c.width = c.height = 32;
+    var x = c.getContext('2d');
+    x.fillStyle = '#c0392b'; x.fillRect(0, 0, 32, 32);
+    x.fillStyle = '#000'; x.font = 'bold 22px Arial'; x.textAlign = 'center'; x.textBaseline = 'middle';
+    x.fillText('V', 16, 17);
+    document.getElementById('favicon').href = c.toDataURL();
+  }
+})();</script>
 
 <style>
 /* ──────────────────────────────────────────────────────────────
@@ -1647,6 +1658,14 @@ html, body {
       <div style="font-size:11px;font-weight:700;letter-spacing:0.2em;color:var(--text);">REDMINE 연결 설정</div>
       <button onclick="closeSettingsModal()" style="background:none;border:none;color:var(--text-mid);font-size:16px;cursor:pointer;line-height:1;">✕</button>
     </div>
+    <div style="padding:14px 24px;border-bottom:1px solid var(--ghost-2);display:flex;align-items:center;gap:12px;">
+      <span style="font-size:9px;font-weight:700;letter-spacing:0.18em;color:var(--text-dim);text-transform:uppercase;flex-shrink:0;">글자 크기</span>
+      <div style="display:flex;gap:4px;">
+        <button onclick="setFontSize('14')" id="fs-btn-14" style="padding:4px 12px;border:1px solid var(--ghost-2);background:none;color:var(--text-mid);font-family:var(--dm);font-size:12px;cursor:pointer;letter-spacing:0.05em;transition:all .12s;">A</button>
+        <button onclick="setFontSize('16')" id="fs-btn-16" style="padding:4px 12px;border:1px solid var(--ghost-2);background:none;color:var(--text-mid);font-family:var(--dm);font-size:14px;cursor:pointer;letter-spacing:0.05em;transition:all .12s;">A</button>
+        <button onclick="setFontSize('18')" id="fs-btn-18" style="padding:4px 12px;border:1px solid var(--ghost-2);background:none;color:var(--text-mid);font-family:var(--dm);font-size:16px;cursor:pointer;letter-spacing:0.05em;transition:all .12s;">A</button>
+      </div>
+    </div>
     <div style="padding:20px 24px;display:flex;flex-direction:column;gap:14px;">
       <div style="display:flex;flex-direction:column;gap:6px;">
         <label style="font-size:9px;letter-spacing:0.18em;color:var(--text-dim);text-transform:uppercase;">Redmine URL</label>
@@ -1905,6 +1924,21 @@ function renderTrend(history, weeks) {
   var maxScore = Math.max.apply(null, slice.map(function(r) { return r.score || 0; }));
   maxScore = Math.max(maxScore, 75);
 
+  // ghost bars for missing historical weeks — varied heights, dark tones only
+  var ghostCount = Math.max(0, weeks - slice.length);
+  for (var g = 0; g < ghostCount; g++) {
+    var t = (g / Math.max(ghostCount - 1, 1)) * 52;
+    var base = 28 + Math.sin(t / 6) * 12;
+    var noise = Math.sin(t * 1.7) * 6 + Math.cos(t * 0.9) * 4;
+    var v = Math.max(8, Math.min(65, base + noise));
+    var ghost = document.createElement('div');
+    ghost.className = 'bar ' + (v > 45 ? 'b2' : 'b1');
+    ghost.style.height = (v / 75 * 100) + '%';
+    ghost.style.cursor = 'default';
+    ghost.style.opacity = '0.6';
+    bars.appendChild(ghost);
+  }
+
   slice.forEach(function(r, i) {
     var bar = document.createElement('div');
     bar.className = 'bar';
@@ -1922,14 +1956,17 @@ function renderTrend(history, weeks) {
     bars.appendChild(bar);
   });
 
-  // Axis labels — pick ~5 evenly
-  var labelCount = 5;
-  var step = Math.max(1, Math.floor(slice.length / (labelCount - 1)));
-  for (var i = 0; i < slice.length; i++) {
+  // Axis labels — ghost 영역 왼쪽 끝 + 실데이터 구간
+  var totalBars = ghostCount + slice.length;
+  for (var i = 0; i < totalBars; i++) {
     var el = document.createElement('span');
-    if (i === 0 || i % step === 0 || i === slice.length - 1) {
-      el.textContent = i === slice.length - 1 ? 'NOW' : (slice[i].date || slice[i].week || '');
-      if (i === slice.length - 1) el.classList.add('now');
+    var realIdx = i - ghostCount;
+    if (i === 0 && ghostCount > 0) {
+      el.textContent = weeks + 'W 전';
+      el.style.color = 'var(--text-ghost, #3a3633)';
+    } else if (realIdx >= 0 && (realIdx === 0 || realIdx === slice.length - 1)) {
+      el.textContent = realIdx === slice.length - 1 ? 'NOW' : (slice[realIdx].date || slice[realIdx].week || '');
+      if (realIdx === slice.length - 1) el.classList.add('now');
     }
     axis.appendChild(el);
   }
@@ -2168,6 +2205,7 @@ function switchProject(pid, pname, projects, _noHistory) {
   renderProjectNav(projects || _allProjects);
   document.getElementById('crown-eyebrow').textContent =
     (pname || '전체 프로젝트').toUpperCase() + ' — OVERVIEW';
+  document.title = 'Vantix · ' + (pname || '전체 프로젝트');
   if (!_noHistory) _pushNav(pid, 'overview');
   showSubView('overview', true);
   loadAll();
@@ -3270,6 +3308,30 @@ function pickSinceCustom(val) {
   closeSinceDd();
   loadAll();
 }
+
+// ────────────────────────────────────────────────────────────
+// 글자 크기
+// ────────────────────────────────────────────────────────────
+var _zoomMap = {'14': '1', '16': '1.143', '18': '1.286'};
+
+function setFontSize(size) {
+  var z = _zoomMap[size] || '1';
+  var content = document.querySelector('main.content');
+  if (content) content.style.zoom = z;
+  localStorage.setItem('vantix-fontsize', size);
+  ['14','16','18'].forEach(function(s) {
+    var btn = document.getElementById('fs-btn-' + s);
+    if (!btn) return;
+    btn.style.background  = s === size ? 'var(--text)' : 'none';
+    btn.style.color       = s === size ? 'var(--bg)'   : 'var(--text-mid)';
+    btn.style.borderColor = s === size ? 'var(--text)'  : 'var(--ghost-2)';
+  });
+}
+
+(function() {
+  var saved = localStorage.getItem('vantix-fontsize') || '14';
+  setFontSize(saved);
+})();
 
 // ────────────────────────────────────────────────────────────
 // 테마 전환
