@@ -813,7 +813,46 @@ html, body {
 }
 
 /* ── Sub-view layout ── */
-#view-overview { display: block; }
+#view-overview { display: block; transition: opacity 0.2s ease; position: relative; }
+#overview-loading-overlay {
+  display: none;
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 10;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+#overview-loading-overlay.show { display: flex; }
+.ov-loading-text {
+  font-family: var(--dm);
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.ov-loading-dots span {
+  display: inline-block;
+  opacity: 0.2;
+  color: #ffffff;
+  animation: dotWave 1.4s infinite ease-in-out;
+}
+.ov-loading-dots span:nth-child(1) { animation-delay: 0s; }
+.ov-loading-dots span:nth-child(2) { animation-delay: 0.15s; }
+.ov-loading-dots span:nth-child(3) { animation-delay: 0.3s; }
+.ov-loading-dots span:nth-child(4) { animation-delay: 0.45s; }
+.ov-loading-dots span:nth-child(5) { animation-delay: 0.6s; }
+.ov-loading-dots span:nth-child(6) { animation-delay: 0.75s; }
+.ov-loading-dots span:nth-child(7) { animation-delay: 0.9s; }
+@keyframes dotWave {
+  0%, 100% { opacity: 0.15; }
+  50% { opacity: 0.8; }
+}
 #view-sub { display: none; flex-direction: column; }
 .sub-topbar {
   height: 48px; flex-shrink: 0;
@@ -1208,6 +1247,8 @@ html, body {
 .modal-field textarea:focus { border-color: var(--text-mid); }
 .modal-field textarea { min-height: 80px; resize: vertical; }
 .modal-field select option { background: var(--surface-mid); }
+.modal-field input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); opacity: 0.6; cursor: pointer; }
+.modal-field input[type="date"]::-webkit-calendar-picker-indicator:hover { opacity: 1; }
 .modal-attachments { margin-top: 4px; }
 .modal-attach-head { font-size: 9px; letter-spacing: 0.18em; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; }
 .modal-attach-grid { display: flex; flex-wrap: wrap; gap: 8px; }
@@ -1366,6 +1407,16 @@ html, body {
 
     <!-- ══ OVERVIEW VIEW ══════════════════════════════════════ -->
     <div id="view-overview">
+
+    <!-- 로딩 오버레이 -->
+    <div id="overview-loading-overlay">
+      <div class="ov-loading-text">
+        DATA LOADING
+        <span class="ov-loading-dots">
+          <span>·</span><span>·</span><span>·</span><span>·</span><span>·</span><span>·</span><span>·</span>
+        </span>
+      </div>
+    </div>
 
     <!-- 사이드바 접혔을 때 열기 버튼 (crown 위) -->
     <div class="sidebar-open-btn" onclick="toggleSidebar()" title="사이드바 열기">
@@ -1589,6 +1640,10 @@ html, body {
     </div>
     <div class="modal-body" id="modalBody">
       <div class="modal-meta" id="modalMeta"></div>
+      <div class="modal-field" id="modalDescriptionField" style="display:none;">
+        <label>본문</label>
+        <textarea id="modalDescription" style="min-height:100px;"></textarea>
+      </div>
       <div class="modal-field">
         <label>상태</label>
         <select id="modalStatus"></select>
@@ -1621,11 +1676,19 @@ html, body {
     <div class="modal-footer">
       <a id="modalRedmineLink" href="#" target="_blank">Redmine에서 열기 ↗</a>
       <span class="spacer"></span>
-      <span class="modal-save-msg" id="modalSaveMsg">저장되었습니다</span>
+      <span class="modal-save-msg" id="modalSaveMsg">대기열에 추가됨</span>
       <button onclick="closeModal()">취소</button>
-      <button onclick="saveIssue()">저장</button>
+      <button onclick="addToQueue()">대기열 추가</button>
     </div>
   </div>
+</div>
+
+<!-- ══ 수정 대기열 배지 ══════════════════════════════════════ -->
+<div id="editQueueBar" style="display:none;position:fixed;bottom:24px;right:24px;z-index:8000;background:#1a1a1a;color:#fff;font-family:var(--dm);font-size:11px;font-weight:700;letter-spacing:0.12em;padding:10px 18px;align-items:center;gap:14px;box-shadow:0 4px 20px rgba(0,0,0,0.5);border:1px solid #333;">
+  <span id="editQueueCount">0건 수정 대기</span>
+  <span style="width:1px;height:14px;background:rgba(255,255,255,0.2);display:inline-block;"></span>
+  <button onclick="applyAllQueue()" style="background:#e07b00;color:#fff;border:none;font-family:var(--dm);font-size:10px;font-weight:700;letter-spacing:0.1em;padding:5px 12px;cursor:pointer;">모두 반영</button>
+  <button onclick="clearQueue()" style="background:none;border:none;color:rgba(255,255,255,0.6);font-size:14px;cursor:pointer;line-height:1;padding:0 2px;">✕</button>
 </div>
 
 <!-- ══ 리포트 모달 ════════════════════════════════════════════ -->
@@ -1737,6 +1800,8 @@ var _expandedProjects = new Set();  // 하위메뉴가 열린 프로젝트 ident
 var _lastDashData = null;
 var _lastDashProjectId = null;
 var _lastDashAfter = null;
+var _clientDataCache = {};    // { "pid|after": { data, forecast, insightsData, historyData, ts } }
+var _CLIENT_CACHE_TTL = 600000; // 10분 (ms)
 var _lastForecast = null;
 var _allInsights = [];
 var _insightPage = 0;
@@ -1749,6 +1814,25 @@ var _lastVersionsProjectId = null;
 var _projectRiskMap = {};        // project name → risk_level
 var _allProjectsRiskLevel = '';  // 전체 프로젝트 최고 리스크 레벨
 var _currentIssueId = null;
+var _modalOriginal = {};         // 모달 열릴 때 원본 값 스냅샷
+var _modalMetaCache = {};        // { "projectId": { statuses, assignees, versions, ts } }
+var _MODAL_META_TTL = 300000;    // 5분 (ms)
+var _prefetchCache = {};         // { issueId: data } — 호버 프리페치 결과
+var _prefetchTimer = null;       // 디바운스 타이머
+var _editQueue = {};             // { issueId: { label, fields... } } — 수정 대기열
+
+function prefetchIssue(id) {
+  if (_prefetchCache[id]) return;          // 이미 있으면 skip
+  clearTimeout(_prefetchTimer);
+  _prefetchTimer = setTimeout(function() {
+    fetch('/api/issue/' + id)
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(data) {
+        if (data) _prefetchCache[id] = data;
+      })
+      .catch(function() {});
+  }, 280);                                 // 280ms 디바운스
+}
 var REDMINE_BASE = '__REDMINE_BASE_URL__';
 var CLOSED_SET = {'해결됨':1,'완료':1,'Closed':1,'Resolved':1};
 var HOLD_SET = {'보류':1,'On Hold':1,'보류중':1};
@@ -1838,7 +1922,17 @@ document.addEventListener('DOMContentLoaded', function() {
       }
     });
   });
-  _refreshTimer = setInterval(loadAll, 60000);
+  // 60초마다 캐시된 모든 프로젝트 순차 백그라운드 갱신
+  // 탭 숨김 중에는 실행 안 함 (Redmine 부하 방지)
+  _refreshTimer = setInterval(function() {
+    if (document.visibilityState === 'hidden') return;
+    _backgroundRefreshAll();
+  }, 60000);
+
+  // 탭 다시 활성화 시 현재 프로젝트 즉시 갱신
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'visible') loadAll();
+  });
 
   // Since 드롭다운 외부 클릭 닫기
   document.addEventListener('click', function(e) {
@@ -2208,33 +2302,90 @@ function switchProject(pid, pname, projects, _noHistory) {
   document.title = 'Vantix · ' + (pname || '전체 프로젝트');
   if (!_noHistory) _pushNav(pid, 'overview');
   showSubView('overview', true);
+
+  // 이전 프로젝트 내용 희미하게 + 로딩 오버레이 표시
+  var ovEl = document.getElementById('view-overview');
+  if (ovEl) ovEl.style.opacity = '0.25';
+  var loadingEl = document.getElementById('overview-loading-overlay');
+  if (loadingEl) loadingEl.classList.add('show');
+
   loadAll();
 }
 
 // ────────────────────────────────────────────────────────────
 // Main data load
 // ────────────────────────────────────────────────────────────
+async function _backgroundRefreshAll() {
+  // 캐시에 있는 모든 프로젝트를 1초 간격으로 순차 갱신 (렌더 없이 캐시만 업데이트)
+  var keys = Object.keys(_clientDataCache);
+  for (var i = 0; i < keys.length; i++) {
+    if (document.visibilityState === 'hidden') break; // 탭 숨기면 중단
+    var key = keys[i];
+    var parts = key.split('|');
+    var pid = parts[0];
+    var after = parts[1] || currentUpdatedAfter;
+    try {
+      var params = new URLSearchParams({ project_id: pid, updated_after: after });
+      var dataRes = await fetch('/api/data?' + params, { signal: AbortSignal.timeout(15000) });
+      if (!dataRes.ok) continue;
+      var data = await dataRes.json();
+      var prev = _clientDataCache[key] || {};
+      _clientDataCache[key] = { data: data, forecast: prev.forecast || null, insightsData: prev.insightsData || null, historyData: prev.historyData || null, ts: Date.now() };
+      // 현재 보고 있는 프로젝트면 화면도 갱신
+      if (pid === currentProjectId && after === currentUpdatedAfter) {
+        renderDashboard(data, prev.forecast);
+      }
+    } catch(e) { /* 백그라운드 갱신 실패는 무시 */ }
+    // 1초 간격으로 순차 실행 (Redmine 부하 분산)
+    if (i < keys.length - 1) await new Promise(function(r) { setTimeout(r, 1000); });
+  }
+}
+
 async function loadAll() {
+  // 이 호출이 시작될 때의 프로젝트 ID를 기억 (렌더 시점에 달라졌으면 렌더 스킵)
+  var targetPid   = currentProjectId;
+  var targetAfter = currentUpdatedAfter;
+
   var params = new URLSearchParams({
-    project_id: currentProjectId,
-    updated_after: currentUpdatedAfter
+    project_id: targetPid,
+    updated_after: targetAfter
   });
 
   try {
-    var [dataRes, forecastRes, insightsRes, historyRes] = await Promise.all([
-      fetch('/api/data?' + params, { signal: AbortSignal.timeout(15000) }),
-      fetch('/api/forecast?' + params, { signal: AbortSignal.timeout(20000) }),
-      fetch('/api/insights?' + params, { signal: AbortSignal.timeout(20000) }),
-      fetch('/api/risk-history?weeks=52&project_id=' + encodeURIComponent(currentProjectId), { signal: AbortSignal.timeout(10000) }),
-    ]);
+    var cacheKey = targetPid + '|' + targetAfter;
+    var cached = _clientDataCache[cacheKey];
+    var data, forecast, insightsData, historyData;
 
-    if (dataRes.status === 401) { handleUnauthorized(); return; }
-    if (!dataRes.ok) throw new Error('api/data ' + dataRes.status);
+    if (cached && (Date.now() - cached.ts) < _CLIENT_CACHE_TTL) {
+      // 클라이언트 캐시 히트 — 즉시 렌더
+      data         = cached.data;
+      forecast     = cached.forecast;
+      insightsData = cached.insightsData;
+      historyData  = cached.historyData;
+    } else {
+      // 캐시 미스 — 서버에서 fetch (요청 취소 안 함 — 취소 시 캐시 저장 불가)
+      var dataRes = await fetch('/api/data?' + params, { signal: AbortSignal.timeout(15000) });
+      if (dataRes.status === 401) { handleUnauthorized(); return; }
+      if (!dataRes.ok) throw new Error('api/data ' + dataRes.status);
+      data = await dataRes.json();
 
-    var data = await dataRes.json();
-    var forecast = forecastRes.ok ? await forecastRes.json() : null;
-    var insightsData = insightsRes.ok ? await insightsRes.json() : null;
-    var historyData = historyRes.ok ? await historyRes.json() : null;
+      // 부가 API — 실패해도 offline 표시 안 함
+      var [forecastRes, insightsRes, historyRes] = await Promise.allSettled([
+        fetch('/api/forecast?' + params, { signal: AbortSignal.timeout(20000) }),
+        fetch('/api/insights?' + params, { signal: AbortSignal.timeout(20000) }),
+        fetch('/api/risk-history?weeks=52&project_id=' + encodeURIComponent(targetPid), { signal: AbortSignal.timeout(10000) }),
+      ]);
+
+      forecast     = (forecastRes.status === 'fulfilled' && forecastRes.value.ok)  ? await forecastRes.value.json()  : null;
+      insightsData = (insightsRes.status === 'fulfilled' && insightsRes.value.ok)  ? await insightsRes.value.json()  : null;
+      historyData  = (historyRes.status  === 'fulfilled' && historyRes.value.ok)   ? await historyRes.value.json()   : null;
+
+      // 캐시 저장 (프로젝트가 바뀌어도 저장 — 다음 방문 시 즉시 사용)
+      _clientDataCache[cacheKey] = { data: data, forecast: forecast, insightsData: insightsData, historyData: historyData, ts: Date.now() };
+    }
+
+    // 이미 다른 프로젝트로 이동했으면 렌더 스킵 (캐시는 저장된 상태)
+    if (currentProjectId !== targetPid || currentUpdatedAfter !== targetAfter) return;
 
     _allHistory = (historyData && historyData.history) || [];
 
@@ -2268,7 +2419,7 @@ async function loadAll() {
 
   } catch(e) {
     console.error('loadAll error:', e);
-    setLiveStatus('offline');
+    if (currentProjectId === targetPid) setLiveStatus('offline');
   }
 }
 
@@ -2277,6 +2428,10 @@ async function loadAll() {
 // ────────────────────────────────────────────────────────────
 function renderDashboard(d, forecast) {
   if (!d) return;
+  var ovEl = document.getElementById('view-overview');
+  if (ovEl) ovEl.style.opacity = '1';
+  var loadingEl = document.getElementById('overview-loading-overlay');
+  if (loadingEl) loadingEl.classList.remove('show');
   _lastDashData = d;
   _lastDashProjectId = currentProjectId;
   _lastDashAfter = currentUpdatedAfter;
@@ -2531,16 +2686,18 @@ function renderDashboard(d, forecast) {
 }
 
 function _updateNavBadges(d) {
-  // 전체 프로젝트 최고 리스크 레벨 계산 → allRow에 반영
-  var risks = d.project_risk || [];
-  var order = { Critical: 4, High: 3, Medium: 2, Low: 1 };
-  var top = risks.reduce(function(best, p) {
-    return (!best || (order[p.risk_level] || 0) > (order[best.risk_level] || 0)) ? p : best;
-  }, null);
-  var newLevel = top ? (top.risk_level || '') : '';
-  if (newLevel !== _allProjectsRiskLevel) {
-    _allProjectsRiskLevel = newLevel;
-    renderProjectNav(_allProjects);
+  // 전체 프로젝트 리스크 레벨은 pid='' 일 때만 갱신
+  if (currentProjectId === '') {
+    var risks = d.project_risk || [];
+    var order = { Critical: 4, High: 3, Medium: 2, Low: 1 };
+    var top = risks.reduce(function(best, p) {
+      return (!best || (order[p.risk_level] || 0) > (order[best.risk_level] || 0)) ? p : best;
+    }, null);
+    var newLevel = top ? (top.risk_level || '') : '';
+    if (newLevel !== _allProjectsRiskLevel) {
+      _allProjectsRiskLevel = newLevel;
+      renderProjectNav(_allProjects);
+    }
   }
 
   // 이슈 탭이 열려 있으면 새 데이터로 즉시 re-render
@@ -3763,17 +3920,31 @@ async function openIssue(id) {
   document.getElementById('modalVersion').innerHTML = '';
   document.getElementById('modalDueDate').value = '';
   document.getElementById('modalNotes').value = '';
+  document.getElementById('modalDescription').value = '';
+  document.getElementById('modalDescriptionField').style.display = 'none';
   document.getElementById('attachmentsSection').style.display = 'none';
   document.getElementById('journalsSection').style.display = 'none';
 
   try {
-    var res = await fetch('/api/issue/' + id);
-    if (!res.ok) throw new Error(res.status);
-    var data = await res.json();
+    var data;
+    if (_prefetchCache[id]) {
+      data = _prefetchCache[id];            // 프리페치 캐시 히트 → 즉시 사용
+      delete _prefetchCache[id];            // 한 번 쓰고 제거 (항상 최신 유지)
+    } else {
+      var res = await fetch('/api/issue/' + id);
+      if (!res.ok) throw new Error(res.status);
+      data = await res.json();
+    }
     var iss = data.issue || data;  // API returns {issue:{...}, statuses:[...], assignees:[...], versions:[...]}
     var statuses = data.statuses || [];
     var assignees = data.assignees || [];
     var versions = data.versions || [];
+
+    // 클라이언트 캐시에 상태/멤버/버전 저장
+    var projId = (iss.project && (iss.project.identifier || iss.project.id)) || 'default';
+    if (statuses.length || assignees.length || versions.length) {
+      _modalMetaCache[projId] = { statuses: statuses, assignees: assignees, versions: versions, ts: Date.now() };
+    }
 
     document.getElementById('modalTitle').textContent = '#' + iss.id + ' ' + (iss.subject || '');
 
@@ -3797,7 +3968,11 @@ async function openIssue(id) {
       statSel.appendChild(opt);
     });
 
-    // Assignee
+    // Assignee — 멤버십에 없는 담당자(어드민 등)도 목록에 추가
+    if (iss.assigned_to) {
+      var inList = assignees.some(function(m) { return m.id === iss.assigned_to.id; });
+      if (!inList) assignees.unshift({ id: iss.assigned_to.id, name: iss.assigned_to.name });
+    }
     var assSel = document.getElementById('modalAssignee');
     assSel.innerHTML = '<option value="">담당자 없음</option>';
     assignees.forEach(function(m) {
@@ -3817,8 +3992,28 @@ async function openIssue(id) {
       verSel.appendChild(opt);
     });
 
+    // Description (본문)
+    var descEl = document.getElementById('modalDescription');
+    var descField = document.getElementById('modalDescriptionField');
+    if (iss.description && iss.description.trim()) {
+      descEl.value = iss.description;
+      descField.style.display = '';
+    } else {
+      descEl.value = '';
+      descField.style.display = 'none';
+    }
+
     // Due date
     if (iss.due_date) document.getElementById('modalDueDate').value = iss.due_date;
+
+    // 원본 스냅샷 — DOM에서 직접 읽어야 타입/포맷 불일치 없음
+    _modalOriginal = {
+      status_id:        document.getElementById('modalStatus').value,
+      assigned_to_id:   document.getElementById('modalAssignee').value,
+      fixed_version_id: document.getElementById('modalVersion').value,
+      due_date:         document.getElementById('modalDueDate').value,
+      description:      document.getElementById('modalDescription').value,
+    };
 
     // Redmine link
     var link = document.getElementById('modalRedmineLink');
@@ -3865,7 +4060,97 @@ async function openIssue(id) {
   }
 }
 
+function addToQueue() {
+  if (!_currentIssueId) return;
+
+  var current = {
+    status_id:        document.getElementById('modalStatus').value,
+    assigned_to_id:   document.getElementById('modalAssignee').value,
+    fixed_version_id: document.getElementById('modalVersion').value,
+    due_date:         document.getElementById('modalDueDate').value,
+    description:      document.getElementById('modalDescription').value,
+  };
+  var notes = document.getElementById('modalNotes').value.trim();
+
+  // 변경된 필드가 있는지 확인
+  var hasChange = notes.length > 0 || Object.keys(current).some(function(k) {
+    return String(current[k]) !== String(_modalOriginal[k] || '');
+  });
+
+  if (!hasChange) {
+    var msgEl = document.getElementById('modalSaveMsg');
+    msgEl.textContent = '변경 사항 없음';
+    msgEl.classList.add('show');
+    setTimeout(function() {
+      msgEl.classList.remove('show');
+      setTimeout(function() { msgEl.textContent = '대기열에 추가됨'; }, 350);
+    }, 1400);
+    return;
+  }
+
+  var title = document.getElementById('modalTitle').textContent;
+  _editQueue[_currentIssueId] = Object.assign({ _label: title, notes: notes }, current);
+  _updateQueueBar();
+  var msgEl = document.getElementById('modalSaveMsg');
+  msgEl.textContent = '대기열에 추가됨';
+  msgEl.classList.add('show');
+  setTimeout(function() { msgEl.classList.remove('show'); closeModal(); }, 900);
+}
+
+function _updateQueueBar() {
+  var count = Object.keys(_editQueue).length;
+  var bar = document.getElementById('editQueueBar');
+  if (count === 0) {
+    bar.style.display = 'none';
+  } else {
+    bar.style.display = 'flex';
+    document.getElementById('editQueueCount').textContent = count + '건 수정 대기';
+  }
+}
+
+async function applyAllQueue() {
+  var ids = Object.keys(_editQueue);
+  if (!ids.length) return;
+  var bar = document.getElementById('editQueueBar');
+  document.getElementById('editQueueCount').textContent = '반영 중...';
+
+  var results = await Promise.all(ids.map(function(id) {
+    return fetch('/api/issue/' + id, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(_editQueue[id]),
+    }).then(function(r) { return r.ok ? 'ok' : 'fail'; })
+      .catch(function() { return 'fail'; });
+  }));
+
+  var failed = results.filter(function(r) { return r === 'fail'; }).length;
+  var succeeded = ids.length - failed;
+  _editQueue = {};
+
+  // 캐시 무효화 (다음 loadAll 때 최신 데이터 가져오도록)
+  fetch('/api/cache/clear').catch(function() {});
+
+  _updateQueueBar();
+
+  if (failed > 0) {
+    alert(succeeded + '건 반영 완료 · ' + failed + '건 실패');
+  } else {
+    document.getElementById('editQueueCount').textContent = succeeded + '건 반영 완료 ✓';
+    bar.style.display = 'flex';
+    setTimeout(function() { bar.style.display = 'none'; }, 2500);
+  }
+
+  // 데이터 갱신은 딜레이 후 조용히 실행 (서버 과부하 방지)
+  setTimeout(function() { loadAll(); }, 1500);
+}
+
+function clearQueue() {
+  _editQueue = {};
+  _updateQueueBar();
+}
+
 async function saveIssue() {
+  // 하위 호환용 — 직접 저장이 필요한 경우 사용
   if (!_currentIssueId) return;
   var body = {
     status_id: document.getElementById('modalStatus').value,
@@ -3873,6 +4158,7 @@ async function saveIssue() {
     fixed_version_id: document.getElementById('modalVersion').value,
     due_date: document.getElementById('modalDueDate').value,
     notes: document.getElementById('modalNotes').value,
+    description: document.getElementById('modalDescription').value,
   };
   try {
     var res = await fetch('/api/issue/' + _currentIssueId, {
@@ -3983,12 +4269,25 @@ async function loadIssues() {
     _applyTweaks();
     return;
   }
+  // 클라이언트 캐시 확인
+  var cacheKey = currentProjectId + '|' + currentUpdatedAfter;
+  var clientCached = _clientDataCache[cacheKey];
+  if (clientCached && (Date.now() - clientCached.ts) < _CLIENT_CACHE_TTL) {
+    _buildMxData(clientCached.data);
+    _renderMatrix(el, clientCached.data);
+    _updateMxCrown(clientCached.data);
+    _applyTweaks();
+    return;
+  }
+
   el.innerHTML = '<div class="drill-empty" style="padding:80px 0;">이슈 매트릭스 로딩 중...</div>';
   try {
     var params = new URLSearchParams({ project_id: currentProjectId, updated_after: currentUpdatedAfter });
     var res = await fetch('/api/data?' + params);
     if (!res.ok) throw new Error(res.status);
     var d = await res.json();
+    var prev = _clientDataCache[cacheKey] || {};
+    _clientDataCache[cacheKey] = { data: d, forecast: prev.forecast || null, insightsData: prev.insightsData || null, historyData: prev.historyData || null, ts: Date.now() };
     _buildMxData(d);
     _renderMatrix(el, d);
     _updateMxCrown(d);
@@ -4354,7 +4653,7 @@ function _issueTableHTML(issues) {
     var stLabel = RESOLVE_SET[iss.status] ? '해결' : PROG_SET[iss.status] ? '● 진행' : '○ 대기';
     var trCls   = isOver ? ' class="crit"' : '';
     var tracker = iss.tracker && iss.tracker !== '-' ? '<span class="pref">(' + escapeHtml(iss.tracker) + ')</span>' : '';
-    return '<tr' + trCls + '>' +
+    return '<tr' + trCls + ' onmouseenter="prefetchIssue(' + iss.id + ')">' +
       '<td class="ctr"><input type="checkbox" aria-label="이슈 #' + iss.id + ' 선택"></td>' +
       '<td class="id" onclick="openIssue(' + iss.id + ')">#' + iss.id + '</td>' +
       '<td class="title" onclick="openIssue(' + iss.id + ')" style="cursor:pointer;">' + tracker + escapeHtml(iss.subject || '') +

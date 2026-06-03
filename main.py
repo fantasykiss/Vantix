@@ -435,6 +435,22 @@ REPORT_TTL = 86400         # 24시간
 _ai_cache: dict = {}
 AI_CACHE_TTL = 3600  # 1시간
 
+# ==================== 이슈 모달 메타 캐시 (상태/멤버/버전) ====================
+_modal_meta_cache: dict = {}
+MODAL_META_TTL = 300  # 5분
+
+def _get_modal_meta_cache(key: str):
+    entry = _modal_meta_cache.get(key)
+    if not entry:
+        return None
+    if (datetime.now() - entry["at"]).total_seconds() > MODAL_META_TTL:
+        del _modal_meta_cache[key]
+        return None
+    return entry["data"]
+
+def _set_modal_meta_cache(key: str, data):
+    _modal_meta_cache[key] = {"data": data, "at": datetime.now()}
+
 def _get_ai_cache(key: str):
     entry = _ai_cache.get(key)
     if not entry:
@@ -2386,37 +2402,50 @@ async def api_update_connection(request: Request):
 def api_get_issue(issue_id: int, request: Request):
     from concurrent.futures import ThreadPoolExecutor
     s = _require_session(request)
+
+    # 이슈 본문만 항상 새로 fetch
     issue_data = fetch(f"/issues/{issue_id}.json", {"include": "journals,attachments"}, redmine_url=s["url"], api_key=s["key"])
     issue = issue_data.get("issue", {})
     pid = issue.get("project", {}).get("identifier") or str(issue.get("project", {}).get("id", ""))
 
-    def get_statuses(): return fetch("/issue_statuses.json", redmine_url=s["url"], api_key=s["key"]).get("issue_statuses", [])
-    def get_members():
-        items, offset = [], 0
-        while True:
-            data = fetch(f"/projects/{pid}/memberships.json", {"limit": 100, "offset": offset}, redmine_url=s["url"], api_key=s["key"])
-            batch = data.get("memberships", [])
-            items += batch
-            total = data.get("total_count", len(batch))
-            if offset + 100 >= total:
-                break
-            offset += 100
-        return items
-    def get_versions_fn(): return fetch(f"/projects/{pid}/versions.json", redmine_url=s["url"], api_key=s["key"]).get("versions", [])
+    # 상태/멤버/버전은 프로젝트 단위 캐시 활용 (5분 TTL)
+    meta_key = f"{s['url']}|{pid}"
+    cached_meta = _get_modal_meta_cache(meta_key)
 
-    with ThreadPoolExecutor(max_workers=3) as ex:
-        f_statuses = ex.submit(get_statuses)
-        f_members  = ex.submit(get_members)
-        f_versions = ex.submit(get_versions_fn)
-        statuses = f_statuses.result()
-        members  = f_members.result()
-        versions = f_versions.result()
+    if cached_meta:
+        statuses  = cached_meta["statuses"]
+        assignees = cached_meta["assignees"]
+        ver_list  = cached_meta["versions"]
+    else:
+        def get_statuses(): return fetch("/issue_statuses.json", redmine_url=s["url"], api_key=s["key"]).get("issue_statuses", [])
+        def get_members():
+            items, offset = [], 0
+            while True:
+                data = fetch(f"/projects/{pid}/memberships.json", {"limit": 100, "offset": offset}, redmine_url=s["url"], api_key=s["key"])
+                batch = data.get("memberships", [])
+                items += batch
+                total = data.get("total_count", len(batch))
+                if offset + 100 >= total:
+                    break
+                offset += 100
+            return items
+        def get_versions_fn(): return fetch(f"/projects/{pid}/versions.json", redmine_url=s["url"], api_key=s["key"]).get("versions", [])
 
-    assignees = sorted(
-        [{"id": m["user"]["id"], "name": m["user"]["name"]} for m in members if "user" in m],
-        key=lambda x: x["name"]
-    )
-    ver_list = [{"id": v["id"], "name": v["name"]} for v in versions if v.get("status") != "closed"]
+        with ThreadPoolExecutor(max_workers=3) as ex:
+            f_statuses = ex.submit(get_statuses)
+            f_members  = ex.submit(get_members)
+            f_versions = ex.submit(get_versions_fn)
+            statuses = f_statuses.result()
+            members  = f_members.result()
+            versions = f_versions.result()
+
+        assignees = sorted(
+            [{"id": m["user"]["id"], "name": m["user"]["name"]} for m in members if "user" in m],
+            key=lambda x: x["name"]
+        )
+        ver_list = [{"id": v["id"], "name": v["name"]} for v in versions if v.get("status") != "closed"]
+        _set_modal_meta_cache(meta_key, {"statuses": statuses, "assignees": assignees, "versions": ver_list})
+
     return {"issue": issue, "statuses": statuses, "assignees": assignees, "versions": ver_list}
 
 
@@ -2430,6 +2459,8 @@ async def api_update_issue(issue_id: int, request: Request, s: dict = Depends(_r
     if "due_date"         in body: payload["issue"]["due_date"]           = body["due_date"]
     if "notes"            in body and body["notes"].strip():
         payload["issue"]["notes"] = body["notes"]
+    if "description"      in body and body["description"] is not None:
+        payload["issue"]["description"] = body["description"]
 
     url = s["url"].rstrip("/") + f"/issues/{issue_id}.json"
     req = urllib.request.Request(
