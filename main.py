@@ -1359,6 +1359,7 @@ def build_version_data(project_id="", redmine_url=None, api_key=None):
             "name":         v["name"],
             "project_name": v.get("project_name", ""),
             "due_date":     v.get("due_date", ""),
+            "created_on":   v.get("created_on", ""),
             "status":       v.get("status", ""),
             "total":        total,
             "closed":       closed,
@@ -1686,6 +1687,20 @@ async def api_forecast(request: Request, project_id: str = "", updated_after: st
 async def clear_cache(s: dict = Depends(_require_session)):
     _cache.clear()
     return {"ok": True, "message": "캐시 초기화 완료"}
+
+
+@app.delete("/api/cache/{project_id}")
+async def clear_project_cache(project_id: str, s: dict = Depends(_require_session)):
+    # 캐시 키 형식: "{redmine_url}|{project_id}|{updated_after}"
+    # project_id가 두 번째 세그먼트인 것만 삭제
+    removed = []
+    for k in list(_cache.keys()):
+        parts = k.split("|", 2)
+        if len(parts) >= 2 and parts[1] == project_id:
+            removed.append(k)
+    for k in removed:
+        _cache.pop(k, None)
+    return {"ok": True, "removed": len(removed)}
 
 
 @app.get("/api/risk-history")
@@ -2474,6 +2489,119 @@ async def api_update_issue(issue_id: int, request: Request, s: dict = Depends(_r
             return {"ok": True}
     except Exception as e:
         return {"ok": False, "error": str(e)}
+
+
+@app.get("/api/statuses")
+async def api_statuses(s: dict = Depends(_require_session)):
+    statuses = fetch("/issue_statuses.json", redmine_url=s["url"], api_key=s["key"]).get("issue_statuses", [])
+    return {"statuses": statuses}
+
+
+@app.get("/api/assignees")
+async def api_assignees(project_id: str = "", s: dict = Depends(_require_session)):
+    memberships = fetch(
+        f"/projects/{project_id}/memberships.json",
+        redmine_url=s["url"], api_key=s["key"]
+    ).get("memberships", [])
+    users = []
+    seen = set()
+    for m in memberships:
+        u = m.get("user")
+        if u and u.get("id") not in seen:
+            seen.add(u["id"])
+            users.append({"id": u["id"], "name": u["name"]})
+    users.sort(key=lambda x: x["name"])
+    return {"assignees": users}
+
+
+@app.post("/api/bulk-update")
+async def api_bulk_update(request: Request, s: dict = Depends(_require_session)):
+    body = await request.json()
+    issue_ids = body.get("issue_ids", [])
+    fields = body.get("fields", {})
+    if not issue_ids or not fields:
+        return {"ok": False, "error": "issue_ids 또는 fields 없음"}
+
+    ALLOWED = {"status_id", "assigned_to_id", "fixed_version_id"}
+    payload_fields = {k: v for k, v in fields.items() if k in ALLOWED}
+    if not payload_fields:
+        return {"ok": False, "error": "변경 가능한 필드 없음"}
+
+    def _update_one(issue_id):
+        payload = json.dumps({"issue": payload_fields}).encode()
+        for attempt in range(2):
+            req = urllib.request.Request(
+                s["url"].rstrip("/") + f"/issues/{issue_id}.json",
+                data=payload,
+                headers={"X-Redmine-API-Key": s["key"], "Content-Type": "application/json"},
+                method="PUT"
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=15, context=SSL_CONTEXT):
+                    return True
+            except Exception:
+                if attempt == 1:
+                    return False
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    BATCH_SIZE = 10
+    ok_count, fail_count = 0, 0
+    batches = [issue_ids[i:i+BATCH_SIZE] for i in range(0, len(issue_ids), BATCH_SIZE)]
+    for batch in batches:
+        with ThreadPoolExecutor(max_workers=BATCH_SIZE) as ex:
+            futures = {ex.submit(_update_one, iid): iid for iid in batch}
+            for f in as_completed(futures):
+                if f.result():
+                    ok_count += 1
+                else:
+                    fail_count += 1
+
+    return {"ok": True, "updated": ok_count, "failed": fail_count}
+
+
+@app.post("/api/bulk-complete")
+async def api_bulk_complete(request: Request, s: dict = Depends(_require_session)):
+    body = await request.json()
+    issue_ids = body.get("issue_ids", [])
+    status_id = body.get("status_id")
+    if not issue_ids:
+        return {"ok": False, "error": "issue_ids 없음"}
+    if not status_id:
+        return {"ok": False, "error": "status_id 없음"}
+
+    done_status = {"id": status_id}
+
+    def _update_one(issue_id):
+        payload = json.dumps({"issue": {"status_id": done_status["id"]}}).encode()
+        for attempt in range(2):  # 실패 시 1회 재시도
+            req = urllib.request.Request(
+                s["url"].rstrip("/") + f"/issues/{issue_id}.json",
+                data=payload,
+                headers={"X-Redmine-API-Key": s["key"], "Content-Type": "application/json"},
+                method="PUT"
+            )
+            try:
+                with urllib.request.urlopen(req, timeout=15, context=SSL_CONTEXT):
+                    return True
+            except Exception:
+                if attempt == 1:
+                    return False
+
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    import math
+    BATCH_SIZE = 10
+    ok_count, fail_count = 0, 0
+    batches = [issue_ids[i:i+BATCH_SIZE] for i in range(0, len(issue_ids), BATCH_SIZE)]
+    for batch in batches:
+        with ThreadPoolExecutor(max_workers=BATCH_SIZE) as ex:
+            futures = {ex.submit(_update_one, iid): iid for iid in batch}
+            for f in as_completed(futures):
+                if f.result():
+                    ok_count += 1
+                else:
+                    fail_count += 1
+
+    return {"ok": True, "updated": ok_count, "failed": fail_count}
 
 
 @app.get("/api/attachment-proxy")
