@@ -342,6 +342,8 @@ html, body {
 }
 .live-text { color: var(--green); font-weight: 700; }
 @keyframes livepulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
+@keyframes spin-once { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
+#topbar-refresh-icon.spinning { animation: spin-once 0.6s cubic-bezier(0.4,0,0.2,1); }
 
 /* OFFLINE 상태 */
 .offline-text { color: var(--red); font-weight: 700; }
@@ -1175,29 +1177,92 @@ html, body {
 .no-data-msg { padding: 40px 0; text-align: center; font-size: 12px; color: var(--text-dim); }
 
 /* ── Groups grid ── */
-.groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; }
+.groups-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }
+.grp-card { background: var(--surface); border: 1px solid var(--ghost); cursor: grab; user-select: none; transition: border-color 0.15s, opacity 0.15s; }
+.grp-card:active { cursor: grabbing; }
+.grp-card.grp-extra { border-style: dashed; }
+.grp-card.grp-dragging { opacity: 0.35; }
+.grp-card.grp-drag-over { border-color: var(--text-dim) !important; border-style: dashed !important; }
+.grp-header { display: flex; justify-content: space-between; align-items: flex-start; padding: 14px 16px 10px; gap: 10px; }
+.grp-name { font-size: 14px; font-weight: 700; font-family: var(--dm); color: var(--text); margin-bottom: 3px; }
+.grp-extra-label { font-size: 9px; font-weight: 400; color: var(--text-dim); margin-left: 4px; }
+.grp-summary-meta { font-size: 10px; color: var(--text-dim); font-family: var(--mono); }
+.grp-badge { font-size: 9px; font-weight: 700; letter-spacing: 0.08em; padding: 3px 8px; text-transform: uppercase; flex-shrink: 0; }
+.grp-bar-wrap { height: 2px; background: var(--surface-hi); overflow: hidden; }
+.grp-bar { height: 2px; transition: width 0.6s; }
+.grp-members { display: flex; flex-direction: column; }
+.grp-no-member { padding: 12px 16px; font-size: 10px; color: var(--text-ghost); }
+.grp-member { display: flex; align-items: center; gap: 9px; padding: 9px 16px; border-top: 1px solid var(--ghost); }
+.grp-member-name { font-size: 12px; font-weight: 600; font-family: var(--dm); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.grp-member-bar-wrap { width: 56px; height: 2px; background: var(--surface-hi); flex-shrink: 0; }
+.grp-member-bar { height: 2px; transition: width 0.4s; }
+.grp-member-cnt { font-size: 10px; font-family: var(--mono); color: var(--text-dim); flex-shrink: 0; width: 28px; text-align: right; }
+.grp-member-overdue { font-size: 10px; color: var(--red); font-weight: 600; flex-shrink: 0; white-space: nowrap; }
+.grp-member-badge { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; padding: 2px 6px; flex-shrink: 0; text-transform: uppercase; }
+.grp-member-badge.overload { background: rgba(255,80,80,0.15); color: var(--red); }
+.grp-member-badge.watch { background: rgba(255,160,50,0.12); color: var(--amber); }
 
 /* ── Milestones ── */
-.ms-list { display: flex; flex-direction: column; gap: 12px; }
+.ms-list { display: flex; flex-direction: column; gap: 8px; }
+.ms-card { border: 1px solid var(--ghost); background: var(--surface-low); }
+.ms-card.ms-selected { border-color: var(--text-dim); }
 .ms-item {
   display: flex; align-items: flex-start; gap: 16px;
-  padding: 14px 18px; background: var(--surface-low); border: 1px solid var(--ghost);
+  padding: 14px 18px; cursor: pointer; transition: background 0.12s;
 }
-.ms-dot { width: 8px; height: 8px; flex-shrink: 0; margin-top: 5px; }
+.ms-item:hover { background: var(--surface-mid); }
+.ms-dot { width: 8px; height: 8px; flex-shrink: 0; margin-top: 6px; }
 .ms-dot.done { background: var(--green-dim); }
 .ms-dot.overdue { background: var(--red); }
 .ms-dot.warn { background: var(--amber); }
 .ms-dot.upcoming { background: var(--surface-hi); border: 1px solid var(--text-ghost); }
-.ms-info { flex: 1; min-width: 0; }
-.ms-name { font-size: 13px; font-weight: 500; color: var(--text); margin-bottom: 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.ms-meta { font-size: 10px; font-family: var(--mono); color: var(--text-dim); letter-spacing: 0.05em; }
+.ms-body { flex: 1; min-width: 0; }
+.ms-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.ms-name { font-size: 13px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .ms-right { text-align: right; flex-shrink: 0; }
-.ms-date { font-size: 11px; font-family: var(--mono); color: var(--text-mid); margin-bottom: 4px; white-space: nowrap; }
+.ms-date { font-size: 11px; font-family: var(--mono); color: var(--text-mid); margin-bottom: 3px; white-space: nowrap; }
 .ms-dday { font-size: 10px; font-family: var(--mono); font-weight: 600; white-space: nowrap; }
 .ms-dday.overdue { color: var(--red); }
 .ms-dday.warn { color: var(--amber); }
 .ms-dday.ok { color: var(--text-dim); }
 .ms-dday.done { color: var(--green-dim); }
+.ms-bar-wrap { height: 3px; background: var(--surface-hi); overflow: hidden; margin-bottom: 8px; border-radius: 1px; }
+.ms-bar { height: 3px; transition: width 0.6s; border-radius: 1px; }
+.ms-stats { display: flex; gap: 12px; align-items: center; font-size: 10px; font-family: var(--mono); color: var(--text-dim); flex-wrap: wrap; }
+.ms-stats .ms-stat-overdue { color: var(--red); font-weight: 600; }
+.ms-pace { padding: 1px 7px; font-size: 9px; font-weight: 700; font-family: var(--mono); letter-spacing: 0.04em; border-radius: 2px; margin-left: auto; }
+.ms-pace.ok     { background: rgba(22,163,74,0.1);  color: var(--green-dim); }
+.ms-pace.warn   { background: rgba(251,146,60,0.12); color: var(--amber); }
+.ms-pace.danger { background: rgba(239,68,68,0.12);  color: var(--red); }
+/* ── Milestone Timeline Strip ── */
+.ms-tl-wrap { margin-bottom: 14px; }
+.ms-tl-strip { position: relative; height: 72px; border: 1px solid var(--ghost); background: var(--surface-low); overflow: hidden; }
+.ms-tl-axis { position: absolute; top: 36px; left: 0; right: 0; height: 1px; background: var(--ghost); }
+.ms-tl-today { position: absolute; top: 6px; bottom: 6px; width: 1px; background: var(--text-dim); opacity: 0.55; transform: translateX(-50%); }
+.ms-tl-today::before { content: 'TODAY'; position: absolute; top: -13px; left: 50%; transform: translateX(-50%); font-size: 7px; font-family: var(--mono); color: var(--text-dim); letter-spacing: 0.05em; white-space: nowrap; }
+.ms-tl-item { position: absolute; top: 0; bottom: 0; transform: translateX(-50%); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 0; cursor: pointer; padding: 0 4px; }
+.ms-tl-name { font-size: 8px; font-family: var(--dm); color: var(--text-dim); white-space: nowrap; max-width: 76px; overflow: hidden; text-overflow: ellipsis; text-align: center; margin-bottom: 3px; }
+.ms-tl-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; transition: transform 0.15s; }
+.ms-tl-item:hover .ms-tl-dot { transform: scale(1.6); }
+.ms-tl-dot.overdue { background: var(--red); }
+.ms-tl-dot.warn    { background: var(--amber); }
+.ms-tl-dot.ok      { background: var(--green-dim); }
+.ms-tl-dot.done    { background: var(--text-ghost); }
+.ms-tl-dday { font-size: 8px; font-family: var(--mono); font-weight: 600; margin-top: 3px; white-space: nowrap; }
+.ms-tl-dday.overdue { color: var(--red); }
+.ms-tl-dday.warn    { color: var(--amber); }
+.ms-tl-dday.ok      { color: var(--text-dim); }
+.ms-tl-dday.done    { color: var(--text-ghost); }
+.ms-issues { border-top: 1px solid var(--ghost); }
+.ms-issue-list { display: flex; flex-direction: column; }
+.ms-issue-row { display: flex; align-items: baseline; gap: 8px; padding: 7px 18px 7px 42px; border-top: 1px solid var(--ghost); cursor: pointer; font-size: 11px; transition: background 0.1s; }
+.ms-issue-row:first-child { border-top: none; }
+.ms-issue-row:hover { background: var(--surface-mid); }
+.ms-issue-row.ms-done { opacity: 0.4; }
+.ms-issue-id { font-family: var(--mono); font-size: 9px; color: var(--text-dim); flex-shrink: 0; }
+.ms-issue-subject { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text); }
+.ms-issue-status { font-size: 9px; color: var(--text-dim); flex-shrink: 0; white-space: nowrap; }
+.ms-issue-dday { font-family: var(--mono); font-size: 9px; font-weight: 600; flex-shrink: 0; white-space: nowrap; }
 
 /* ── Nav child (sub-nav) ── */
 .nav-item.sub-nav {
@@ -1290,9 +1355,8 @@ html, body {
 /* ── Theme: light mode overrides only for sub-views ── */
 [data-theme="light"] .sub-body,
 [data-theme="light"] .issues-table td,
-[data-theme="light"] .ms-item {
-  /* sub-views inherit from the dark overview so keep dark even in "light" toggle */
-  /* light mode is just for sub-view container background tweak */
+[data-theme="light"] .ms-item,
+[data-theme="light"] .ms-card {
   background: inherit;
 }
 </style>
@@ -1339,8 +1403,8 @@ html, body {
     <!-- Actions (right) -->
     <div class="topbar-actions">
       <!-- 새로고침 -->
-      <button class="icon-btn" title="강제 갱신" onclick="handleRefresh()">
-        <svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1 0 1-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 2v3h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      <button id="topbar-refresh-btn" class="icon-btn" title="강제 갱신" onclick="handleRefresh()">
+        <svg id="topbar-refresh-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1 0 1-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 2v3h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <!-- 테마 전환 -->
       <button class="icon-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="테마 전환">
@@ -1834,8 +1898,9 @@ function prefetchIssue(id) {
   }, 280);                                 // 280ms 디바운스
 }
 var REDMINE_BASE = '__REDMINE_BASE_URL__';
-var CLOSED_SET = {'해결됨':1,'완료':1,'Closed':1,'Resolved':1};
-var HOLD_SET = {'보류':1,'On Hold':1,'보류중':1};
+var CLOSED_SET = {'완료':1,'완료(잔땡처리)':1,'Closed':1,'반려':1,'Rejected':1};
+var RESOLVED_ONLY_SET = {'해결':1,'해결됨':1,'Resolved':1};
+var HOLD_SET = {'보류':1,'On Hold':1,'보류중':1,'보류(스펙아웃)':1,'스펙아웃':1};
 
 // ────────────────────────────────────────────────────────────
 // History (pushState / popstate)
@@ -2233,7 +2298,7 @@ function renderProjectNav(projects) {
     var riskLevel = _projectRiskMap[p.name] || _projectRiskMap[p.identifier] || '';
     var riskBarColor = riskLevel === 'Critical' ? 'var(--red)'
                      : riskLevel === 'High'     ? 'var(--amber)'
-                     : riskLevel === 'Medium'   ? '#fbbf24'
+                     : riskLevel === 'Medium'   ? '#16a34a'
                      : riskLevel === 'Low'      ? '#34d399'
                      : 'var(--ghost)';
     row.style.borderLeftColor = riskBarColor;
@@ -2704,10 +2769,12 @@ function _updateNavBadges(d) {
   if (_currentSubView === 'issues') {
     var el = document.getElementById('sub-issues');
     if (el) {
+      var _prev = _saveChecked();
       _buildMxData(d);
       _renderMatrix(el, d);
       _updateMxCrown(d);
       _applyTweaks();
+      _restoreChecked(_prev);
     }
   }
 }
@@ -3011,6 +3078,13 @@ function setLiveStatus(state) {
 // Button handlers
 // ────────────────────────────────────────────────────────────
 async function handleRefresh() {
+  var icon = document.getElementById('topbar-refresh-icon');
+  if (icon) {
+    icon.classList.remove('spinning');
+    void icon.offsetWidth; // reflow to restart animation
+    icon.classList.add('spinning');
+    icon.addEventListener('animationend', function() { icon.classList.remove('spinning'); }, { once: true });
+  }
   try {
     _lastGroupsData = null; _lastGroupsProjectId = null;
     _lastVersionsData = null; _lastVersionsProjectId = null;
@@ -3609,11 +3683,16 @@ function switchSubTab(view) {
 }
 
 // ────────────────────────────────────────────────────────────
-// ────────────────────────────────────────────────────────────
 // Groups sub-view
 // ────────────────────────────────────────────────────────────
 async function loadGroups() {
   var el = document.getElementById('sub-groups');
+  var d = _lastDashData;
+  var today = new Date(); today.setHours(0,0,0,0);
+  var doneSet = ['완료','해결됨','closed','resolved'];
+
+  function isDone(i) { return doneSet.some(function(s){ return (i.status||'').toLowerCase().includes(s); }); }
+
   try {
     if (currentProjectId) {
       var data;
@@ -3627,197 +3706,187 @@ async function loadGroups() {
         _lastGroupsData = data;
         _lastGroupsProjectId = currentProjectId;
       }
-      window._groupsCache = {};
-      (data.groups || []).forEach(function(g) { window._groupsCache[g.name] = g.members || []; });
-      el.innerHTML = '<div class="groups-grid" id="grp-grid"></div><div id="group-detail-panel" style="display:none;padding:20px 24px;border-top:1px solid var(--ghost);margin-top:4px;"></div>';
-      var grid = document.getElementById('grp-grid');
       var groups = data.groups || [];
       if (!groups.length) { el.innerHTML = '<div class="no-data-msg">그룹 데이터가 없습니다.</div>'; return; }
-      grid.innerHTML = groups.map(function(g) {
-        return _groupCard(g.name, g.user_count, g.overdue_now, g.total_issues, g.risk, g.is_extra);
-      }).join('');
+
+      var udKeys = d && d.users_data ? Object.keys(d.users_data) : [];
+      var enriched = groups.map(function(g) {
+        var memberData = (g.members || []).map(function(uname) {
+          var u = _resolveUserData(uname, d && d.users_data, udKeys);
+          var shortN = (u && u.short_name) || (uname.includes('_') ? uname.split('_').slice(1).join('_') : uname);
+          var active = u ? (u.issues||[]).filter(function(i){ return !isDone(i); }) : [];
+          var ov     = active.filter(function(i){ return i.due_date && new Date(i.due_date) < today; });
+          return { uname: uname, shortN: shortN, active: active.length, overdue: ov.length };
+        });
+        return Object.assign({}, g, { memberData: memberData });
+      });
+
+      el.innerHTML = '<div class="groups-grid" id="grp-grid"></div>';
+      var grid = document.getElementById('grp-grid');
+      grid.innerHTML = enriched.map(_buildGroupCard).join('');
       _updateGroupCrown(groups.length, groups.filter(function(g){ return (g.overdue_now||0)>0; }).length);
+      _initGroupDrag(grid);
+      _applySavedGroupOrder(grid);
+
     } else {
-      var d = _lastDashData;
+      // 전체 프로젝트: users_data에서 그룹 추출
       if (!d || !d.users_data) {
         var params = new URLSearchParams({ project_id: '', updated_after: currentUpdatedAfter });
         var res2 = await fetch('/api/data?' + params);
         if (!res2.ok) throw new Error(res2.status);
         d = await res2.json();
       }
-      var today = new Date(); today.setHours(0,0,0,0);
-      var doneStatuses = ['완료','해결됨','closed','resolved'];
       var groupMap = {};
       Object.entries(d.users_data || {}).forEach(function(entry) {
         var uname = entry[0], u = entry[1];
         var grp = u.group || (uname.includes('_') ? uname.split('_')[0].trim() : '') || '기타';
-        if (!groupMap[grp]) groupMap[grp] = { name: grp, total: 0, overdue: 0 };
-        (u.issues || []).forEach(function(i) {
-          groupMap[grp].total++;
-          var isDone = doneStatuses.some(function(s) { return (i.status || '').includes(s); });
-          if (!isDone && i.due_date && new Date(i.due_date) < today) groupMap[grp].overdue++;
-        });
+        var shortN = u.short_name || (uname.includes('_') ? uname.split('_').slice(1).join('_') : uname);
+        if (!groupMap[grp]) groupMap[grp] = { name: grp, total_issues: 0, overdue_now: 0, memberData: [], is_extra: grp === '기타' };
+        var active = (u.issues||[]).filter(function(i){ return !isDone(i); });
+        var ov = active.filter(function(i){ return i.due_date && new Date(i.due_date) < today; });
+        groupMap[grp].total_issues += active.length;
+        groupMap[grp].overdue_now  += ov.length;
+        groupMap[grp].memberData.push({ uname: uname, shortN: shortN, active: active.length, overdue: ov.length });
       });
       var groups = Object.values(groupMap).sort(function(a, b) {
-        if (a.name === '기타') return 1;
-        if (b.name === '기타') return -1;
-        return b.overdue - a.overdue;
+        if (a.is_extra) return 1; if (b.is_extra) return -1;
+        return b.overdue_now - a.overdue_now;
       });
-      el.innerHTML = '<div class="groups-grid" id="grp-grid"></div><div id="group-detail-panel" style="display:none;padding:20px 24px;border-top:1px solid var(--ghost);margin-top:4px;"></div>';
+      groups.forEach(function(g) {
+        var r = g.total_issues ? Math.min(100, Math.round(g.overdue_now / g.total_issues * 100)) : 0;
+        g.risk = r >= 60 ? 'Critical' : r >= 30 ? 'High' : r >= 10 ? 'Medium' : 'Stable';
+        g.user_count = g.memberData.length;
+      });
+
+      el.innerHTML = '<div class="groups-grid" id="grp-grid"></div>';
       var grid = document.getElementById('grp-grid');
       if (!groups.length) { el.innerHTML = '<div class="no-data-msg">그룹 데이터가 없습니다.</div>'; return; }
-      grid.innerHTML = groups.map(function(g) {
-        var ratio = Math.min(100, Math.round((g.overdue / (g.total || 1)) * 100));
-        var risk = ratio >= 60 ? 'Critical' : ratio >= 30 ? 'High' : ratio >= 10 ? 'Medium' : 'Stable';
-        return _groupCard(g.name, null, g.overdue, g.total, risk, g.name === '기타');
-      }).join('');
-      _updateGroupCrown(groups.length, groups.filter(function(g){ return (g.overdue||0)>0; }).length);
+      grid.innerHTML = groups.map(_buildGroupCard).join('');
+      _updateGroupCrown(groups.length, groups.filter(function(g){ return (g.overdue_now||0)>0; }).length);
+      _initGroupDrag(grid);
+      _applySavedGroupOrder(grid);
     }
   } catch(e) {
+    console.error(e);
     el.innerHTML = '<div class="no-data-msg">그룹 데이터를 불러오지 못했습니다.</div>';
   }
 }
 
-function _updateGroupCrown(total, overdue) {
-  var p = _allProjects.find(function(x){ return x.identifier === currentProjectId; });
-  var pname = p ? (p.name||'').toUpperCase() : 'ALL PROJECTS';
-  var eyebrow = document.getElementById('group-eyebrow');
-  if (eyebrow) eyebrow.textContent = pname + ' — GROUPS';
-  var cEl = document.getElementById('group-meta-count');
-  if (cEl) cEl.textContent = total + '개';
-  var oEl = document.getElementById('group-meta-overdue');
-  if (oEl) oEl.textContent = overdue ? overdue + '개' : '없음';
+function _resolveUserData(uname, usersData, udKeys) {
+  if (!usersData) return null;
+  if (usersData[uname]) return usersData[uname];
+  var keys = udKeys || Object.keys(usersData);
+  var key = keys.find(function(k) {
+    return k.endsWith('_' + uname) || uname.endsWith('_' + k) ||
+           k.replace(/_/g,' ') === uname || uname.replace(/_/g,' ') === k;
+  });
+  return key ? usersData[key] : null;
 }
 
-function _groupCard(name, userCount, overdue, total, risk, isExtra) {
-  var ratio = Math.min(100, Math.round(((overdue || 0) / (total || 1)) * 100));
-  var barColor = risk === 'Critical' ? 'var(--red)' : risk === 'High' ? 'var(--amber)' : 'var(--text-dim)';
-  var riskBg = risk === 'Critical' ? 'rgba(255,80,80,0.15)' : risk === 'High' ? 'rgba(255,160,50,0.15)' : risk === 'Medium' ? 'rgba(255,200,50,0.1)' : 'rgba(255,255,255,0.06)';
-  var riskColor = risk === 'Critical' ? 'var(--red)' : risk === 'High' ? 'var(--amber)' : risk === 'Medium' ? 'var(--amber-deep)' : 'var(--text-dim)';
-  var overdueHtml = (overdue || 0) > 0
-    ? '<span style="font-size:10px;color:var(--red);font-weight:600;">지연 ' + (overdue || 0) + '건</span>'
-    : '<span style="font-size:10px;color:var(--text-dim);">지연 없음</span>';
-  var safeN = name.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-  var borderStyle = isExtra ? '1px dashed var(--ghost)' : '1px solid var(--ghost)';
-  var nameColor = isExtra ? 'var(--text-dim)' : 'var(--text)';
-  return '<div class="grp-card" data-grp="' + escapeHtml(name) + '" onclick="toggleGroupCard(\'' + safeN + '\')" style="background:var(--surface);border:' + borderStyle + ';padding:16px 18px;cursor:pointer;transition:border-left 0.15s;">'
-    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;">'
-    + '<div><div style="font-size:13px;font-weight:700;font-family:var(--dm);color:' + nameColor + ';">' + escapeHtml(name) + (isExtra ? '<span style="font-size:9px;font-weight:400;color:var(--text-dim);margin-left:5px;">미분류</span>' : '') + '</div>'
-    + (userCount ? '<div style="font-size:10px;color:var(--text-dim);margin-top:2px;">' + userCount + '명</div>' : '')
+function _buildGroupCard(g) {
+  var risk      = g.risk || 'Stable';
+  var isExtra   = g.is_extra;
+  var members   = (g.memberData || []).slice().sort(function(a, b) {
+    return b.overdue !== a.overdue ? b.overdue - a.overdue : b.active - a.active;
+  });
+  var total     = g.total_issues || 0;
+  var overdue   = g.overdue_now || 0;
+  var userCount = g.user_count || members.length;
+  var ratio     = total ? Math.min(100, Math.round(overdue / total * 100)) : 0;
+
+  var riskBg    = risk==='Critical' ? 'rgba(255,80,80,0.15)' : risk==='High' ? 'rgba(255,160,50,0.15)' : risk==='Medium' ? 'rgba(255,200,50,0.1)' : 'rgba(255,255,255,0.05)';
+  var riskColor = risk==='Critical' ? 'var(--red)' : risk==='High' ? 'var(--amber)' : risk==='Medium' ? 'var(--amber-deep)' : 'var(--text-dim)';
+  var barColor  = risk==='Critical' ? 'var(--red)' : risk==='High' ? 'var(--amber)' : 'var(--text-dim)';
+
+  var maxActive = members.reduce(function(m, mb){ return Math.max(m, mb.active); }, 1);
+  var avgActive = members.length ? members.reduce(function(s, mb){ return s + mb.active; }, 0) / members.length : 0;
+
+  var membersHtml = members.length ? members.map(function(m) {
+    var barW    = Math.round(m.active / maxActive * 100);
+    var mBarClr = m.overdue > 0 ? 'var(--red)' : 'var(--text-dim)';
+    var nameClr = m.overdue > 0 ? 'var(--red)' : 'var(--text)';
+    var badge   = avgActive > 0 && m.active >= avgActive * 2
+      ? '<span class="grp-member-badge overload">OVERLOAD</span>'
+      : avgActive > 0 && m.active >= avgActive * 1.3
+        ? '<span class="grp-member-badge watch">주의</span>'
+        : '';
+    var unameSafe = (m.uname || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return '<div class="grp-member">'
+      + '<div class="grp-member-name" draggable="false" style="color:' + nameClr + ';cursor:pointer;" onclick="event.stopPropagation();jumpToMatrixUser(\'' + unameSafe + '\')">' + escapeHtml(m.shortN || m.uname) + ' <span style="font-size:9px;opacity:0.45;font-family:var(--mono);">→매트릭스</span></div>'
+      + '<div class="grp-member-bar-wrap"><div class="grp-member-bar" style="width:' + barW + '%;background:' + mBarClr + ';"></div></div>'
+      + '<div class="grp-member-cnt">' + m.active + '건</div>'
+      + (m.overdue ? '<div class="grp-member-overdue">지연 ' + m.overdue + '</div>' : '')
+      + badge
+      + '</div>';
+  }).join('') : '<div class="grp-no-member">멤버 정보 없음</div>';
+
+  var overdueStr = overdue ? ' · <span style="color:var(--red);">지연 ' + overdue + '건</span>' : '';
+
+  return '<div class="grp-card' + (isExtra ? ' grp-extra' : '') + '" data-grp="' + escapeHtml(g.name) + '" draggable="true">'
+    + '<div class="grp-header">'
+    + '<div>'
+    + '<div class="grp-name">' + escapeHtml(g.name) + (isExtra ? ' <span class="grp-extra-label">미분류</span>' : '') + '</div>'
+    + '<div class="grp-summary-meta">' + userCount + '명 · ' + total + '건' + overdueStr + '</div>'
     + '</div>'
-    + (isExtra ? '' : '<span style="font-size:9px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;padding:3px 8px;background:' + riskBg + ';color:' + riskColor + ';">' + (risk === 'Stable' ? 'STABLE' : risk.toUpperCase()) + '</span>')
+    + (isExtra ? '' : '<span class="grp-badge" style="background:' + riskBg + ';color:' + riskColor + ';">' + (risk==='Stable' ? 'STABLE' : risk.toUpperCase()) + '</span>')
     + '</div>'
-    + '<div style="height:4px;background:var(--surface-hi);overflow:hidden;margin-bottom:10px;">'
-    + '<div style="height:4px;background:' + barColor + ';width:' + ratio + '%;transition:width 0.6s;"></div>'
-    + '</div>'
-    + '<div style="display:flex;justify-content:space-between;align-items:baseline;">'
-    + '<span style="font-size:18px;font-weight:800;letter-spacing:-0.03em;color:var(--text);font-family:var(--dm);">' + (total || 0) + '<span style="font-size:10px;font-weight:400;color:var(--text-dim);margin-left:2px;">건</span></span>'
-    + overdueHtml
-    + '</div>'
+    + '<div class="grp-bar-wrap"><div class="grp-bar" style="width:' + ratio + '%;background:' + barColor + ';"></div></div>'
+    + '<div class="grp-members">' + membersHtml + '</div>'
     + '</div>';
 }
 
-function toggleGroupCard(groupName) {
-  var cards = document.querySelectorAll('.grp-card');
-  var wasSelected = false;
-  cards.forEach(function(c) { if (c.dataset.grp === groupName && c.classList.contains('grp-selected')) wasSelected = true; });
-  cards.forEach(function(c) {
-    c.classList.remove('grp-selected');
-    c.style.borderLeft = '1px solid var(--ghost)';
-  });
-  var panel = document.getElementById('group-detail-panel');
-  if (wasSelected) { if (panel) panel.style.display = 'none'; return; }
-  cards.forEach(function(c) {
-    if (c.dataset.grp === groupName) { c.classList.add('grp-selected'); c.style.borderLeft = '3px solid var(--text)'; }
-  });
-  renderGroupDetail(groupName);
+function _updateGroupCrown(total, overdue) {
+  var p = _allProjects.find(function(x){ return x.identifier === currentProjectId; });
+  var eyebrow = document.getElementById('group-eyebrow');
+  if (eyebrow) eyebrow.textContent = (p ? (p.name||'').toUpperCase() : 'ALL PROJECTS') + ' — GROUPS';
+  var cEl = document.getElementById('group-meta-count'); if (cEl) cEl.textContent = total + '개';
+  var oEl = document.getElementById('group-meta-overdue'); if (oEl) oEl.textContent = overdue ? overdue + '개' : '없음';
 }
 
-function renderGroupDetail(groupName) {
-  var panel = document.getElementById('group-detail-panel');
-  if (!panel) return;
-  var d = _lastDashData;
-  if (!d || !d.users_data) { panel.style.display = 'none'; return; }
-  var today = new Date(); today.setHours(0,0,0,0);
-  var doneStatuses = ['완료','해결됨','closed','resolved'];
-  var cachedMembers = (window._groupsCache || {})[groupName] || null;
-  var members = [];
-  if (cachedMembers && cachedMembers.length > 0) {
-    var udKeys = Object.keys(d.users_data);
-    cachedMembers.forEach(function(uname) {
-      var u = d.users_data[uname];
-      if (!u) {
-        // 이름 형식 불일치 시 fuzzy 매칭 (e.g. "홍길동" ↔ "기획_홍길동")
-        var key = udKeys.find(function(k) {
-          return k === uname || k.endsWith('_' + uname) || uname.endsWith('_' + k) ||
-                 k.replace(/_/g,' ') === uname || uname.replace(/_/g,' ') === k;
-        });
-        u = key ? d.users_data[key] : null;
+// ── Drag and Drop ──────────────────────────────────────────
+var _grpDragSrc = null;
+
+function _initGroupDrag(grid) {
+  grid.querySelectorAll('.grp-card').forEach(function(card) {
+    card.addEventListener('dragstart', function(e) {
+      _grpDragSrc = card;
+      e.dataTransfer.effectAllowed = 'move';
+      setTimeout(function(){ card.classList.add('grp-dragging'); }, 0);
+    });
+    card.addEventListener('dragend', function() {
+      card.classList.remove('grp-dragging');
+      grid.querySelectorAll('.grp-card').forEach(function(c){ c.classList.remove('grp-drag-over'); });
+      _saveGroupOrder(grid);
+    });
+    card.addEventListener('dragover', function(e){ e.preventDefault(); e.dataTransfer.dropEffect = 'move'; });
+    card.addEventListener('dragenter', function(e){ e.preventDefault(); if (card !== _grpDragSrc) card.classList.add('grp-drag-over'); });
+    card.addEventListener('dragleave', function(){ card.classList.remove('grp-drag-over'); });
+    card.addEventListener('drop', function(e) {
+      e.preventDefault(); e.stopPropagation();
+      if (_grpDragSrc && _grpDragSrc !== card) {
+        var all = Array.from(grid.querySelectorAll('.grp-card'));
+        if (all.indexOf(_grpDragSrc) < all.indexOf(card)) grid.insertBefore(_grpDragSrc, card.nextSibling);
+        else grid.insertBefore(_grpDragSrc, card);
       }
-      if (u) members.push({ uname: uname, u: u });
+      card.classList.remove('grp-drag-over');
     });
-  } else {
-    Object.entries(d.users_data).forEach(function(entry) {
-      var uname = entry[0], u = entry[1];
-      var grp = u.group || (uname.includes('_') ? uname.split('_')[0].trim() : '') || '기타';
-      if (grp === groupName) members.push({ uname: uname, u: u });
-    });
-  }
-  if (!members.length) { panel.style.display = 'none'; return; }
+  });
+}
 
-  members.sort(function(a, b) {
-    var aActive = (a.u.issues||[]).filter(function(i){return !doneStatuses.some(function(s){return(i.status||'').includes(s);});});
-    var bActive = (b.u.issues||[]).filter(function(i){return !doneStatuses.some(function(s){return(i.status||'').includes(s);});});
-    var aOv = aActive.filter(function(i){return i.due_date && new Date(i.due_date)<today;}).length;
-    var bOv = bActive.filter(function(i){return i.due_date && new Date(i.due_date)<today;}).length;
-    return bOv !== aOv ? bOv - aOv : bActive.length - aActive.length;
-  });
+function _saveGroupOrder(grid) {
+  var order = Array.from(grid.querySelectorAll('.grp-card')).map(function(c){ return c.dataset.grp; });
+  try { localStorage.setItem('vx-grp-order-' + currentProjectId, JSON.stringify(order)); } catch(e){}
+}
 
-  var html = '<div style="font-size:9px;letter-spacing:0.15em;text-transform:uppercase;color:var(--text-dim);margin-bottom:14px;font-family:var(--mono);">' + escapeHtml(groupName) + ' &nbsp;·&nbsp; ' + members.length + '명</div>'
-    + '<div style="display:flex;flex-direction:column;gap:16px;">';
-  members.forEach(function(m) {
-    var shortN = m.u.short_name || (m.uname.includes('_') ? m.uname.split('_').slice(1).join('_').trim() : m.uname) || m.uname;
-    var issues = m.u.issues || [];
-    var activeIssues = issues.filter(function(i){return !doneStatuses.some(function(s){return(i.status||'').includes(s);});});
-    var overdueIssues = activeIssues.filter(function(i){return i.due_date && new Date(i.due_date)<today;});
-    var hasOv = overdueIssues.length > 0;
-    var badgeBg = hasOv ? 'var(--red)' : 'var(--surface-hi)';
-    html += '<div>'
-      + '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px;">'
-      + '<div style="width:26px;height:26px;background:' + badgeBg + ';color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;">' + escapeHtml(shortN.slice(0,1)) + '</div>'
-      + '<div style="flex:1;font-size:12px;font-weight:600;font-family:var(--dm);">' + escapeHtml(shortN) + '</div>'
-      + '<div style="font-size:10px;color:var(--text-dim);">전체 <b style="color:var(--text);">' + activeIssues.length + '</b>건</div>'
-      + (hasOv ? '<div style="font-size:10px;color:var(--red);font-weight:600;margin-left:8px;">지연 ' + overdueIssues.length + '건</div>' : '')
-      + '</div>';
-    if (!activeIssues.length) {
-      html += '<div style="font-size:10px;color:var(--text-dim);padding:4px 0 4px 36px;">진행 중인 이슈 없음</div>';
-    } else {
-      activeIssues.forEach(function(i) {
-        if (!i.id) return;
-        var dLabel = ddayLabel(i.due_date);
-        var dColor = ddayColor(i.due_date);
-        html += '<div class="grp-issue-row" data-issue-id="' + i.id + '" style="display:flex;justify-content:space-between;align-items:baseline;padding:5px 0 5px 36px;border-top:1px solid var(--ghost);cursor:pointer;gap:8px;">'
-          + '<div style="display:flex;gap:5px;align-items:baseline;min-width:0;overflow:hidden;">'
-          + '<span style="font-size:9px;color:var(--text-dim);flex-shrink:0;font-family:var(--mono);">#' + i.id + '</span>'
-          + '<span style="font-size:10px;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escapeHtml(i.subject) + '</span>'
-          + '</div>'
-          + (i.due_date ? '<span style="font-size:9px;font-weight:600;color:' + dColor + ';white-space:nowrap;flex-shrink:0;">' + dLabel + '</span>' : '')
-          + '</div>';
-      });
-    }
-    html += '</div>';
-  });
-  html += '</div>';
-  panel.innerHTML = html;
-  panel.style.display = 'block';
-  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  panel.querySelectorAll('.grp-issue-row').forEach(function(row) {
-    row.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var id = parseInt(row.dataset.issueId, 10);
-      if (id) openIssue(id);
+function _applySavedGroupOrder(grid) {
+  try {
+    var saved = localStorage.getItem('vx-grp-order-' + currentProjectId);
+    if (!saved) return;
+    JSON.parse(saved).forEach(function(grpName) {
+      var card = grid.querySelector('.grp-card[data-grp="' + grpName.replace(/\\/g,'\\\\').replace(/"/g,'\\"') + '"]');
+      if (card) grid.appendChild(card);
     });
-  });
+  } catch(e){}
 }
 
 // ────────────────────────────────────────────────────────────
@@ -3858,6 +3927,68 @@ function _updateMsCrown(versions) {
   if (oEl) oEl.textContent = overdue ? overdue + '개' : '없음';
 }
 
+/* ── Milestone Timeline Strip ── */
+function _renderMilestoneTimeline(versions, container) {
+  var withDates = versions.filter(function(v) { return v.due_date; });
+  if (!withDates.length) {
+    container.innerHTML = '';
+    return;
+  }
+  var today = new Date(); today.setHours(0,0,0,0);
+  var todayMs = today.getTime();
+  var dates = withDates.map(function(v) { return new Date(v.due_date).getTime(); });
+  var minMs = Math.min(todayMs - 21*86400000, Math.min.apply(null, dates) - 10*86400000);
+  var maxMs = Math.max(todayMs + 21*86400000, Math.max.apply(null, dates) + 10*86400000);
+  var range = maxMs - minMs;
+  function toPos(ms) { return Math.max(3, Math.min(97, (ms - minMs) / range * 100)); }
+  var todayPos = toPos(todayMs);
+  var html = '<div class="ms-tl-strip">';
+  html += '<div class="ms-tl-axis"></div>';
+  html += '<div class="ms-tl-today" style="left:' + todayPos + '%;"></div>';
+  withDates.forEach(function(v) {
+    var dMs = new Date(v.due_date).getTime();
+    var pos = toPos(dMs);
+    var isDone = v.status === 'closed';
+    var diff = Math.round((dMs - todayMs) / 86400000);
+    var isOverdue = !isDone && diff < 0;
+    var isImminent = !isDone && !isOverdue && diff <= 7;
+    var dotCls = isDone ? 'done' : isOverdue ? 'overdue' : isImminent ? 'warn' : 'ok';
+    var dday = isDone ? 'DONE' : diff < 0 ? 'D+'+Math.abs(diff) : diff === 0 ? 'D-DAY' : 'D-'+diff;
+    html += '<div class="ms-tl-item" style="left:' + pos + '%;" onclick="_scrollToMsCard(' + v.id + ')">';
+    html += '<div class="ms-tl-name">' + escapeHtml(v.name) + '</div>';
+    html += '<div class="ms-tl-dot ' + dotCls + '"></div>';
+    html += '<div class="ms-tl-dday ' + dotCls + '">' + dday + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function _scrollToMsCard(msId) {
+  var card = document.querySelector('.ms-card[data-ms-id="' + msId + '"]');
+  if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function _getMilestonePace(v) {
+  if (v.status === 'closed' || !v.due_date || !v.total) return null;
+  var today = new Date(); today.setHours(0,0,0,0);
+  var due   = new Date(v.due_date);
+  var daysLeft = Math.round((due - today) / 86400000);
+  if (daysLeft < 0) return null; // D+ 배지가 이미 표시됨
+  // 시작일: created_on 또는 마감 30일 전으로 추정
+  var startStr = v.created_on ? v.created_on.slice(0, 10) : null;
+  var start = startStr ? new Date(startStr) : new Date(due.getTime() - 30*86400000);
+  var totalDays = Math.max(1, Math.round((due - start) / 86400000));
+  var elapsed   = Math.max(0, Math.round((today - start) / 86400000));
+  var timeElapsedPct = Math.min(100, elapsed / totalDays * 100);
+  if (timeElapsedPct < 5) return null; // 너무 초기라 판단 유보
+  var done = v.done_pct || 0;
+  var pace = timeElapsedPct > 0 ? done / timeElapsedPct : 0;
+  if (pace >= 0.9) return 'ok';
+  if (pace >= 0.6) return 'warn';
+  return 'danger';
+}
+
 function renderMilestonesView(versions, container) {
   if (!versions || !versions.length) {
     container.innerHTML = '<div class="no-data-msg">마일스톤이 없습니다.</div>';
@@ -3865,9 +3996,25 @@ function renderMilestonesView(versions, container) {
   }
 
   var today = new Date(); today.setHours(0,0,0,0);
+
+  // 마감일 기준 정렬: 지연 → 임박 → 여유 → 날짜없음
+  var sorted = versions.slice().sort(function(a, b) {
+    var aD = a.due_date ? new Date(a.due_date) : null;
+    var bD = b.due_date ? new Date(b.due_date) : null;
+    if (!aD && !bD) return 0;
+    if (!aD) return 1;
+    if (!bD) return -1;
+    return aD - bD;
+  });
+
+  // 타임라인 스트립 렌더
+  var tlWrap = document.createElement('div');
+  tlWrap.className = 'ms-tl-wrap';
+  _renderMilestoneTimeline(sorted, tlWrap);
+
   var html = '<div class="ms-list">';
 
-  versions.forEach(function(v) {
+  sorted.forEach(function(v) {
     var isDone = v.status === 'closed';
     var dueDate = v.due_date;
     var d2 = dueDate ? new Date(dueDate) : null;
@@ -3884,26 +4031,135 @@ function renderMilestonesView(versions, container) {
       ddayCls = diff < 0 ? 'overdue' : diff <= 7 ? 'warn' : 'ok';
     }
 
-    var open = v.open_issues_count || 0;
-    var closed = v.closed_issues_count || 0;
-    var total = open + closed;
+    // build_version_data 필드 사용
+    var total    = v.total || 0;
+    var closed   = (v.closed || 0) + (v.resolved || 0);
+    var overdue  = v.overdue || 0;
+    var donePct  = v.done_pct != null ? v.done_pct : (total ? Math.round(closed / total * 100) : 0);
+    var hasIssues = total > 0;
+    var barColor = isOverdue ? 'var(--red)' : isImminent ? 'var(--amber)' : 'var(--green-dim)';
 
-    html +=
-      '<div class="ms-item">' +
-        '<div class="ms-dot ' + dotCls + '"></div>' +
-        '<div class="ms-info">' +
-          '<div class="ms-name">' + escapeHtml(v.name || '—') + '</div>' +
-          '<div class="ms-meta">' + (total ? closed + '/' + total + ' 완료' : '이슈 없음') + '</div>' +
-        '</div>' +
-        '<div class="ms-right">' +
-          '<div class="ms-date">' + (dueDate || '—') + '</div>' +
-          (ddayStr ? '<div class="ms-dday ' + ddayCls + '">' + ddayStr + '</div>' : '') +
-        '</div>' +
-      '</div>';
+    html += '<div class="ms-card" data-ms-id="' + v.id + '">';
+    html += '<div class="ms-item" onclick="toggleMilestone(' + v.id + ')">';
+    html += '<div class="ms-dot ' + dotCls + '"></div>';
+    html += '<div class="ms-body">';
+    // 헤더 행: 이름 + 날짜
+    html += '<div class="ms-header-row">';
+    html += '<div class="ms-name">' + escapeHtml(v.name || '—') + '</div>';
+    html += '<div class="ms-right">';
+    html += '<div class="ms-date">' + (dueDate || '<span style="color:var(--text-ghost);font-style:italic;font-size:10px;">날짜 미정</span>') + '</div>';
+    if (ddayStr) html += '<div class="ms-dday ' + ddayCls + '">' + ddayStr + '</div>';
+    html += '</div></div>';
+    // 진행 바
+    html += '<div class="ms-bar-wrap"><div class="ms-bar" style="width:' + donePct + '%;background:' + barColor + ';"></div></div>';
+    // 통계 행
+    html += '<div class="ms-stats">';
+    if (hasIssues) {
+      html += '<span>' + closed + '/' + total + ' 완료</span>';
+      html += '<span>' + donePct + '%</span>';
+      if (overdue) html += '<span class="ms-stat-overdue">지연 ' + overdue + '건</span>';
+      // 페이스 인디케이터
+      var pace = _getMilestonePace(v);
+      if (pace === 'ok')     html += '<span class="ms-pace ok">순항중</span>';
+      else if (pace === 'warn')   html += '<span class="ms-pace warn">주의</span>';
+      else if (pace === 'danger') html += '<span class="ms-pace danger">지연위험</span>';
+      html += '<span class="ms-toggle-hint" style="margin-left:' + (pace ? '8px' : 'auto') + ';color:var(--text-ghost);font-size:9px;">▾ 이슈 보기</span>';
+    } else {
+      html += '<span style="color:var(--text-ghost);">이슈 미배정</span>';
+    }
+    html += '</div>';
+    html += '</div></div>'; // ms-body, ms-item
+    // 드릴다운 패널 (기본 숨김)
+    html += '<div class="ms-issues" id="ms-issues-' + v.id + '" style="display:none;"></div>';
+    html += '</div>'; // ms-card
   });
 
   html += '</div>';
-  container.innerHTML = html;
+  container.innerHTML = '';
+  if (tlWrap.innerHTML) container.appendChild(tlWrap);
+  var listDiv = document.createElement('div');
+  listDiv.innerHTML = html;
+  container.appendChild(listDiv.firstChild);
+}
+
+function toggleMilestone(msId) {
+  var drillEl = document.getElementById('ms-issues-' + msId);
+  if (!drillEl) return;
+  var wasOpen = drillEl.style.display !== 'none';
+  // 모두 닫기 + 힌트 초기화
+  document.querySelectorAll('.ms-issues').forEach(function(el) { el.style.display = 'none'; });
+  document.querySelectorAll('.ms-card').forEach(function(el) {
+    el.classList.remove('ms-selected');
+    var hint = el.querySelector('.ms-toggle-hint');
+    if (hint) hint.textContent = '▾ 이슈 보기';
+  });
+  if (wasOpen) return;
+  // 선택 열기
+  var card = document.querySelector('.ms-card[data-ms-id="' + msId + '"]');
+  if (card) {
+    card.classList.add('ms-selected');
+    var hint = card.querySelector('.ms-toggle-hint');
+    if (hint) hint.textContent = '▴ 이슈 숨기기';
+  }
+  _renderMilestoneIssues(msId, drillEl);
+  drillEl.style.display = 'block';
+  drillEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function _renderMilestoneIssues(msId, el) {
+  if (!_lastVersionsData) { el.innerHTML = '<div style="padding:12px 42px;font-size:11px;color:var(--text-dim);">데이터 없음</div>'; return; }
+  var v = _lastVersionsData.find(function(x) { return x.id == msId; });
+  if (!v) { el.innerHTML = '<div style="padding:12px 42px;font-size:11px;color:var(--text-dim);">데이터 없음</div>'; return; }
+  var issues = (v.issues || []).slice();
+  if (!issues.length) { el.innerHTML = '<div style="padding:12px 42px;font-size:11px;color:var(--text-dim);">배정된 이슈 없음</div>'; return; }
+
+  var today = new Date(); today.setHours(0,0,0,0);
+  var doneSet = ['완료','해결됨','closed','resolved'];
+  var isDoneIssue = function(i) { return doneSet.some(function(s) { return (i.status||'').toLowerCase().includes(s); }); };
+
+  issues.sort(function(a, b) {
+    var aD = isDoneIssue(a), bD = isDoneIssue(b);
+    if (aD !== bD) return aD ? 1 : -1;
+    var aOv = !aD && a.due_date && new Date(a.due_date) < today ? 1 : 0;
+    var bOv = !bD && b.due_date && new Date(b.due_date) < today ? 1 : 0;
+    return bOv - aOv;
+  });
+
+  var LIMIT = 100;
+  var total = issues.length;
+  var displayed = issues.slice(0, LIMIT);
+
+  var html = '<div class="ms-issue-list">';
+  displayed.forEach(function(i) {
+    var done = isDoneIssue(i);
+    var dLabel = i.due_date ? ddayLabel(i.due_date) : '';
+    var dColor = i.due_date ? ddayColor(i.due_date) : 'var(--text-dim)';
+    html += '<div class="ms-issue-row' + (done ? ' ms-done' : '') + '" data-issue-id="' + i.id + '">';
+    html += '<span class="ms-issue-id">#' + i.id + '</span>';
+    html += '<span class="ms-issue-subject">' + escapeHtml(i.subject) + '</span>';
+    html += '<span class="ms-issue-status">' + escapeHtml(i.status) + '</span>';
+    if (dLabel) html += '<span class="ms-issue-dday" style="color:' + dColor + ';">' + dLabel + '</span>';
+    html += '</div>';
+  });
+  html += '</div>';
+
+  if (total > LIMIT && REDMINE_BASE) {
+    var vUrl = REDMINE_BASE + '/versions/' + msId;
+    html += '<div style="padding:10px 42px 14px;">'
+      + '<a href="' + vUrl + '" target="_blank" rel="noopener"'
+      + ' style="font-size:11px;font-family:var(--dm);color:var(--text);letter-spacing:0.04em;text-decoration:none;border-bottom:1px solid var(--text-mid);opacity:0.75;">'
+      + '상위 ' + LIMIT + '건 표시 중 · 전체 ' + total + '건 → 레드마인에서 보기 ↗'
+      + '</a></div>';
+  }
+
+  el.innerHTML = html;
+
+  el.querySelectorAll('.ms-issue-row').forEach(function(row) {
+    row.addEventListener('click', function() {
+      var id = parseInt(row.dataset.issueId, 10);
+      if (id) openIssue(id);
+    });
+  });
 }
 
 // ────────────────────────────────────────────────────────────
@@ -4207,6 +4463,57 @@ function getShortName(userName) {
   return userName;
 }
 
+/* ── 그룹 탭 → 이슈 매트릭스 점프 ── */
+function jumpToMatrixUser(uname) {
+  _pendingMxJump = uname;
+  showSubView('issues');
+}
+
+function _applyMxJump() {
+  if (!_pendingMxJump) return;
+  var target = _pendingMxJump;
+  _pendingMxJump = null;
+
+  var keys = Object.keys(_mxData);
+  var targetShort = target.split('_').pop().trim().toLowerCase();
+  var targetFull  = target.toLowerCase();
+
+  // 1순위: 정확히 일치, 2순위: shortName 일치, 3순위: fullName에 target 포함
+  var fullName = null;
+  for (var i = 0; i < keys.length; i++) {
+    if (keys[i].toLowerCase() === targetFull) { fullName = keys[i]; break; }
+  }
+  if (!fullName) {
+    for (var i = 0; i < keys.length; i++) {
+      var s = getShortName(keys[i]).toLowerCase();
+      if (s === targetShort) { fullName = keys[i]; break; }
+    }
+  }
+  if (!fullName) {
+    for (var i = 0; i < keys.length; i++) {
+      if (keys[i].toLowerCase().indexOf(targetShort) !== -1) { fullName = keys[i]; break; }
+    }
+  }
+  if (!fullName) return;
+
+  // 이슈 수 가장 많은 bucket 선택
+  var BUCKETS = ['over', 'soon', 'prog', 'wait', 'resolve'];
+  var md = _mxData[fullName];
+  var bestBucket = BUCKETS.reduce(function(best, b) {
+    return (md[b] || []).length > (md[best] || []).length ? b : best;
+  }, 'prog');
+
+  // 해당 셀 찾아 클릭
+  var cell = null;
+  document.querySelectorAll('#mx-grid .cell').forEach(function(c) {
+    if (c.getAttribute('data-who') === fullName && c.getAttribute('data-bucket') === bestBucket) cell = c;
+  });
+  if (cell) {
+    cell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    _mxSelectCell(cell);
+  }
+}
+
 // Initial gauge placeholder
 buildGauge(0);
 </script>
@@ -4217,14 +4524,35 @@ buildGauge(0);
 // MATRIX — data & state
 // ──────────────────────────────────────────────────────────────
 var _mxIssues   = [];   // flat issue list (all assignees)
+
+var _bulkCache = { statuses: null, assignees: null, versions: null };
+var _bulkPrefetched = false;
+
+function _prefetchBulkData() {
+  if (_bulkPrefetched) return;
+  _bulkPrefetched = true;
+  var pid = currentProjectId;
+  fetch('/api/statuses').then(function(r) { return r.json(); }).then(function(d) {
+    _bulkCache.statuses = d.statuses || [];
+  }).catch(function() {});
+  fetch('/api/assignees?project_id=' + encodeURIComponent(pid)).then(function(r) { return r.json(); }).then(function(d) {
+    _bulkCache.assignees = d.assignees || [];
+  }).catch(function() {});
+  fetch('/api/versions?project_id=' + encodeURIComponent(pid)).then(function(r) { return r.json(); }).then(function(d) {
+    var arr = Array.isArray(d) ? d : (d.versions || []);
+    _bulkCache.versions = arr.map(function(v) { return { id: v.id, name: v.name }; });
+  }).catch(function() {});
+}
 var _mxData     = {};   // { assignee: { over:[], soon:[], prog:[], wait:[], resolve:[] } }
 var _mxSel      = null; // { who, bucket } | null = show all
+var _pendingRestoreChecked = null;
+var _pendingMxJump = null; // groups 탭 → 이슈 매트릭스 탭 이동 시 자동 선택할 uname
 var _mxTweaks   = JSON.parse(localStorage.getItem('vantix.issues.matrix.tweaks') || 'null') || {
   display: 'count', sort: 'total', resolved: 'on', density: 'default', rollup: 'on'
 };
 var BUCKET_LABEL = { over: '마감 초과', soon: 'D-7 임박', prog: '진행 중', wait: '진행 대기', resolve: '해결' };
 var PROG_SET = { '진행': 1, '진행대기': 1, 'In Progress': 1, '진행중': 1 };
-var RESOLVE_SET = { '해결됨': 1, '완료': 1, '해결': 1, 'Closed': 1, 'Resolved': 1 };
+var RESOLVE_SET = { '해결됨': 1, '완료': 1, '완료(잔땡처리)': 1, '해결': 1, 'Closed': 1, 'Resolved': 1, '반려': 1, 'Rejected': 1 };
 
 function _mxBucket(iss) {
   var status = iss.status || '';
@@ -4263,20 +4591,21 @@ async function loadIssues() {
     && _lastDashProjectId === currentProjectId
     && _lastDashAfter === currentUpdatedAfter;
   if (cached) {
+    var _p1 = _saveChecked();
     _buildMxData(_lastDashData);
     _renderMatrix(el, _lastDashData);
     _updateMxCrown(_lastDashData);
-    _applyTweaks();
+    _applyTweaks(); _applyMxJump(); _restoreChecked(_p1);
     return;
   }
-  // 클라이언트 캐시 확인
   var cacheKey = currentProjectId + '|' + currentUpdatedAfter;
   var clientCached = _clientDataCache[cacheKey];
   if (clientCached && (Date.now() - clientCached.ts) < _CLIENT_CACHE_TTL) {
+    var _p2 = _saveChecked();
     _buildMxData(clientCached.data);
     _renderMatrix(el, clientCached.data);
     _updateMxCrown(clientCached.data);
-    _applyTweaks();
+    _applyTweaks(); _applyMxJump(); _restoreChecked(_p2);
     return;
   }
 
@@ -4288,10 +4617,11 @@ async function loadIssues() {
     var d = await res.json();
     var prev = _clientDataCache[cacheKey] || {};
     _clientDataCache[cacheKey] = { data: d, forecast: prev.forecast || null, insightsData: prev.insightsData || null, historyData: prev.historyData || null, ts: Date.now() };
+    var _p3 = _saveChecked();
     _buildMxData(d);
     _renderMatrix(el, d);
     _updateMxCrown(d);
-    _applyTweaks();
+    _applyTweaks(); _applyMxJump(); _restoreChecked(_p3);
   } catch(e) {
     el.innerHTML = '<div class="drill-empty">이슈를 불러오지 못했습니다.</div>';
   }
@@ -4620,10 +4950,9 @@ function _renderDrill() {
     '<div class="bulk-bar" id="bulk-bar">' +
       '<span><span class="ct" id="bulk-count">0</span> 건 선택됨</span>' +
       '<span class="spacer"></span>' +
-      '<button class="btn" onclick="alert(\'담당자 변경 — 추후 구현\')">담당자 변경</button>' +
-      '<button class="btn" onclick="alert(\'마일스톤 이동 — 추후 구현\')">마일스톤 이동</button>' +
-      '<button class="btn" onclick="alert(\'우선순위 변경 — 추후 구현\')">우선순위 &#x2191;</button>' +
-      '<button class="btn danger" onclick="alert(\'아카이브 — 추후 구현\')">아카이브</button>' +
+      '<button class="btn" onclick="bulkChangeAssignee()">담당자 변경</button>' +
+      '<button class="btn" onclick="bulkChangeMilestone()">마일스톤 이동</button>' +
+      '<button class="btn" onclick="bulkChangeStatus()">상태 변경</button>' +
     '</div>' +
     _issueTableHTML(issues) +
     '<div class="t-foot"><div class="left"><b>' + issues.length + '</b> of <b>' + issues.length + '</b> &middot; 선택 셀 기준</div></div>';
@@ -4637,6 +4966,11 @@ function _renderDrill() {
   });
 
   _bindDrillCheckboxes();
+  if (_pendingRestoreChecked) {
+    var _toRestore = _pendingRestoreChecked;
+    _pendingRestoreChecked = null;
+    _restoreChecked(_toRestore);
+  }
 }
 
 function _issueTableHTML(issues) {
@@ -4649,12 +4983,12 @@ function _issueTableHTML(issues) {
     var ddayStr = dday === null ? '—' : dday < 0 ? 'D+' + (-dday) : dday === 0 ? 'D-DAY' : 'D-' + dday;
     var ddayCls = isOver ? 'over' : isSoon ? 'soon' : 'safe';
     var dueCls  = isOver ? 'over' : isSoon ? 'soon' : '';
-    var stCls   = RESOLVE_SET[iss.status] ? 'resolve' : PROG_SET[iss.status] ? 'prog' : HOLD_SET[iss.status] ? 'wait' : 'wait';
-    var stLabel = RESOLVE_SET[iss.status] ? '해결' : PROG_SET[iss.status] ? '● 진행' : '○ 대기';
+    var stCls   = CLOSED_SET[iss.status] ? 'done' : RESOLVED_ONLY_SET[iss.status] ? 'resolve' : PROG_SET[iss.status] ? 'prog' : HOLD_SET[iss.status] ? 'wait' : 'wait';
+    var stLabel = CLOSED_SET[iss.status] ? '완료' : RESOLVED_ONLY_SET[iss.status] ? '해결' : PROG_SET[iss.status] ? '● 진행' : '○ 대기';
     var trCls   = isOver ? ' class="crit"' : '';
     var tracker = iss.tracker && iss.tracker !== '-' ? '<span class="pref">(' + escapeHtml(iss.tracker) + ')</span>' : '';
     return '<tr' + trCls + ' onmouseenter="prefetchIssue(' + iss.id + ')">' +
-      '<td class="ctr"><input type="checkbox" aria-label="이슈 #' + iss.id + ' 선택"></td>' +
+      '<td class="ctr"><input type="checkbox" data-id="' + iss.id + '" aria-label="이슈 #' + iss.id + ' 선택"></td>' +
       '<td class="id" onclick="openIssue(' + iss.id + ')">#' + iss.id + '</td>' +
       '<td class="title" onclick="openIssue(' + iss.id + ')" style="cursor:pointer;">' + tracker + escapeHtml(iss.subject || '') +
         '<span class="meta-sub">' + escapeHtml(iss.project || '') + '</span></td>' +
@@ -4680,6 +5014,262 @@ function _issueTableHTML(issues) {
     '</table>';
 }
 
+function showConfirm(title, body, okLabel) {
+  return new Promise(function(resolve) {
+    var overlay = document.getElementById('confirm-modal-overlay');
+    document.getElementById('confirm-modal-title').textContent = title;
+    document.getElementById('confirm-modal-body').textContent = body;
+    document.getElementById('confirm-modal-ok').textContent = okLabel || '확인';
+    overlay.style.display = 'flex';
+    function cleanup(result) {
+      overlay.style.display = 'none';
+      document.getElementById('confirm-modal-ok').removeEventListener('click', onOk);
+      document.getElementById('confirm-modal-cancel').removeEventListener('click', onCancel);
+      resolve(result);
+    }
+    function onOk() { cleanup(true); }
+    function onCancel() { cleanup(false); }
+    document.getElementById('confirm-modal-ok').addEventListener('click', onOk);
+    document.getElementById('confirm-modal-cancel').addEventListener('click', onCancel);
+  });
+}
+
+// ── 체크 저장/복원 헬퍼 ────────────────────────────────
+function _saveChecked() {
+  return new Set(Array.from(document.querySelectorAll('#t-issue tbody input[type="checkbox"]:checked')).map(function(cb) { return cb.dataset.id; }));
+}
+function _restoreChecked(saved) {
+  if (!saved || !saved.size) return;
+  var cbs = document.querySelectorAll('#t-issue tbody input[type="checkbox"]');
+  if (!cbs.length) {
+    // 드릴 테이블이 아직 렌더 안 됨 — _renderDrill 이후 복원
+    _pendingRestoreChecked = saved;
+    return;
+  }
+  _pendingRestoreChecked = null;
+  cbs.forEach(function(cb) { if (saved.has(cb.dataset.id)) cb.checked = true; });
+  var bulkBar = document.getElementById('bulk-bar');
+  var bulkCt  = document.getElementById('bulk-count');
+  if (bulkBar) bulkBar.classList.toggle('active', saved.size > 0);
+  if (bulkCt)  bulkCt.textContent = saved.size;
+}
+
+// ── 벌크 액션 공통 팝오버 ───────────────────────────────
+function _getSelectedIds() {
+  var checked = document.querySelectorAll('#t-issue tbody input[type="checkbox"]:checked');
+  return new Set(Array.from(checked).map(function(cb) { return parseInt(cb.dataset.id); }).filter(Boolean));
+}
+
+function _bulkApplyAndRefresh(ids, fields) {
+  if (_lastDashData && _lastDashData.users_data) {
+    Object.keys(_lastDashData.users_data).forEach(function(uname) {
+      var ud = _lastDashData.users_data[uname];
+      if (ud && ud.issues) ud.issues = ud.issues.filter(function(i) { return !ids.has(i.id); });
+    });
+  }
+  var mxEl = document.getElementById('sub-issues');
+  if (mxEl && _lastDashData) {
+    _buildMxData(_lastDashData);
+    _renderMatrix(mxEl, _lastDashData);
+    _updateMxCrown(_lastDashData);
+    _applyTweaks();
+  } else if (_mxSel) {
+    _renderDrill();
+  }
+  fetch('/api/bulk-update', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ issue_ids: Array.from(ids), fields: fields })
+  }).then(function() {
+    var pid = currentProjectId || '__all__';
+    delete _clientDataCache[currentProjectId + '|' + currentUpdatedAfter];
+    fetch('/api/cache/' + encodeURIComponent(pid), { method: 'DELETE' })
+      .then(function() { loadAll(); });
+  });
+}
+
+function _repositionPopover(popover, btn) {
+  var rect = btn.getBoundingClientRect();
+  var pw = popover.offsetWidth;
+  var ph = popover.offsetHeight;
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var pad = 8;
+  var spaceAbove = rect.top;
+  var spaceBelow = vh - rect.bottom;
+  var top = (spaceAbove >= ph + pad || spaceAbove >= spaceBelow)
+    ? rect.top - ph - 4
+    : rect.bottom + 4;
+  var left = rect.left;
+  if (left + pw > vw - pad) left = vw - pw - pad;
+  if (left < pad) left = pad;
+  if (top < pad) top = pad;
+  if (top + ph > vh - pad) top = vh - ph - pad;
+  popover.style.top  = top + 'px';
+  popover.style.left = left + 'px';
+}
+
+function _showBulkPopover(btn, items, onSelect, withSearch) {
+  var popover    = document.getElementById('bulk-popover');
+  var searchWrap = document.getElementById('bulk-popover-search-wrap');
+  var searchInput= document.getElementById('bulk-popover-search');
+  var list       = document.getElementById('bulk-popover-list');
+  var confirmEl  = document.getElementById('bulk-popover-confirm');
+  var confirmTxt = document.getElementById('bulk-popover-confirm-text');
+  var confirmOk  = document.getElementById('bulk-popover-confirm-ok');
+  var confirmCancel = document.getElementById('bulk-popover-confirm-cancel');
+
+  // 리스트 화면으로 초기화
+  confirmEl.style.display = 'none';
+  list.style.display = 'flex';
+  searchWrap.style.display = withSearch ? 'block' : 'none';
+  searchInput.value = '';
+
+  function renderList(filter) {
+    var filtered = filter
+      ? items.filter(function(i) { return i.name.toLowerCase().indexOf(filter.toLowerCase()) !== -1; })
+      : items;
+    list.innerHTML = filtered.length
+      ? filtered.map(function(i) {
+          return '<div data-id="' + i.id + '" data-name="' + escapeHtml(i.name) + '" style="padding:9px 16px;font-size:12px;font-family:var(--dm);color:var(--text);cursor:pointer;letter-spacing:0.04em;" onmouseenter="this.style.background=\'var(--ghost)\'" onmouseleave="this.style.background=\'\'">' + escapeHtml(i.name) + '</div>';
+        }).join('')
+      : '<div style="padding:9px 16px;font-size:11px;color:var(--text-dim);">결과 없음</div>';
+    list.querySelectorAll('[data-id]').forEach(function(el) {
+      el.addEventListener('click', function() {
+        var selId   = parseInt(el.dataset.id);
+        var selName = el.dataset.name;
+        // 확인 단계로 전환
+        list.style.display = 'none';
+        searchWrap.style.display = 'none';
+        confirmTxt.textContent = '"' + selName + '" 으로 변경하시겠습니까?';
+        confirmEl.style.display = 'flex';
+        // 높이 바뀌었으므로 위치 재계산
+        _repositionPopover(popover, btn);
+
+        function doConfirm() {
+          cleanup(); onSelect(selId, selName);
+        }
+        function doCancel() {
+          confirmEl.style.display = 'none';
+          list.style.display = 'flex';
+          searchWrap.style.display = withSearch ? 'block' : 'none';
+          _repositionPopover(popover, btn);
+        }
+        confirmOk.onclick = doConfirm;
+        confirmCancel.onclick = doCancel;
+      });
+    });
+  }
+
+  renderList('');
+  if (withSearch) searchInput.addEventListener('input', function() { renderList(searchInput.value); });
+
+  // 실제 높이 측정 후 뷰포트 안에 배치
+  popover.style.visibility = 'hidden';
+  popover.style.transform = '';
+  popover.style.top = '-9999px';
+  popover.style.left = '-9999px';
+  popover.style.display = 'flex';
+
+  var rect = btn.getBoundingClientRect();
+  var pw = popover.offsetWidth;
+  var ph = popover.offsetHeight;
+  var vw = window.innerWidth;
+  var vh = window.innerHeight;
+  var pad = 8;
+
+  // 위/아래 공간 비교해서 배치 방향 결정
+  var spaceAbove = rect.top;
+  var spaceBelow = vh - rect.bottom;
+  var top;
+  if (spaceAbove >= ph + pad || spaceAbove >= spaceBelow) {
+    // 버튼 위쪽 배치
+    top = rect.top - ph - 4;
+  } else {
+    // 버튼 아래쪽 배치
+    top = rect.bottom + 4;
+  }
+  // 좌우 뷰포트 클램프
+  var left = rect.left;
+  if (left + pw > vw - pad) left = vw - pw - pad;
+  if (left < pad) left = pad;
+  // 상하 뷰포트 클램프
+  if (top < pad) top = pad;
+  if (top + ph > vh - pad) top = vh - ph - pad;
+
+  popover.style.top  = top + 'px';
+  popover.style.left = left + 'px';
+  popover.style.visibility = '';
+  if (withSearch) setTimeout(function() { searchInput.focus(); }, 50);
+
+  function cleanup() {
+    popover.style.display = 'none';
+    document.removeEventListener('click', outsideClick);
+  }
+  function outsideClick(e) {
+    if (!popover.contains(e.target) && e.target !== btn) cleanup();
+  }
+  setTimeout(function() { document.addEventListener('click', outsideClick); }, 0);
+}
+
+async function bulkChangeStatus() {
+  var ids = _getSelectedIds();
+  if (!ids.size) return;
+  var btn = document.querySelector('#bulk-bar .btn[onclick="bulkChangeStatus()"]');
+  var popover = document.getElementById('bulk-popover');
+  if (popover.style.display === 'flex') { popover.style.display = 'none'; return; }
+  if (_bulkCache.statuses) {
+    _showBulkPopover(btn, _bulkCache.statuses, function(id) { _bulkApplyAndRefresh(ids, { status_id: id }); }, false);
+    return;
+  }
+  btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none';
+  try {
+    var data = await fetch('/api/statuses').then(function(r) { return r.json(); });
+    _bulkCache.statuses = data.statuses || [];
+    _showBulkPopover(btn, _bulkCache.statuses, function(id) { _bulkApplyAndRefresh(ids, { status_id: id }); }, false);
+  } catch(e) {}
+  btn.style.opacity = ''; btn.style.pointerEvents = '';
+}
+
+async function bulkChangeAssignee() {
+  var ids = _getSelectedIds();
+  if (!ids.size) return;
+  var btn = document.querySelector('#bulk-bar .btn[onclick="bulkChangeAssignee()"]');
+  var popover = document.getElementById('bulk-popover');
+  if (popover.style.display === 'flex') { popover.style.display = 'none'; return; }
+  if (_bulkCache.assignees) {
+    _showBulkPopover(btn, _bulkCache.assignees, function(id) { _bulkApplyAndRefresh(ids, { assigned_to_id: id }); }, true);
+    return;
+  }
+  btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none';
+  try {
+    var data = await fetch('/api/assignees?project_id=' + encodeURIComponent(currentProjectId)).then(function(r) { return r.json(); });
+    _bulkCache.assignees = data.assignees || [];
+    _showBulkPopover(btn, _bulkCache.assignees, function(id) { _bulkApplyAndRefresh(ids, { assigned_to_id: id }); }, true);
+  } catch(e) {}
+  btn.style.opacity = ''; btn.style.pointerEvents = '';
+}
+
+async function bulkChangeMilestone() {
+  var ids = _getSelectedIds();
+  if (!ids.size) return;
+  var btn = document.querySelector('#bulk-bar .btn[onclick="bulkChangeMilestone()"]');
+  var popover = document.getElementById('bulk-popover');
+  if (popover.style.display === 'flex') { popover.style.display = 'none'; return; }
+  if (_bulkCache.versions) {
+    _showBulkPopover(btn, _bulkCache.versions, function(id) { _bulkApplyAndRefresh(ids, { fixed_version_id: id }); }, _bulkCache.versions.length > 8);
+    return;
+  }
+  btn.style.opacity = '0.5'; btn.style.pointerEvents = 'none';
+  try {
+    var raw = await fetch('/api/versions?project_id=' + encodeURIComponent(currentProjectId)).then(function(r) { return r.json(); });
+    var arr = Array.isArray(raw) ? raw : (raw.versions || []);
+    _bulkCache.versions = arr.map(function(v) { return { id: v.id, name: v.name }; });
+    _showBulkPopover(btn, _bulkCache.versions, function(id) { _bulkApplyAndRefresh(ids, { fixed_version_id: id }); }, _bulkCache.versions.length > 8);
+  } catch(e) {}
+  btn.style.opacity = ''; btn.style.pointerEvents = '';
+}
+
 function _bindDrillCheckboxes() {
   var table = document.getElementById('t-issue');
   if (!table) return;
@@ -4703,9 +5293,10 @@ function _bindDrillCheckboxes() {
     }
   }
 
-  rowCbs.forEach(function(cb) { cb.addEventListener('change', refreshBulk); });
+  rowCbs.forEach(function(cb) { cb.addEventListener('change', function() { _prefetchBulkData(); refreshBulk(); }); });
   if (allCb) {
     allCb.addEventListener('change', function() {
+      if (allCb.checked) _prefetchBulkData();
       rowCbs.forEach(function(cb) { cb.checked = allCb.checked; });
       refreshBulk();
     });
@@ -4938,6 +5529,36 @@ function submitFeedback() {
   });
 })();
 </script>
+
+<!-- 상태 변경 팝오버 -->
+<!-- 벌크 액션 공통 팝오버 -->
+<div id="bulk-popover" style="display:none;position:fixed;z-index:10000;background:var(--surface-low);border:1px solid var(--ghost-2);min-width:220px;box-shadow:0 8px 24px rgba(0,0,0,0.4);flex-direction:column;">
+  <div id="bulk-popover-search-wrap" style="padding:8px 8px 4px;border-bottom:1px solid var(--ghost);display:none;">
+    <input id="bulk-popover-search" type="text" placeholder="검색..." style="width:100%;box-sizing:border-box;background:var(--surface);border:1px solid var(--ghost-2);color:var(--text);font-family:var(--dm);font-size:11px;padding:5px 8px;outline:none;">
+  </div>
+  <div id="bulk-popover-list" style="overflow-y:auto;max-height:240px;display:flex;flex-direction:column;"></div>
+  <div id="bulk-popover-confirm" style="display:none;flex-direction:column;gap:12px;padding:14px 16px;">
+    <div id="bulk-popover-confirm-text" style="font-size:12px;color:var(--text);line-height:1.5;"></div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button id="bulk-popover-confirm-cancel" style="background:none;border:1px solid var(--ghost-2);color:var(--text-mid);font-family:var(--dm);font-size:11px;letter-spacing:0.08em;padding:6px 14px;cursor:pointer;">취소</button>
+      <button id="bulk-popover-confirm-ok" style="background:var(--surface);border:1px solid var(--ghost-2);color:var(--text);font-family:var(--dm);font-size:11px;letter-spacing:0.08em;font-weight:700;padding:6px 14px;cursor:pointer;">변경</button>
+    </div>
+  </div>
+</div>
+
+<!-- 커스텀 Confirm 모달 -->
+<div id="confirm-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:var(--surface-low);border:1px solid var(--ghost-2);width:320px;padding:28px 24px 20px;display:flex;flex-direction:column;gap:20px;">
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <div id="confirm-modal-title" style="font-size:13px;font-weight:700;color:var(--text);letter-spacing:0.04em;"></div>
+      <div id="confirm-modal-body" style="font-size:12px;color:var(--text-mid);line-height:1.6;"></div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end;">
+      <button id="confirm-modal-cancel" style="background:none;border:1px solid var(--ghost-2);color:var(--text-mid);font-family:var(--dm);font-size:11px;letter-spacing:0.1em;padding:7px 16px;cursor:pointer;">취소</button>
+      <button id="confirm-modal-ok" style="background:var(--red);border:none;color:#fff;font-family:var(--dm);font-size:11px;letter-spacing:0.1em;font-weight:700;padding:7px 16px;cursor:pointer;"></button>
+    </div>
+  </div>
+</div>
 
 </body>
 </html>
