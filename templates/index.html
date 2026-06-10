@@ -1435,13 +1435,16 @@ html, body {
 
     <div class="notice">
       <div class="notice-head">
-        <span style="display:flex;align-items:center;gap:5px;">CALLOUT<span class="co-badge" id="co-badge" style="display:none"></span></span>
+        <span style="display:flex;align-items:center;gap:5px;">NOTI<span class="co-badge" id="co-badge" style="display:none"></span></span>
         <span class="callout-add-btn" onclick="toggleCalloutForm()" title="추가">+</span>
       </div>
       <div class="callout-form" id="callout-form">
-        <input type="text" id="co-from" placeholder="이름 (예: PM 홍길동)" maxlength="20" />
-        <textarea id="co-text" rows="2" placeholder="내용을 입력하세요"></textarea>
-        <div class="callout-form-row">
+        <div style="font-size:10px;color:var(--text-dim);margin-bottom:4px;letter-spacing:.05em;">FROM <span id="co-from-label" style="color:var(--text-mid);font-weight:600;"></span></div>
+        <div style="position:relative;">
+          <textarea id="co-text" rows="2" placeholder="내용을 입력하세요 (@로 멘션)"></textarea>
+          <div id="co-mention-dropdown" style="display:none;position:absolute;left:0;right:0;top:100%;background:var(--surface-hi);border:1px solid var(--border);z-index:200;max-height:140px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,0.4);"></div>
+        </div>
+        <div class="callout-form-row" style="margin-top:6px;">
           <div class="callout-colors" id="co-colors">
             <div class="callout-color-dot sel" style="background:#ff6b6b;" data-color="#ff6b6b" onclick="selectCalloutColor(this)"></div>
             <div class="callout-color-dot" style="background:rgba(100,180,255,0.8);" data-color="rgba(100,180,255,0.55)" onclick="selectCalloutColor(this)"></div>
@@ -1971,6 +1974,8 @@ document.addEventListener('DOMContentLoaded', function() {
 
   // Callout 렌더링
   renderCallouts();
+  _loadMyInfo();
+  _loadRedmineUsers();
 
   // 캘린더 (핀 시스템) 렌더링
   renderSbCalendar();
@@ -3249,6 +3254,89 @@ document.addEventListener('click', function(e) {
 // ────────────────────────────────────────────────────────────
 var _calloutColor = '#ff6b6b';
 var _calloutCache = [];  // 메모리 캐시
+var _myDisplayName = '';
+var _myIsAdmin = false;
+var _redmineUsers = [];
+
+function _loadMyInfo() {
+  fetch('/api/auth/me').then(function(r) { return r.json(); }).then(function(d) {
+    _myDisplayName = d.display_name || d.email || '나';
+    _myIsAdmin = !!d.is_admin;
+  }).catch(function() {});
+}
+
+function _loadRedmineUsers() {
+  fetch('/api/redmine-users').then(function(r) { return r.json(); }).then(function(d) {
+    _redmineUsers = d.users || [];
+  }).catch(function() {});
+}
+
+var _mentionQuery = null; // 현재 @ 검색 시작 위치
+
+function _closeMentionDropdown() {
+  var dd = document.getElementById('co-mention-dropdown');
+  if (dd) dd.style.display = 'none';
+  _mentionQuery = null;
+}
+
+function _selectMention(name) {
+  var ta = document.getElementById('co-text');
+  if (!ta || _mentionQuery === null) return;
+  var val = ta.value;
+  var before = val.slice(0, _mentionQuery); // @ 앞까지
+  var after  = val.slice(ta.selectionStart); // 현재 커서 이후
+  var inserted = '@' + name + ' ';
+  ta.value = before + inserted + after;
+  var newPos = before.length + inserted.length;
+  ta.setSelectionRange(newPos, newPos);
+  ta.focus();
+  _closeMentionDropdown();
+}
+
+function _showMentionDropdown(query) {
+  var dd = document.getElementById('co-mention-dropdown');
+  if (!dd) return;
+  var allUsers = [{name: 'all'}].concat(_redmineUsers);
+  var filtered = query === ''
+    ? allUsers.slice(0, 8)
+    : allUsers.filter(function(u) { return u.name.toLowerCase().indexOf(query.toLowerCase()) >= 0; }).slice(0, 8);
+  if (!filtered.length) { _closeMentionDropdown(); return; }
+  dd.innerHTML = '';
+  filtered.forEach(function(u, idx) {
+    var item = document.createElement('div');
+    item.style.cssText = 'padding:5px 10px;font-size:11px;cursor:pointer;color:var(--text-mid);';
+    item.textContent = '@' + u.name;
+    item.onmouseover = function() { this.style.background = 'var(--surface-alt)'; };
+    item.onmouseout  = function() { this.style.background = ''; };
+    item.onmousedown = function(e) { e.preventDefault(); _selectMention(u.name); };
+    dd.appendChild(item);
+  });
+  dd.style.display = 'block';
+}
+
+function _initMentionInput() {
+  var ta = document.getElementById('co-text');
+  if (!ta) return;
+  ta.addEventListener('input', function() {
+    var pos = ta.selectionStart;
+    var val = ta.value.slice(0, pos);
+    var atIdx = val.lastIndexOf('@');
+    if (atIdx === -1) { _closeMentionDropdown(); return; }
+    var between = val.slice(atIdx + 1);
+    // 공백 있으면 멘션 아님
+    if (/\s/.test(between)) { _closeMentionDropdown(); return; }
+    _mentionQuery = atIdx;
+    _showMentionDropdown(between);
+  });
+  ta.addEventListener('keydown', function(e) {
+    var dd = document.getElementById('co-mention-dropdown');
+    if (!dd || dd.style.display === 'none') return;
+    if (e.key === 'Escape') { _closeMentionDropdown(); e.preventDefault(); }
+  });
+  ta.addEventListener('blur', function() {
+    setTimeout(_closeMentionDropdown, 150);
+  });
+}
 
 function _updateCalloutBadge(list) {
   var badge = document.getElementById('co-badge');
@@ -3258,24 +3346,41 @@ function _updateCalloutBadge(list) {
   else { badge.style.display = 'none'; }
 }
 
+function _highlightMentions(text) {
+  return text.replace(/@([\w가-힣]+)/g, '<span style="color:rgba(100,180,255,0.9);font-weight:600;">@$1</span>');
+}
+
+function _formatExpiryDate(ts) {
+  if (!ts) return '';
+  var d = new Date(ts * 1000);
+  var m = (d.getMonth() + 1).toString().padStart(2, '0');
+  var day = d.getDate().toString().padStart(2, '0');
+  return m + '/' + day + ' 만료';
+}
+
 function _renderCalloutList(list) {
   var container = document.getElementById('callout-list');
   if (!container) return;
   container.innerHTML = '';
   list.forEach(function(co) {
+    var isOwner = _myDisplayName && co.from === _myDisplayName;
+    var canDelete = isOwner || _myIsAdmin;
     var row = document.createElement('div');
     row.className = 'notice-row' + (co.done ? ' done' : '');
     row.id = co.id;
     var checkStroke = co.done ? 'rgba(255,255,255,0.8)' : 'transparent';
     var checkedClass = co.done ? ' checked' : '';
     var newDot = !co.seen ? '<span class="co-new-dot"></span>' : '';
+    var expiryLabel = co.expires_at ? '<span style="font-size:9px;color:var(--text-dim);margin-left:4px;opacity:.7;">' + _formatExpiryDate(co.expires_at) + '</span>' : '';
+    var extendBtn = isOwner ? '<span onclick="extendCallout(\'' + co.id + '\')" title="3주 연장" style="font-size:9px;color:var(--text-dim);cursor:pointer;padding:1px 4px;border:1px solid var(--border);margin-left:4px;transition:color .12s;" onmouseover="this.style.color=\'var(--text)\'" onmouseout="this.style.color=\'var(--text-dim)\'">+3w</span>' : '';
+    var delBtn = canDelete ? '<div class="callout-del" onclick="deleteCallout(\'' + co.id + '\')">×</div>' : '';
     row.innerHTML =
       '<div class="notice-priority" style="background:' + co.color + ';"></div>' +
       '<div class="notice-inner" onclick="markCalloutSeen(\'' + co.id + '\')" style="cursor:default">' +
-        '<div class="notice-meta">' + escapeHtml(co.from) + '<span class="date">' + escapeHtml(co.date) + '</span></div>' +
-        '<div class="notice-text">' + escapeHtml(co.text) + newDot + '</div>' +
+        '<div class="notice-meta">' + escapeHtml(co.from) + '<span class="date">' + escapeHtml(co.date) + '</span>' + expiryLabel + extendBtn + '</div>' +
+        '<div class="notice-text">' + _highlightMentions(escapeHtml(co.text)) + newDot + '</div>' +
       '</div>' +
-      '<div class="callout-del" onclick="deleteCallout(\'' + co.id + '\')">×</div>' +
+      delBtn +
       '<div class="notice-check' + checkedClass + '" onclick="toggleCallout(\'' + co.id + '\')">' +
         '<svg width="7" height="7" viewBox="0 0 8 8" fill="none"><path d="M1.5 4l2 2 3-3" stroke="' + checkStroke + '" stroke-width="1.5" stroke-linecap="round" class="nc-check-path"/></svg>' +
       '</div>';
@@ -3302,7 +3407,19 @@ function markCalloutSeen(id) {
 }
 
 function deleteCallout(id) {
-  fetch('/api/callouts/' + id, { method: 'DELETE' }).then(function() { renderCallouts(); });
+  fetch('/api/callouts/' + id, { method: 'DELETE' }).then(function(r) {
+    if (r.ok) renderCallouts();
+  });
+}
+
+function extendCallout(id) {
+  fetch('/api/callouts/' + id, {
+    method: 'PATCH',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({extend_expiry: true})
+  }).then(function(r) {
+    if (r.ok) renderCallouts();
+  });
 }
 
 function toggleCallout(id) {
@@ -3318,8 +3435,16 @@ function toggleCalloutForm() {
   if (!form) return;
   var isOpen = form.classList.contains('open');
   form.classList.toggle('open');
-  if (!isOpen) { document.getElementById('co-from').focus(); }
-  else { document.getElementById('co-from').value = ''; document.getElementById('co-text').value = ''; }
+  if (!isOpen) {
+    var label = document.getElementById('co-from-label');
+    if (label) label.textContent = _myDisplayName || '...';
+    document.getElementById('co-text').value = '';
+    _closeMentionDropdown();
+    _initMentionInput();
+    document.getElementById('co-text').focus();
+  } else {
+    _closeMentionDropdown();
+  }
 }
 
 function selectCalloutColor(el) {
@@ -3329,12 +3454,11 @@ function selectCalloutColor(el) {
 }
 
 function submitCallout() {
-  var from = (document.getElementById('co-from').value || '').trim();
   var text = (document.getElementById('co-text').value || '').trim();
   if (!text) { document.getElementById('co-text').focus(); return; }
   var now = new Date();
   var date = (now.getMonth()+1).toString().padStart(2,'0') + '/' + now.getDate().toString().padStart(2,'0');
-  var newItem = { id: 'co-' + Date.now(), from: from || '나', date: date, text: text, color: _calloutColor, done: false, seen: false };
+  var newItem = { id: 'co-' + Date.now(), date: date, text: text, color: _calloutColor };
   fetch('/api/callouts', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
