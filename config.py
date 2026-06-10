@@ -44,6 +44,7 @@ REPORT_DAY    = os.getenv("REPORT_DAY",    "mon")
 REPORT_HOUR   = int(os.getenv("REPORT_HOUR",   "9"))
 REPORT_MINUTE = int(os.getenv("REPORT_MINUTE", "0"))
 
-DEFAULT_PROJECT_ID    = os.getenv("DEFAULT_PROJECT_ID",    "ds_project")
+DEFAULT_PROJECT_ID    = os.getenv("DEFAULT_PROJECT_ID", "")
 DEFAULT_UPDATED_AFTER = os.getenv("DEFAULT_UPDATED_AFTER",
-    (date.today() - timedelta(days=30)).strftime("%Y-%m-%d"))
+    (date.today() - timedelta(days=90)).strftime("%Y-%m-%d"))
+AI_MODEL = os.getenv("AI_MODEL", "claude-haiku-4-5-20251001")

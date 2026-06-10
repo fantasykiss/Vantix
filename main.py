@@ -23,7 +23,7 @@ from passlib.context import CryptContext
 import uvicorn
 
 # ==================== 서버 설정 ====================
-from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY, ADMIN_PASSWORD, DEMO_URL, DEMO_KEY, OWNER_IPS
+from config import BASE_URL, API_KEY, ANTHROPIC_API_KEY, AI_MODEL, EMAIL_CFG, REPORT_DAY, REPORT_HOUR, REPORT_MINUTE, REDMINE_PUBLIC_URL, FERNET_KEY, ADMIN_PASSWORD, DEMO_URL, DEMO_KEY, OWNER_IPS
 import uuid as _uuid
 from cryptography.fernet import Fernet, InvalidToken
 
@@ -136,9 +136,11 @@ def _init_analytics_tables():
                         color   TEXT,
                         done    BOOLEAN DEFAULT FALSE,
                         seen    BOOLEAN DEFAULT FALSE,
-                        created DOUBLE PRECISION NOT NULL
+                        created DOUBLE PRECISION NOT NULL,
+                        expires_at DOUBLE PRECISION
                     )
                 """)
+                cur.execute("ALTER TABLE vantix_callouts ADD COLUMN IF NOT EXISTS expires_at DOUBLE PRECISION")
                 cur.execute("""
                     CREATE TABLE IF NOT EXISTS risk_history (
                         hist_key TEXT NOT NULL,
@@ -300,8 +302,8 @@ def _get_session(token: str) -> dict | None:
                 result = {"url": s["url"], "key": _decrypt_key(s["key"]), "created": s["created"]}
                 _session_cache[token] = result
                 return result
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[session/get] {e}")
     return None
 
 def _require_session(request: Request) -> dict:
@@ -473,7 +475,7 @@ def _call_claude(prompt: str, max_tokens: int = 256) -> str:
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
     try:
         msg = client.messages.create(
-            model="claude-haiku-4-5-20251001",
+            model=AI_MODEL,
             max_tokens=max_tokens,
             messages=[{"role": "user", "content": prompt}],
         )
@@ -589,11 +591,10 @@ def cache_age_str(project_id, updated_after, redmine_url=""):
     return f"{age // 60}분 전"
 
 def _job_send_monitor_alerts():
-    import json as _json
     monitor_path = os.path.join(os.path.dirname(__file__), "monitor_config.json")
     try:
         with open(monitor_path, "r", encoding="utf-8") as f:
-            all_cfg = _json.load(f)
+            all_cfg = json.load(f)
     except:
         return
 
@@ -800,6 +801,18 @@ def _job_risk_snapshot():
 
 from config import DEFAULT_PROJECT_ID, DEFAULT_UPDATED_AFTER
 
+def _job_cleanup_callouts():
+    if not _DATABASE_URL:
+        return
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM vantix_callouts WHERE expires_at IS NOT NULL AND expires_at < %s", (time.time(),))
+            conn.commit()
+        global _callout_cache; _callout_cache = None
+    except Exception as e:
+        print(f"[callout cleanup] {e}")
+
 _scheduler = BackgroundScheduler(timezone="Asia/Seoul")
 _scheduler.add_job(_job_refresh_cache, "interval", minutes=30, id="cache_refresh")
 _scheduler.add_job(_job_weekly_report, CronTrigger(
@@ -811,6 +824,9 @@ _scheduler.add_job(save_risk_snapshot, CronTrigger(
 _scheduler.add_job(_job_send_monitor_alerts, CronTrigger(
     hour=9, minute=5, timezone="Asia/Seoul"
 ), id="monitor_alerts")
+_scheduler.add_job(_job_cleanup_callouts, CronTrigger(
+    hour=3, minute=0, timezone="Asia/Seoul"
+), id="callout_cleanup")
 save_risk_snapshot()  # 서버 시작 시 즉시 1회 실행
 _scheduler.start()
 print(f"  스케줄러 시작!")
@@ -917,8 +933,8 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
     if project_id:
         try:
             _, user_group_map = _build_group_map(project_id, redmine_url, api_key)
-        except Exception:
-            pass
+        except Exception as e:
+            print(f"[group_map] {e}")
 
     users_data = defaultdict(lambda: {"issues": [], "projects": set(), "group": ""})
     for iss in issues:
@@ -1065,12 +1081,12 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
     project_risk_list = sorted(project_risk.values(), key=lambda x: -x["risk_score"])
 
     # ── 마감 임박 이슈 (오늘 ~ D+3) ──
-    future_3 = (date.today() + timedelta(days=7)).strftime("%Y-%m-%d")
+    future_7 = (date.today() + timedelta(days=7)).strftime("%Y-%m-%d")
     imminent_issues = []
     for uname, ud in users_data.items():
         for i in ud.get("issues", []):
             if (i.get("due_date") and
-                today_str <= i["due_date"] <= future_3 and
+                today_str <= i["due_date"] <= future_7 and
                 i["status"] not in CLOSED_SET and
                 i["status"] not in HOLD_SET):
                 imminent_issues.append({
@@ -1189,7 +1205,8 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
             return []
 
         # 2. 이슈 전체 로드
-        issues = get_issues(project_id, updated_after="2024-01-01", redmine_url=redmine_url, api_key=api_key)
+        eight_weeks_ago = (date.today() - timedelta(days=56)).strftime("%Y-%m-%d")
+        issues = get_issues(project_id, updated_after=eight_weeks_ago, redmine_url=redmine_url, api_key=api_key)
 
         # 3. 담당자 → 그룹 (딕셔너리 직접 조회, 이름 규칙 무관)
         def extract_group(assignee_name):
@@ -1430,7 +1447,6 @@ async def api_data(request: Request, project_id: str = "", updated_after: str = 
             # 만료됐지만 데이터 있음 → 즉시 반환 + 백그라운드 갱신 (stale-while-revalidate)
             if key not in _bg_refresh_lock:
                 _bg_refresh_lock.add(key)
-                import threading as _t
                 def _bg_refresh(pid, uaft, ru, rk, ckey):
                     try:
                         print(f"  백그라운드 갱신 시작: {ckey}")
@@ -1441,7 +1457,7 @@ async def api_data(request: Request, project_id: str = "", updated_after: str = 
                         print(f"  백그라운드 갱신 실패 {ckey}: {e}")
                     finally:
                         _bg_refresh_lock.discard(ckey)
-                _t.Thread(target=_bg_refresh, args=(project_id, updated_after, r_url, r_key, key), daemon=True).start()
+                threading.Thread(target=_bg_refresh, args=(project_id, updated_after, r_url, r_key, key), daemon=True).start()
             print(f"  캐시 히트(stale): {key} ({age})")
             return {**entry["data"], "cached": True, "cache_age": age, "stale": True}
 
@@ -1449,7 +1465,6 @@ async def api_data(request: Request, project_id: str = "", updated_after: str = 
     data = build_dashboard_data(project_id, updated_after, redmine_url=r_url, api_key=r_key)
     set_cache(project_id, updated_after, data, redmine_url=r_url)
 
-    import threading as _threading
     def _bg_generate_signals(pid, ru):
         try:
             cache_k = f"action-signals|{ru.rstrip('/')}|{pid}"
@@ -1475,9 +1490,8 @@ async def api_data(request: Request, project_id: str = "", updated_after: str = 
                 f"리스크 데이터:\n{risk_lines}\n"
                 "JSON 배열만, 마크다운 코드블록 없이, 반드시 3개 이상"
             )
-            import re as _re
             raw = _call_claude(prompt, max_tokens=800)
-            match = _re.search(r'\[.*\]', raw, _re.DOTALL)
+            match = re.search(r'\[.*\]', raw, re.DOTALL)
             signals = json.loads(match.group()) if match else []
             if signals:
                 _set_ai_cache(cache_k, json.dumps(signals, ensure_ascii=False))
@@ -1485,7 +1499,7 @@ async def api_data(request: Request, project_id: str = "", updated_after: str = 
         except Exception as e:
             print(f"  action-signals 프리생성 실패 {pid}: {e}")
 
-    _threading.Thread(target=_bg_generate_signals, args=(project_id, r_url), daemon=True).start()
+    threading.Thread(target=_bg_generate_signals, args=(project_id, r_url), daemon=True).start()
 
     return {**data, "cached": False, "cache_age": None}
 
@@ -1569,8 +1583,8 @@ async def api_forecast(request: Request, project_id: str = "", updated_after: st
             prev_overdue = prev.get("overdue")
             prev_urgent  = prev.get("urgent")
             prev_date    = prev.get("date")
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"[snapshot/prev] {e}")
 
     # ── 담당자 과부하 (오픈 이슈 집중도 기준)
     users_data = dashboard.get("users_data", {})
@@ -1751,8 +1765,8 @@ async def api_risk_history(project_id: str = "", weeks: int = 12, s: dict = Depe
                         )
                         for row in cur.fetchall():
                             history.setdefault(row[0], []).append({"date": row[1], "score": row[2], "level": row[3]})
-            except Exception:
-                pass
+            except Exception as e:
+                print(f"[history/db] {e}")
     else:
         # JSON 폴백
         try:
@@ -2105,8 +2119,7 @@ async def api_admin_events(request: Request, env: str = "", period: str = "7d", 
     if not _DATABASE_URL:
         return {"items": []}
     tf, tp = _build_filters(period, env)
-    import time as _t
-    now = _t.time()
+    now = time.time()
     period_start = (
         now - 86400 * 365 * 10 if period == "all" else
         now - 2592000           if period == "30d" else
@@ -2167,30 +2180,6 @@ async def admin_page(request: Request):
         return HTMLResponse(content=f.read())
 
 
-@app.get("/color-preview", response_class=HTMLResponse)
-async def color_preview():
-    template_path = os.path.join(os.path.dirname(__file__), "templates", "color-preview.html")
-    with open(template_path, "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
-
-
-@app.get("/report-mockup", response_class=HTMLResponse)
-async def report_mockup():
-    template_path = os.path.join(os.path.dirname(__file__), "templates", "report-mockup.html")
-    with open(template_path, "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
-
-@app.get("/notice-mockup", response_class=HTMLResponse)
-async def notice_mockup():
-    template_path = os.path.join(os.path.dirname(__file__), "templates", "notice-mockup.html")
-    with open(template_path, "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
-
-@app.get("/insights-mockup", response_class=HTMLResponse)
-async def insights_mockup():
-    template_path = os.path.join(os.path.dirname(__file__), "templates", "insights-mockup.html")
-    with open(template_path, "r", encoding="utf-8") as f:
-        return HTMLResponse(content=f.read())
 
 # ==================== AUTH 엔드포인트 ====================
 
@@ -2260,7 +2249,6 @@ async def api_auth_me(request: Request):
     token = request.cookies.get("vx_session")
     user_id_str = request.cookies.get("vx_user_id")
     if not user_id_str:
-        # 세션에 태그된 user_id로 폴백
         uid = _get_session_user_id(token or "") if token else None
     else:
         uid = int(user_id_str) if user_id_str.isdigit() else None
@@ -2273,10 +2261,26 @@ async def api_auth_me(request: Request):
         raise HTTPException(status_code=401, detail="not_logged_in")
 
     conn_info = _get_redmine_connection(uid)
+
+    # Redmine에서 현재 유저 이름 + admin 여부 가져오기
+    display_name = ""
+    is_admin = False
+    s = _get_session(token or "")
+    if s:
+        try:
+            rm_user = fetch("/users/current.json", redmine_url=s["url"], api_key=s["key"])
+            u = rm_user.get("user", {})
+            display_name = f"{u.get('lastname', '')} {u.get('firstname', '')}".strip() or u.get("login", "")
+            is_admin = bool(u.get("admin", False))
+        except Exception:
+            pass
+
     return JSONResponse({
         "email": user["email"],
         "has_connection": conn_info is not None,
         "redmine_url": conn_info["redmine_url"] if conn_info else None,
+        "display_name": display_name,
+        "is_admin": is_admin,
     })
 
 
@@ -2723,11 +2727,15 @@ async def api_callouts_get(request: Request):
     def _query():
         with _db_conn() as conn:
             with conn.cursor() as cur:
-                cur.execute("SELECT id, from_name, date, text, color, done, seen FROM vantix_callouts ORDER BY created DESC")
+                cur.execute(
+                    "SELECT id, from_name, date, text, color, done, seen, expires_at FROM vantix_callouts "
+                    "WHERE expires_at IS NULL OR expires_at > %s ORDER BY created DESC",
+                    (time.time(),)
+                )
                 return cur.fetchall()
     try:
         rows = await _adb(_query)
-        items = [{"id": r[0], "from": r[1] or "", "date": r[2] or "", "text": r[3], "color": r[4] or "#ff6b6b", "done": bool(r[5]), "seen": bool(r[6])} for r in rows]
+        items = [{"id": r[0], "from": r[1] or "", "date": r[2] or "", "text": r[3], "color": r[4] or "#ff6b6b", "done": bool(r[5]), "seen": bool(r[6]), "expires_at": r[7]} for r in rows]
         _callout_cache = items
         _callout_cache_ts = time.time()
         return {"items": items}
@@ -2749,12 +2757,22 @@ async def api_callouts_post(request: Request):
         raise HTTPException(status_code=400, detail="id and text required")
     if not _DATABASE_URL:
         return {"ok": True}
-    vals = (cid, body.get("from", "나"), body.get("date", ""), text, body.get("color", "#ff6b6b"), False, False, time.time())
+    # from_name은 서버에서 Redmine 유저 정보로 결정
+    from_name = "나"
+    try:
+        rm_user = fetch("/users/current.json", redmine_url=s["url"], api_key=s["key"])
+        u = rm_user.get("user", {})
+        from_name = f"{u.get('lastname', '')} {u.get('firstname', '')}".strip() or u.get("login", "") or "나"
+    except Exception:
+        pass
+    now = time.time()
+    expires_at = now + 21 * 24 * 3600  # 3주
+    vals = (cid, from_name, body.get("date", ""), text, body.get("color", "#ff6b6b"), False, False, now, expires_at)
     def _insert():
         with _db_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute(
-                    "INSERT INTO vantix_callouts (id, from_name, date, text, color, done, seen, created) VALUES (%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
+                    "INSERT INTO vantix_callouts (id, from_name, date, text, color, done, seen, created, expires_at) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) ON CONFLICT (id) DO NOTHING",
                     vals
                 )
             conn.commit()
@@ -2778,8 +2796,28 @@ async def api_callouts_patch(cid: str, request: Request):
         return {"ok": True}
     has_done = "done" in body
     has_seen = "seen" in body
+    has_extend = body.get("extend_expiry") is True
     done_val = bool(body.get("done"))
     seen_val = bool(body.get("seen"))
+
+    # 기간 연장은 등록자 본인만 가능
+    if has_extend:
+        try:
+            rm_user = fetch("/users/current.json", redmine_url=s["url"], api_key=s["key"])
+            u = rm_user.get("user", {})
+            requester = f"{u.get('lastname', '')} {u.get('firstname', '')}".strip() or u.get("login", "")
+        except Exception:
+            requester = ""
+        def _check_owner():
+            with _db_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT from_name FROM vantix_callouts WHERE id=%s", (cid,))
+                    row = cur.fetchone()
+                    return row[0] if row else None
+        owner = await _adb(_check_owner)
+        if owner != requester:
+            raise HTTPException(status_code=403, detail="본인 callout만 연장할 수 있습니다")
+
     def _update():
         with _db_conn() as conn:
             with conn.cursor() as cur:
@@ -2787,10 +2825,13 @@ async def api_callouts_patch(cid: str, request: Request):
                     cur.execute("UPDATE vantix_callouts SET done=%s WHERE id=%s", (done_val, cid))
                 if has_seen:
                     cur.execute("UPDATE vantix_callouts SET seen=%s WHERE id=%s", (seen_val, cid))
+                if has_extend:
+                    new_expires = time.time() + 21 * 24 * 3600
+                    cur.execute("UPDATE vantix_callouts SET expires_at=%s WHERE id=%s", (new_expires, cid))
             conn.commit()
     try:
         await _adb(_update)
-        global _callout_cache; _callout_cache = None  # 캐시 무효화
+        global _callout_cache; _callout_cache = None
     except Exception as e:
         print(f"[callouts/patch] {e}")
         raise HTTPException(status_code=500)
@@ -2805,14 +2846,35 @@ async def api_callouts_delete(cid: str, request: Request):
         raise HTTPException(status_code=401)
     if not _DATABASE_URL:
         return {"ok": True}
-    def _delete():
+    # 본인 또는 Redmine admin만 삭제 가능
+    try:
+        rm_user = fetch("/users/current.json", redmine_url=s["url"], api_key=s["key"])
+        u = rm_user.get("user", {})
+        requester = f"{u.get('lastname', '')} {u.get('firstname', '')}".strip() or u.get("login", "")
+        is_admin = bool(u.get("admin", False))
+    except Exception:
+        requester, is_admin = "", False
+    def _check_and_delete():
         with _db_conn() as conn:
             with conn.cursor() as cur:
+                cur.execute("SELECT from_name FROM vantix_callouts WHERE id=%s", (cid,))
+                row = cur.fetchone()
+                if not row:
+                    return "not_found"
+                if not is_admin and row[0] != requester:
+                    return "forbidden"
                 cur.execute("DELETE FROM vantix_callouts WHERE id=%s", (cid,))
             conn.commit()
+            return "ok"
     try:
-        await _adb(_delete)
-        global _callout_cache; _callout_cache = None  # 캐시 무효화
+        result = await _adb(_check_and_delete)
+        if result == "not_found":
+            raise HTTPException(status_code=404)
+        if result == "forbidden":
+            raise HTTPException(status_code=403, detail="삭제 권한이 없습니다")
+        global _callout_cache; _callout_cache = None
+    except HTTPException:
+        raise
     except Exception as e:
         print(f"[callouts/delete] {e}")
         raise HTTPException(status_code=500)
@@ -2881,9 +2943,9 @@ async def api_report_preview(
                 overdue = len([i for i in v_issues
                                 if i.get("due_date") and i["due_date"] < today_str
                                 and i.get("status", {}).get("name") not in CLOSED_SET])
-                v["_total"]   = total
-                v["_closed"]  = closed
-                v["_overdue"] = overdue
+                v["total"]   = total
+                v["closed"]  = closed
+                v["overdue"] = overdue
                 enriched.append(v)
             dashboard["versions"] = enriched
         except Exception:
@@ -2946,7 +3008,6 @@ async def api_report_share(
     request: Request,
     s: dict = Depends(_require_session),
 ):
-    import uuid, time
     body = await request.json()
     html = body.get("html", "")
     if not html:
@@ -2963,7 +3024,6 @@ async def api_report_share(
 
 @app.get("/report/{token}")
 async def view_shared_report(token: str):
-    import time
     entry = _report_store.get(token)
     if not entry:
         return HTMLResponse("<h2>리포트를 찾을 수 없거나 만료되었습니다.</h2>", status_code=404)
@@ -3138,9 +3198,8 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
             if len(proj_hist) < 2:
                 proj_hist = _db_load_history("all")
         else:
-            import json as _json
             with open(RISK_HISTORY_PATH, "r", encoding="utf-8") as f:
-                hist = _json.load(f)
+                hist = json.load(f)
             proj_hist = hist.get(proj_key, hist.get("all", []))
         if len(proj_hist) >= 2:
             delta = round(proj_hist[-1]["score"] - proj_hist[-2]["score"], 1)
@@ -3187,8 +3246,7 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
 
     try:
         raw = _call_claude(prompt, max_tokens=800)
-        import re as _re
-        match = _re.search(r'\[.*\]', raw, _re.DOTALL)
+        match = re.search(r'\[.*\]', raw, re.DOTALL)
         signals = json.loads(match.group()) if match else []
         if signals:
             _set_ai_cache(cache_k, json.dumps(signals, ensure_ascii=False))
