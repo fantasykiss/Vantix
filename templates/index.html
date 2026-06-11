@@ -58,12 +58,12 @@
 
 /* ── 라이트 모드 ── */
 [data-theme="light"] {
-  --bg          : #f5f4f1;
-  --surface-low : #eceae6;
-  --surface-mid : #e2dfdb;
-  --surface-hi  : #d6d3ce;
+  --bg          : #EFEEEB;
+  --surface-low : #FAFAF9;
+  --surface-mid : #F3F2F0;
+  --surface-hi  : #E8E7E4;
   --ghost       : rgba(0,0,0,0.07);
-  --ghost-2     : rgba(0,0,0,0.14);
+  --ghost-2     : rgba(0,0,0,0.11);
 
   --text        : #1a1714;
   --text-mid    : #6b6560;
@@ -409,7 +409,10 @@ html, body {
   display: flex; justify-content: space-between; align-items: baseline;
   margin-bottom: clamp(14px, 1.4vw, 22px);
 }
-.sec-label   { font-size: 10px; letter-spacing: 0.22em; color: var(--text-mid); }
+.sec-label   { font-size: 10px; letter-spacing: 0.22em; color: var(--text); font-weight: 700; }
+[data-theme="light"] .sec-label,
+[data-theme="light"] .trend-head-meta .label,
+[data-theme="light"] .kpi-cell .k { color: var(--text); }
 .sec-sub     { font-size: 10px; color: var(--text-dim); font-family: var(--mono); letter-spacing: 0.1em; }
 
 .risk-block { display: flex; align-items: flex-start; gap: 20px; position: relative; }
@@ -455,7 +458,7 @@ html, body {
 .risk-comment .body em { font-style: normal; color: var(--amber); }
 
 .trend-head { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; flex-wrap: wrap; margin-bottom: clamp(14px, 1.6vw, 22px); }
-.trend-head-meta .label { font-size: 10px; letter-spacing: 0.22em; color: var(--text-mid); }
+.trend-head-meta .label { font-size: 10px; letter-spacing: 0.22em; color: var(--text); font-weight: 700; }
 .trend-head-meta .sub   { font-size: 11px; color: var(--text-dim); margin-top: 6px; }
 .trend-head-ctrl { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
 .range-toggle { display: flex; gap: 14px; }
@@ -631,8 +634,8 @@ html, body {
   padding-bottom: 12px; margin-bottom: 18px;
 }
 .sec-head-l { display: flex; align-items: baseline; gap: 14px; }
-.sec-head-num { font-family: var(--mono); font-size: 11px; color: var(--text-dim); letter-spacing: 0.1em; }
-.sec-head-name { font-size: 11px; letter-spacing: 0.22em; color: var(--text); text-transform: uppercase; font-weight: 500; white-space: nowrap; }
+.sec-head-num { font-family: var(--mono); font-size: 11px; color: var(--text); font-weight: 700; letter-spacing: 0.1em; }
+.sec-head-name { font-size: 11px; letter-spacing: 0.22em; color: var(--text); text-transform: uppercase; font-weight: 700; white-space: nowrap; }
 .sec-head-r { font-size: 10px; color: var(--text-dim); letter-spacing: 0.12em; font-family: var(--mono); white-space: nowrap; }
 .sec-head-r .crit { color: var(--red); font-weight: 700; }
 .sec-head-r .warn { color: var(--amber); font-weight: 700; }
@@ -819,41 +822,24 @@ html, body {
 #overview-loading-overlay {
   display: none;
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  z-index: 10;
-  align-items: center;
-  justify-content: center;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  z-index: 9999;
   pointer-events: none;
+  background: transparent;
 }
-#overview-loading-overlay.show { display: flex; }
-.ov-loading-text {
-  font-family: var(--dm);
-  font-size: 15px;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  color: #ffffff;
-  display: flex;
-  align-items: center;
-  gap: 10px;
+#overview-loading-overlay.show { display: block; }
+.ov-bar {
+  height: 100%;
+  background: #0D9488;
+  width: 0%;
+  border-radius: 0 2px 2px 0;
+  animation: ovBarLoad 2.5s ease-out forwards;
 }
-.ov-loading-dots span {
-  display: inline-block;
-  opacity: 0.2;
-  color: #ffffff;
-  animation: dotWave 1.4s infinite ease-in-out;
-}
-.ov-loading-dots span:nth-child(1) { animation-delay: 0s; }
-.ov-loading-dots span:nth-child(2) { animation-delay: 0.15s; }
-.ov-loading-dots span:nth-child(3) { animation-delay: 0.3s; }
-.ov-loading-dots span:nth-child(4) { animation-delay: 0.45s; }
-.ov-loading-dots span:nth-child(5) { animation-delay: 0.6s; }
-.ov-loading-dots span:nth-child(6) { animation-delay: 0.75s; }
-.ov-loading-dots span:nth-child(7) { animation-delay: 0.9s; }
-@keyframes dotWave {
-  0%, 100% { opacity: 0.15; }
-  50% { opacity: 0.8; }
+@keyframes ovBarLoad {
+  0%   { width: 0%; }
+  60%  { width: 75%; }
+  100% { width: 88%; }
 }
 #view-sub { display: none; flex-direction: column; }
 .sub-topbar {
@@ -1218,7 +1204,9 @@ html, body {
 .ms-dot.upcoming { background: var(--surface-hi); border: 1px solid var(--text-ghost); }
 .ms-body { flex: 1; min-width: 0; }
 .ms-header-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
-.ms-name { font-size: 13px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ms-name { font-size: 13px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; display: flex; align-items: center; gap: 6px; }
+.ms-redmine-link { font-size: 12px; color: var(--text-dim); text-decoration: underline; text-underline-offset: 3px; flex-shrink: 0; transition: color 0.15s; }
+.ms-redmine-link:hover { color: var(--text); }
 .ms-right { text-align: right; flex-shrink: 0; }
 .ms-date { font-size: 11px; font-family: var(--mono); color: var(--text-mid); margin-bottom: 3px; white-space: nowrap; }
 .ms-dday { font-size: 10px; font-family: var(--mono); font-weight: 600; white-space: nowrap; }
@@ -1369,7 +1357,7 @@ html, body {
   <header class="topbar">
     <!-- Brand + Since 날짜 드롭다운 (left) -->
     <div class="topbar-brand">
-      <span class="topbar-brand-name" onclick="_expandedProjects.clear(); _expandedProjects.add('__all__'); switchProject('', '전체 프로젝트', _allProjects);" style="cursor:pointer;">Vantix</span>
+      <span class="topbar-brand-name" onclick="_expandedProjects.clear(); _expandedProjects.add('__all__'); switchProject('', '전체 프로젝트', _allProjects);" style="cursor:pointer;"><span style="color:#0F766E">V</span>antix</span>
       <div class="topbar-since-wrap" id="topbar-since-wrap">
         <div class="topbar-since-trigger" onclick="toggleSinceDd(event)">
           <span class="topbar-since-icon"><svg width="11" height="11" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"><rect x="1" y="2" width="12" height="11" rx="1"/><path d="M1 5h12M4 1v2M10 1v2"/></svg></span>
@@ -1475,16 +1463,6 @@ html, body {
     <!-- ══ OVERVIEW VIEW ══════════════════════════════════════ -->
     <div id="view-overview">
 
-    <!-- 로딩 오버레이 -->
-    <div id="overview-loading-overlay">
-      <div class="ov-loading-text">
-        DATA LOADING
-        <span class="ov-loading-dots">
-          <span>·</span><span>·</span><span>·</span><span>·</span><span>·</span><span>·</span><span>·</span>
-        </span>
-      </div>
-    </div>
-
     <!-- 사이드바 접혔을 때 열기 버튼 (crown 위) -->
     <div class="sidebar-open-btn" onclick="toggleSidebar()" title="사이드바 열기">
       <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1510,7 +1488,7 @@ html, body {
       <!-- Risk -->
       <div class="hero-risk">
         <div class="sec-label-row">
-          <span class="sec-label">CURRENT RISK INDEX</span>
+          <div style="display:flex;align-items:baseline;gap:14px;"><span class="sec-head-num">01</span><span class="sec-label">CURRENT RISK INDEX</span></div>
           <span class="sec-sub">/100</span>
         </div>
 
@@ -1539,7 +1517,7 @@ html, body {
       <div class="hero-trend">
         <div class="trend-head">
           <div class="trend-head-meta">
-            <div class="label">RISK SCORE TRENDS</div>
+            <div style="display:flex;align-items:baseline;gap:14px;"><span class="sec-head-num">02</span><div class="label">RISK SCORE TRENDS</div></div>
             <div class="sub" id="trend-sub">이력 로딩 중...</div>
           </div>
           <div class="trend-head-ctrl">
@@ -1629,6 +1607,11 @@ html, body {
     </section>
 
     </div><!-- /#view-overview -->
+
+    <!-- 로딩 오버레이 (view-overview 바깥 — opacity 상속 방지) -->
+    <div id="overview-loading-overlay">
+      <div class="ov-bar"></div>
+    </div>
 
     <!-- ══ SUB VIEW ════════════════════════════════════════════ -->
     <div id="view-sub" style="display:none;flex-direction:column;">
@@ -4169,7 +4152,7 @@ function renderMilestonesView(versions, container) {
     html += '<div class="ms-body">';
     // 헤더 행: 이름 + 날짜
     html += '<div class="ms-header-row">';
-    html += '<div class="ms-name">' + escapeHtml(v.name || '—') + '</div>';
+    html += '<div class="ms-name">' + escapeHtml(v.name || '—') + '<a class="ms-redmine-link" href="' + REDMINE_BASE + '/versions/' + v.id + '" target="_blank" onclick="event.stopPropagation();" title="Redmine에서 열기">↗</a></div>';
     html += '<div class="ms-right">';
     html += '<div class="ms-date">' + (dueDate || '<span style="color:var(--text-ghost);font-style:italic;font-size:10px;">날짜 미정</span>') + '</div>';
     if (ddayStr) html += '<div class="ms-dday ' + ddayCls + '">' + ddayStr + '</div>';
