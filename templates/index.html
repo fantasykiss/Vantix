@@ -493,16 +493,16 @@ html, body {
   pointer-events: none;
 }
 .trend-grid .gridline {
-  position: absolute; left: 0; right: 36px; height: 0;
+  position: absolute; left: 0; right: 26px; height: 0;
   border-top: 1px dashed var(--ghost);
 }
 .trend-grid .gridline .lbl {
-  position: absolute; right: -34px; top: -7px;
+  position: absolute; right: -24px; top: -7px;
   font-size: 9px; color: var(--text-dim); font-family: var(--mono);
 }
 .trend-bars {
   display: flex; align-items: flex-end; gap: 3px;
-  height: 100%; padding-right: 36px;
+  height: 100%; padding-right: 26px;
 }
 .trend-bars .bar {
   flex: 1; min-width: 3px;
@@ -515,12 +515,12 @@ html, body {
 .trend-bars .bar.b5 { background: var(--text-mid); }
 .trend-bars .bar.now { background: var(--text); }
 .trend-now-line {
-  position: absolute; right: 36px; top: 0; bottom: 0;
+  position: absolute; right: 26px; top: 0; bottom: 0;
   border-left: 1px solid var(--text);
   pointer-events: none;
 }
 .trend-now-label {
-  position: absolute; right: 40px; top: -22px;
+  position: absolute; right: 30px; top: -22px;
   background: var(--text); color: var(--bg);
   font-family: var(--mono); font-size: 10px; font-weight: 700;
   padding: 3px 8px; letter-spacing: 0.1em;
@@ -528,7 +528,7 @@ html, body {
 }
 .trend-axis {
   display: flex; justify-content: space-between;
-  margin-top: 10px; padding-right: 36px;
+  margin-top: 10px; padding-right: 26px;
   font-size: 9px; font-family: var(--mono); color: var(--text-dim); letter-spacing: 0.1em;
 }
 .trend-axis .now { color: var(--text); font-weight: 700; }
@@ -793,7 +793,8 @@ html, body {
   .btn-report { padding: 10px 18px; font-size: 10px; }
 
   .hero-risk, .hero-trend { padding: 20px 16px; }
-  .risk-block { gap: 14px; }
+  .risk-block { gap: 10px; flex-direction: column; }
+  .risk-meta { padding-top: 0; }
   .gauge-bars { height: 22px; }
   .gauge-bars .tick { height: 8px; }
   .gauge-bars .tick.low, .gauge-bars .tick.mid, .gauge-bars .tick.hi { height: 14px; }
