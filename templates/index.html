@@ -433,6 +433,13 @@ html, body {
 }
 .risk-state .dot { width: 6px; height: 6px; background: var(--bg); }
 .risk-formula { display: none; }
+.risk-breakdown { margin-top: 10px; display: flex; flex-direction: column; gap: 5px; }
+.risk-breakdown .bd-row { display: flex; align-items: center; gap: 6px; }
+.risk-breakdown .bd-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
+.risk-breakdown .bd-label { font-size: 10px; color: var(--text); flex: 1; white-space: nowrap; font-family: var(--dm); letter-spacing: 0.02em; }
+.risk-breakdown .bd-bar-wrap { width: 44px; height: 3px; background: var(--surface-hi); border-radius: 2px; overflow: hidden; }
+.risk-breakdown .bd-bar { height: 100%; border-radius: 2px; }
+.risk-breakdown .bd-val { font-size: 11px; font-weight: 700; min-width: 32px; text-align: right; font-family: var(--dm); }
 
 .gauge { margin-top: clamp(22px, 2.2vw, 32px); }
 .gauge-bars { display: flex; align-items: flex-end; gap: 2px; height: 28px; }
@@ -686,6 +693,19 @@ html, body {
 .wl-dist-legend .sw.crit  { background: var(--text); }
 .wl-dist-legend .sw.watch { background: var(--text-mid); }
 .wl-dist-legend .sw.ok    { background: #4a4540; }
+.ar-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--ghost); }
+.ar-card { background: var(--bg); padding: 10px 12px; border-left: 2px solid transparent; }
+.ar-card.hot  { border-left-color: var(--red); }
+.ar-card.warn { border-left-color: var(--amber); }
+.ar-card-top { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.ar-name { font-size: 12px; font-weight: 600; color: var(--text); font-family: var(--dm); }
+.ar-score { font-size: 13px; font-weight: 700; font-family: var(--dm); line-height: 1; }
+.ar-delta { font-size: 10px; font-weight: 700; font-family: var(--dm); margin-left: 2px; }
+.ar-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 10px; }
+.ar-stat { display: flex; justify-content: space-between; align-items: baseline; }
+.ar-stat-l { font-size: 10px; color: var(--text-dim); font-family: var(--dm); }
+.ar-stat-v { font-size: 11px; font-weight: 600; font-family: var(--dm); }
+.ar-divider { height: 0.5px; background: var(--ghost); margin: 6px 0; }
 
 .ins-grid {
   display: grid;
@@ -950,6 +970,9 @@ html, body {
 .matrix .h.crit  { color: var(--red); }
 .matrix .h.warn  { color: var(--amber); }
 .matrix .h.last  { background: var(--surface-hi); color: var(--text); font-weight: 700; }
+.matrix .h.col-hl-over  { background: rgba(239,68,68,0.12); color: var(--red); }
+.matrix .h.col-hl-soon  { background: rgba(251,146,60,0.12); color: var(--amber); }
+.matrix .cell.col-hl    { outline: 1px solid var(--ghost-2); outline-offset: -1px; }
 .matrix .row-h {
   padding: 14px; color: var(--text);
   border-bottom: 1px solid var(--ghost);
@@ -1489,13 +1512,13 @@ html, body {
       <div class="hero-risk">
         <div class="sec-label-row">
           <div style="display:flex;align-items:baseline;gap:14px;"><span class="sec-head-num">01</span><span class="sec-label">CURRENT RISK INDEX</span></div>
-          <span class="sec-sub">/100</span>
         </div>
 
         <div class="risk-block" style="cursor:default;">
           <div class="risk-num" id="risk-num">—</div>
           <div class="risk-meta">
             <span class="risk-state" id="risk-state"><span class="dot"></span><span id="risk-level-text">—</span></span>
+            <div class="risk-breakdown" id="risk-breakdown"></div>
           </div>
           <div class="kpi-tooltip" id="risk-score-tooltip" style="bottom:auto;top:calc(100% + 14px);left:0;"></div>
         </div>
@@ -1554,9 +1577,9 @@ html, body {
 
     <!-- ── KPI Ribbon ── -->
     <section class="kpi-ribbon">
-      <div class="kpi-cell"><div class="k">오픈 이슈</div>    <div class="v-row"><span class="v" id="kpi-open">—</span><span class="s" id="kpi-open-s"></span></div></div>
-      <div class="kpi-cell"><div class="k">마감 초과</div>    <div class="v-row"><span class="v" id="kpi-overdue">—</span><span class="s red" id="kpi-overdue-s"></span></div></div>
-      <div class="kpi-cell"><div class="k">D-7 임박</div>     <div class="v-row"><span class="v" id="kpi-imminent">—</span><span class="s">D-7 이내</span></div></div>
+      <div class="kpi-cell" style="cursor:pointer;" onclick="jumpToMatrixBucket(null)" title="이슈 매트릭스로 이동"><div class="k">오픈 이슈</div>    <div class="v-row"><span class="v" id="kpi-open">—</span><span class="s" id="kpi-open-s"></span></div></div>
+      <div class="kpi-cell" style="cursor:pointer;" onclick="jumpToMatrixBucket('over')" title="마감 초과 이슈 보기"><div class="k">마감 초과</div>    <div class="v-row"><span class="v" id="kpi-overdue">—</span><span class="s red" id="kpi-overdue-s"></span></div></div>
+      <div class="kpi-cell" style="cursor:pointer;" onclick="jumpToMatrixBucket('soon')" title="D-7 임박 이슈 보기"><div class="k">D-7 임박</div>     <div class="v-row"><span class="v" id="kpi-imminent">—</span><span class="s">D-7 이내</span></div></div>
       <div class="kpi-cell"><div class="k">완료 위험</div>    <div class="v-row"><span class="v" id="kpi-milestone">—</span><span class="s">마일스톤</span></div></div>
       <div class="kpi-cell"><div class="k">리스크 변화</div>  <div class="v-row"><span class="v" id="kpi-change">—</span><span class="s amber" id="kpi-change-s">전주 대비</span></div><div class="kpi-tooltip" id="kpi-change-tooltip"></div></div>
       <div class="kpi-cell"><div class="k">투입 인원</div>     <div class="v-row"><span class="v" id="kpi-users">—</span><span class="s" id="kpi-users-s"></span></div><div style="margin-top:6px;font-size:10px;font-family:var(--dm);cursor:default;" id="kpi-users-idle"></div><div class="kpi-tooltip" id="kpi-idle-tooltip"></div></div>
@@ -2543,6 +2566,26 @@ function renderDashboard(d, forecast) {
     var s1 = Math.round((ov   / total) * 60 * 10) / 10;
     var s2 = Math.round((urg  / total) * 30 * 10) / 10;
     var s3 = Math.round((pend / total) * 10 * 10) / 10;
+    var bdEl = document.getElementById('risk-breakdown');
+    if (bdEl) {
+      var norm = function(v) { return Math.round(v * 100 / 60 * 10) / 10; };
+      var n1 = norm(s1), n2 = norm(s2), n3 = norm(s3);
+      var maxN = Math.max(n1, n2, n3, 0.1);
+      function bdRow(color, label, val, maxVal) {
+        var pct = Math.round(val / maxVal * 100);
+        return '<div class="bd-row">'
+          + '<div class="bd-dot" style="background:' + color + ';"></div>'
+          + '<div class="bd-label">' + label + '</div>'
+          + '<div class="bd-bar-wrap"><div class="bd-bar" style="width:' + pct + '%;background:' + color + ';"></div></div>'
+          + '<div class="bd-val" style="color:' + color + ';">+' + val.toFixed(1) + '</div>'
+          + '</div>';
+      }
+      bdEl.innerHTML =
+        bdRow('var(--red)',      '마감 초과', n1, maxN) +
+        bdRow('var(--amber)',    'D-3 임박',  n2, maxN) +
+        bdRow('var(--text-mid)', '대기 이슈', n3, maxN);
+    }
+
     riskTipEl.innerHTML =
       '<div class="kpi-tt-header" style="gap:12px;">'
       + '<span class="kpi-tt-direction ' + (normScore >= 70 ? 'up' : normScore >= 30 ? 'flat' : 'down') + '" style="font-size:15px;">' + normScore + '</span>'
@@ -2850,9 +2893,9 @@ function renderWorkload(forecast) {
     document.getElementById('wl-summary').textContent = (dangerCount + warnCount) + ' OF ' + items.length;
 
   } else {
-    // ── 단일 프로젝트: 담당자 과부하 ──
-    if (titleEl) titleEl.textContent = '담당자 과부하 경보';
-    if (distWrap) distWrap.style.display = '';
+    // ── 단일 프로젝트: 담당자 위험도 랭킹 ──
+    if (titleEl) titleEl.textContent = '담당자 위험도';
+    if (distWrap) distWrap.style.display = 'none';
 
     if (!overload.length) {
       rows.innerHTML = '<div style="font-size:11px;color:var(--text-dim);padding:8px 0;">담당자 데이터 없음</div>';
@@ -2860,47 +2903,61 @@ function renderWorkload(forecast) {
       return;
     }
 
-    var critCount = 0, warnCount2 = 0, okCount = 0;
-    overload.slice(0, 5).forEach(function(x, idx) {
-      var level = x.level || 'ok';
-      var cssLevel = level === 'danger' ? 'red' : level === 'warning' ? 'amber' : 'green';
-      var labelText = x.label || (level === 'danger' ? '과부하' : level === 'warning' ? '주의' : '여유');
-      var pct = x.pct || 0;
-      if (level === 'danger') critCount++;
-      else if (level === 'warning') warnCount2++;
-      else okCount++;
+    var dangerCount = 0, warnCount2 = 0;
+    var grid = document.createElement('div');
+    grid.className = 'ar-grid';
+    var sliced = overload.slice(0, 6);
+    var isOdd = sliced.length % 2 !== 0;
 
-      var row = document.createElement('div');
-      row.className = 'wl-row';
-      var dotHtml = idx === 0 ? '<span class="wl-name-dot"></span>' : '';
-      row.innerHTML =
-        '<div class="wl-head">' +
-          '<span class="wl-name">' + dotHtml + escapeHtml(x.name || '—') + '</span>' +
-          '<span class="wl-right">' +
-            '<span class="wl-pct ' + cssLevel + '">' + pct + '%</span>' +
-            '<span class="wl-tag ' + cssLevel + '">' + labelText + '</span>' +
-          '</span>' +
+    sliced.forEach(function(x, idx) {
+      var level = x.level || 'ok';
+      var score = x.risk_score || 0;
+      var scoreColor = level === 'danger' ? 'var(--red)' : level === 'warning' ? 'var(--amber)' : 'var(--green-dim)';
+      if (level === 'danger') dangerCount++;
+      else if (level === 'warning') warnCount2++;
+
+      var deltaHtml = '';
+      if (x.delta != null) {
+        var sign = x.delta > 0 ? '↑' : '↓';
+        var dColor = x.delta > 0 ? 'var(--red)' : 'var(--green-dim)';
+        deltaHtml = ' <span class="ar-delta" style="color:' + dColor + ';">' + sign + Math.abs(x.delta) + '</span>';
+      }
+
+      var avgDelay = x.avg_delay != null ? x.avg_delay + '일' : '—';
+      var maxDelay = x.max_delay != null ? x.max_delay + '일' : '—';
+      var overdueColor = (x.overdue || 0) > 0 ? 'var(--red)' : 'var(--text-dim)';
+      var urgentColor  = (x.urgent  || 0) > 0 ? 'var(--amber)' : 'var(--text-dim)';
+      var delayColor   = x.avg_delay != null && x.avg_delay > 14 ? 'var(--red)' : x.avg_delay != null ? 'var(--amber)' : 'var(--text-dim)';
+
+      var cardClass = 'ar-card' + (level === 'danger' ? ' hot' : level === 'warning' ? ' warn' : '');
+      var card = document.createElement('div');
+      card.className = cardClass;
+      card.style.cursor = 'pointer';
+      if (isOdd && idx === sliced.length - 1) card.style.gridColumn = 'span 2';
+      (function(name) {
+        card.addEventListener('click', function() { jumpToMatrixUser(name); });
+      })(x.name || '');
+      card.innerHTML =
+        '<div class="ar-card-top">' +
+          '<div class="ar-name">' + escapeHtml(x.name || '—') + '</div>' +
+          '<div style="text-align:right;">' +
+            '<div class="ar-score" style="color:' + scoreColor + ';">' + score + deltaHtml + '</div>' +
+          '</div>' +
         '</div>' +
-        '<div class="wl-bar-bg"><div class="wl-bar-fl ' + cssLevel + '" style="width:' + pct + '%"></div></div>';
-      rows.appendChild(row);
+        '<div class="ar-stats">' +
+          '<div class="ar-stat"><span class="ar-stat-l">담당</span><span class="ar-stat-v" style="color:var(--text-mid);">' + (x.open || 0) + '건</span></div>' +
+          '<div class="ar-stat"><span class="ar-stat-l">초과</span><span class="ar-stat-v" style="color:' + overdueColor + ';">' + (x.overdue || 0) + '건</span></div>' +
+          '<div class="ar-stat"><span class="ar-stat-l">D-3</span><span class="ar-stat-v" style="color:' + urgentColor + ';">' + (x.urgent || 0) + '건</span></div>' +
+          '<div class="ar-stat"><span class="ar-stat-l">평균 지연</span><span class="ar-stat-v" style="color:' + delayColor + ';">' + avgDelay + '</span></div>' +
+        '</div>' +
+        '<div class="ar-divider"></div>' +
+        '<div class="ar-stat"><span class="ar-stat-l">최장 지연</span><span class="ar-stat-v" style="color:' + (x.max_delay != null ? delayColor : 'var(--text-dim)') + ';">' + maxDelay + '</span></div>';
+
+      grid.appendChild(card);
     });
 
-    var distEl = document.getElementById('wl-dist');
-    if (distEl) {
-      var mf = 0.2;
-      distEl.innerHTML =
-        '<div style="background:var(--text);flex:' + Math.max(critCount, critCount > 0 ? 1 : mf) + '"></div>' +
-        '<div style="background:var(--text-mid);flex:' + Math.max(warnCount2, warnCount2 > 0 ? 1 : mf) + '"></div>' +
-        '<div style="background:#4a4540;flex:' + Math.max(okCount, 1) + '"></div>';
-    }
-    var legendEl = document.getElementById('wl-dist-legend');
-    if (legendEl) {
-      legendEl.innerHTML =
-        '<span><span class="sw crit"></span>과부하 ' + critCount + '</span>' +
-        '<span><span class="sw watch"></span>주의 ' + warnCount2 + '</span>' +
-        '<span><span class="sw ok"></span>여유 ' + okCount + '</span>';
-    }
-    document.getElementById('wl-summary').textContent = (critCount + warnCount2) + ' OF ' + overload.length;
+    rows.appendChild(grid);
+    document.getElementById('wl-summary').textContent = (dangerCount + warnCount2) + ' OF ' + sliced.length;
   }
 }
 
@@ -4571,6 +4628,41 @@ function getShortName(userName) {
 }
 
 /* ── 그룹 탭 → 이슈 매트릭스 점프 ── */
+function clearMatrixColHighlight() {
+  document.querySelectorAll('#mx-grid .h.col-hl-over, #mx-grid .h.col-hl-soon').forEach(function(el) {
+    el.classList.remove('col-hl-over', 'col-hl-soon');
+  });
+  document.querySelectorAll('#mx-grid .cell.col-hl').forEach(function(el) {
+    el.classList.remove('col-hl');
+  });
+}
+
+function jumpToMatrixBucket(bucket) {
+  _pendingMxBucket = bucket || null;
+  showSubView('issues');
+}
+
+function _applyMxBucketHighlight() {
+  if (!_pendingMxBucket) return;
+  var bucket = _pendingMxBucket;
+  _pendingMxBucket = null;
+
+  clearMatrixColHighlight();
+
+  var hlClass = bucket === 'over' ? 'col-hl-over' : bucket === 'soon' ? 'col-hl-soon' : null;
+  if (hlClass) {
+    document.querySelectorAll('#mx-grid .h[data-bucket="' + bucket + '"]').forEach(function(el) {
+      el.classList.add(hlClass);
+    });
+  }
+  document.querySelectorAll('#mx-grid .cell[data-bucket="' + bucket + '"]').forEach(function(el) {
+    el.classList.add('col-hl');
+  });
+
+  var firstCell = document.querySelector('#mx-grid .cell[data-bucket="' + bucket + '"]');
+  if (firstCell) firstCell.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
 function jumpToMatrixUser(uname) {
   _pendingMxJump = uname;
   showSubView('issues');
@@ -4653,7 +4745,8 @@ function _prefetchBulkData() {
 var _mxData     = {};   // { assignee: { over:[], soon:[], prog:[], wait:[], resolve:[] } }
 var _mxSel      = null; // { who, bucket } | null = show all
 var _pendingRestoreChecked = null;
-var _pendingMxJump = null; // groups 탭 → 이슈 매트릭스 탭 이동 시 자동 선택할 uname
+var _pendingMxJump   = null;
+var _pendingMxBucket = null;
 var _mxTweaks   = JSON.parse(localStorage.getItem('vantix.issues.matrix.tweaks') || 'null') || {
   display: 'count', sort: 'total', resolved: 'on', density: 'default', rollup: 'on'
 };
@@ -4702,7 +4795,7 @@ async function loadIssues() {
     _buildMxData(_lastDashData);
     _renderMatrix(el, _lastDashData);
     _updateMxCrown(_lastDashData);
-    _applyTweaks(); _applyMxJump(); _restoreChecked(_p1);
+    _applyTweaks(); _applyMxJump(); _applyMxBucketHighlight(); _restoreChecked(_p1);
     return;
   }
   var cacheKey = currentProjectId + '|' + currentUpdatedAfter;
@@ -4712,7 +4805,7 @@ async function loadIssues() {
     _buildMxData(clientCached.data);
     _renderMatrix(el, clientCached.data);
     _updateMxCrown(clientCached.data);
-    _applyTweaks(); _applyMxJump(); _restoreChecked(_p2);
+    _applyTweaks(); _applyMxJump(); _applyMxBucketHighlight(); _restoreChecked(_p2);
     return;
   }
 
@@ -4728,7 +4821,7 @@ async function loadIssues() {
     _buildMxData(d);
     _renderMatrix(el, d);
     _updateMxCrown(d);
-    _applyTweaks(); _applyMxJump(); _restoreChecked(_p3);
+    _applyTweaks(); _applyMxJump(); _applyMxBucketHighlight(); _restoreChecked(_p3);
   } catch(e) {
     el.innerHTML = '<div class="drill-empty">이슈를 불러오지 못했습니다.</div>';
   }
@@ -4843,11 +4936,11 @@ function _renderMatrix(container, d) {
   }
 
   var matrixHTML = '<div class="h first">담당자 / 부서</div>' +
-    '<div class="h crit">마감 초과</div>' +
-    '<div class="h warn">D-7 임박</div>' +
-    '<div class="h">진행 중</div>' +
-    '<div class="h">진행 대기</div>' +
-    '<div class="h col-resolve">해결</div>' +
+    '<div class="h crit" data-bucket="over">마감 초과</div>' +
+    '<div class="h warn" data-bucket="soon">D-7 임박</div>' +
+    '<div class="h" data-bucket="prog">진행 중</div>' +
+    '<div class="h" data-bucket="wait">진행 대기</div>' +
+    '<div class="h col-resolve" data-bucket="resolve">해결</div>' +
     '<div class="h last">합계 &middot; 비중</div>';
 
   topAssignees.forEach(function(name, i) { matrixHTML += rowHTML(name, i); });
@@ -4970,6 +5063,7 @@ function _bindMatrixCells() {
 function _mxSelectCell(c) {
   var who    = c.getAttribute('data-who');
   var bucket = c.getAttribute('data-bucket');
+  clearMatrixColHighlight();
   document.querySelectorAll('#mx-grid .cell').forEach(function(x) {
     x.classList.remove('selected');
     x.setAttribute('aria-pressed', 'false');

@@ -1586,23 +1586,52 @@ async def api_forecast(request: Request, project_id: str = "", updated_after: st
     except Exception as e:
         print(f"[snapshot/prev] {e}")
 
-    # ── 담당자 과부하 (오픈 이슈 집중도 기준)
+    # ── 담당자 위험도 랭킹
     users_data = dashboard.get("users_data", {})
     overload_raw = []
     for uname, ud in users_data.items():
         issues = ud.get("issues", [])
-        open_count = sum(1 for i in issues if i["status"] not in CLOSED_SET and i["status"] not in HOLD_SET)
-        if open_count > 0:
-            overload_raw.append({"name": ud.get("short_name", uname), "open": open_count})
-    overload_raw.sort(key=lambda x: -x["open"])
+        open_issues = [i for i in issues if i["status"] not in CLOSED_SET and i["status"] not in HOLD_SET]
+        if not open_issues:
+            continue
+        total = len(open_issues)
+        overdue_issues = [i for i in open_issues if i.get("due_date") and i["due_date"] < today_str]
+        urgent_issues  = [i for i in open_issues if i.get("due_date") and today_str <= i["due_date"] <= (date.today() + timedelta(days=3)).strftime("%Y-%m-%d")]
+        overdue_count = len(overdue_issues)
+        urgent_count  = len(urgent_issues)
+        delays = []
+        for i in overdue_issues:
+            try:
+                d = (date.today() - date.fromisoformat(i["due_date"])).days
+                if d > 0:
+                    delays.append(d)
+            except Exception:
+                pass
+        avg_delay = round(sum(delays) / len(delays)) if delays else None
+        max_delay = max(delays) if delays else None
+        score = round((overdue_count / total * 60) + (urgent_count / total * 30), 1)
+        norm_score = min(round(score * 100 / 60), 100)
+        overload_raw.append({
+            "name":      ud.get("short_name", uname),
+            "open":      total,
+            "overdue":   overdue_count,
+            "urgent":    urgent_count,
+            "avg_delay": avg_delay,
+            "max_delay": max_delay,
+            "risk_score": norm_score,
+            "delta":     None,
+        })
+    overload_raw.sort(key=lambda x: -x["risk_score"])
     max_open = overload_raw[0]["open"] if overload_raw else 1
     overload = []
     for x in overload_raw[:5]:
         pct = round(x["open"] / max_open * 100)
+        score = x["risk_score"]
         overload.append({
-            "name": x["name"], "open": x["open"], "pct": pct,
-            "level": "danger" if pct >= 70 else ("warning" if pct >= 40 else "ok"),
-            "label": "과부하" if pct >= 70 else ("주의" if pct >= 40 else "여유"),
+            **x,
+            "pct":   pct,
+            "level": "danger"  if score >= 60 else ("warning" if score >= 30 else "ok"),
+            "label": "위험"    if score >= 60 else ("주의"    if score >= 30 else "안정"),
         })
 
     metrics = {
