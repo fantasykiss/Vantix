@@ -13,8 +13,12 @@ DEPT_NORMALIZE = {
 
 
 def dept_name(name: str) -> str:
-    """'기획_홍길동' → '기획', '1기획_ TEST1' → '기획' (정규화 + strip 포함)"""
-    raw = name.split("_")[0].strip() if "_" in name else name.strip()
+    """'기획_홍길동' → '기획', '홍길동 기획' → '기획', '1기획_ TEST1' → '기획'"""
+    if "_" in name:
+        raw = name.split("_")[0].strip()
+    else:
+        parts = name.strip().split()
+        raw = parts[-1] if len(parts) > 1 else name.strip()
     return DEPT_NORMALIZE.get(raw, raw)
 
 
