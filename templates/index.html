@@ -3924,7 +3924,7 @@ async function loadGroups() {
       var groupMap = {};
       Object.entries(d.users_data || {}).forEach(function(entry) {
         var uname = entry[0], u = entry[1];
-        var grp = (uname.includes('_') ? uname.split('_')[0].trim() : '') || '기타';
+        var grp = u.dept || (uname.includes('_') ? uname.split('_')[0].trim() : '') || '기타';
         var shortN = u.short_name || (uname.includes('_') ? uname.split('_').slice(1).join('_') : uname);
         if (!groupMap[grp]) groupMap[grp] = { name: grp, total_issues: 0, overdue_now: 0, memberData: [], is_extra: grp === '기타' };
         var active = (u.issues||[]).filter(function(i){ return !isDone(i); });

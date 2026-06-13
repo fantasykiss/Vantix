@@ -1144,7 +1144,7 @@ def build_dashboard_data(project_id="", updated_after="2026-03-01", redmine_url=
         "project_risk":     project_risk_list,
         "redmine_url":      redmine_url or "",
         "redmine_public_url": REDMINE_PUBLIC_URL or redmine_url or "",
-        "users_data":       {k: {"issues": v["issues"], "projects": list(v["projects"]), "group": v.get("group", ""), "short_name": v.get("short_name", k)} for k, v in users_data.items()},
+        "users_data":       {k: {"issues": v["issues"], "projects": list(v["projects"]), "group": v.get("group", ""), "short_name": v.get("short_name", k), "dept": dept_name(k)} for k, v in users_data.items()},
         "imminent_count":   len(imminent_issues),
         "imminent_issues":  imminent_issues,
         "trend_7days":      trend_7days,
