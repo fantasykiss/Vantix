@@ -1193,13 +1193,28 @@ def get_groups(project_id="", redmine_url=None, api_key=None):
     프로젝트 그룹 카드 목록 + 8주 오버듀 스파크라인
     그룹 멤버는 Redmine 그룹 API 기준 (이름 형식 무관)
     """
-    if not project_id:
-        return []
     try:
         from datetime import date, timedelta
 
-        # 1. 그룹-멤버 매핑 (API 직접 조회)
-        group_map, user_to_group = _build_group_map(project_id, redmine_url, api_key)
+        # 1. 그룹-멤버 매핑
+        if project_id:
+            group_map, user_to_group = _build_group_map(project_id, redmine_url, api_key)
+        else:
+            # 전체 프로젝트: /groups.json으로 Redmine 전체 그룹 직접 조회
+            all_groups = fetch("/groups.json", redmine_url=redmine_url, api_key=api_key).get("groups", [])
+            group_map = {g["name"]: {"id": g["id"], "name": g["name"], "user_count": 0, "members": []} for g in all_groups}
+            from concurrent.futures import ThreadPoolExecutor
+            def _fetch_members_all(gname):
+                try:
+                    data = fetch(f"/groups/{group_map[gname]['id']}.json?include=users", redmine_url=redmine_url, api_key=api_key)
+                    return gname, [u["name"] for u in data.get("group", {}).get("users", []) if u.get("name")]
+                except Exception:
+                    return gname, []
+            with ThreadPoolExecutor(max_workers=5) as ex:
+                for gname, members in ex.map(_fetch_members_all, list(group_map.keys())):
+                    group_map[gname]["members"] = members
+                    group_map[gname]["user_count"] = len(members)
+            user_to_group = {uname: gname for gname, ginfo in group_map.items() for uname in ginfo["members"]}
 
         if not group_map:
             return []
