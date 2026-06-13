@@ -3877,81 +3877,41 @@ async function loadGroups() {
   function isDone(i) { return doneSet.some(function(s){ return (i.status||'').toLowerCase().includes(s); }); }
 
   try {
-    if (currentProjectId) {
-      var data;
-      if (_lastGroupsData && _lastGroupsProjectId === currentProjectId) {
-        data = _lastGroupsData;
-      } else {
-        el.innerHTML = '';
-        _showTopBar();
-        var res = await fetch('/api/groups?project_id=' + encodeURIComponent(currentProjectId));
-        if (!res.ok) throw new Error(res.status);
-        data = await res.json();
-        _hideTopBar();
-        _lastGroupsData = data;
-        _lastGroupsProjectId = currentProjectId;
-      }
-      var groups = data.groups || [];
-      if (!groups.length) { el.innerHTML = '<div class="no-data-msg">그룹 데이터가 없습니다.</div>'; return; }
-
-      var udKeys = d && d.users_data ? Object.keys(d.users_data) : [];
-      var enriched = groups.map(function(g) {
-        var memberData = (g.members || []).map(function(uname) {
-          var u = _resolveUserData(uname, d && d.users_data, udKeys);
-          var shortN = (u && u.short_name) || (uname.includes('_') ? uname.split('_').slice(1).join('_') : uname);
-          var active = u ? (u.issues||[]).filter(function(i){ return !isDone(i); }) : [];
-          var ov     = active.filter(function(i){ return i.due_date && new Date(i.due_date) < today; });
-          return { uname: uname, shortN: shortN, active: active.length, overdue: ov.length };
-        });
-        return Object.assign({}, g, { memberData: memberData });
-      });
-
-      el.innerHTML = '<div class="groups-grid" id="grp-grid"></div>';
-      var grid = document.getElementById('grp-grid');
-      grid.innerHTML = enriched.map(_buildGroupCard).join('');
-      _updateGroupCrown(groups.length, groups.filter(function(g){ return (g.overdue_now||0)>0; }).length);
-      _initGroupDrag(grid);
-      _applySavedGroupOrder(grid);
-
+    var pid = currentProjectId || '';
+    var data;
+    if (_lastGroupsData && _lastGroupsProjectId === pid) {
+      data = _lastGroupsData;
     } else {
-      // 전체 프로젝트: users_data에서 그룹 추출
-      if (!d || !d.users_data) {
-        var params = new URLSearchParams({ project_id: '', updated_after: currentUpdatedAfter });
-        var res2 = await fetch('/api/data?' + params);
-        if (!res2.ok) throw new Error(res2.status);
-        d = await res2.json();
-      }
-      var groupMap = {};
-      Object.entries(d.users_data || {}).forEach(function(entry) {
-        var uname = entry[0], u = entry[1];
-        var _umparts = uname.trim().split(/[\s_]+/);
-        var grp = uname.includes('_')
-          ? uname.split('_')[0].trim()
-          : (_umparts.length > 1 ? _umparts[_umparts.length - 1] : '기타');
-        var shortN = _umparts.length > 1 ? _umparts.slice(0, -1).join(' ') : uname;
-        if (!groupMap[grp]) groupMap[grp] = { name: grp, total_issues: 0, overdue_now: 0, memberData: [], is_extra: grp === '기타' };
-        var active = (u.issues||[]).filter(function(i){ return !isDone(i); });
-        var ov = active.filter(function(i){ return i.due_date && new Date(i.due_date) < today; });
-        groupMap[grp].total_issues += active.length;
-        groupMap[grp].overdue_now  += ov.length;
-        groupMap[grp].memberData.push({ uname: uname, shortN: shortN, active: active.length, overdue: ov.length });
-      });
-      var groups = Object.values(groupMap).sort(function(a, b) {
-        if (a.is_extra) return 1; if (b.is_extra) return -1;
-        return b.overdue_now - a.overdue_now;
-      });
-      groups.forEach(function(g) {
-        var r = g.total_issues ? Math.min(100, Math.round(g.overdue_now / g.total_issues * 100)) : 0;
-        g.risk = r >= 60 ? 'Critical' : r >= 30 ? 'High' : r >= 10 ? 'Medium' : 'Stable';
-        g.user_count = g.memberData.length;
-      });
-
-      el.innerHTML = '<div class="groups-grid" id="grp-grid"></div>';
-      var grid = document.getElementById('grp-grid');
-      if (!groups.length) { el.innerHTML = '<div class="no-data-msg">그룹 데이터가 없습니다.</div>'; return; }
-      grid.innerHTML = groups.map(_buildDeptCard).join('');
-      _updateGroupCrown(groups.length, groups.filter(function(g){ return (g.overdue_now||0)>0; }).length);
+      el.innerHTML = '';
+      _showTopBar();
+      var res = await fetch('/api/groups?project_id=' + encodeURIComponent(pid));
+      if (!res.ok) throw new Error(res.status);
+      data = await res.json();
+      _hideTopBar();
+      _lastGroupsData = data;
+      _lastGroupsProjectId = pid;
     }
+    var groups = data.groups || [];
+    if (!groups.length) { el.innerHTML = '<div class="no-data-msg">그룹 데이터가 없습니다.</div>'; return; }
+
+    var udKeys = d && d.users_data ? Object.keys(d.users_data) : [];
+    var enriched = groups.map(function(g) {
+      var memberData = (g.members || []).map(function(uname) {
+        var u = _resolveUserData(uname, d && d.users_data, udKeys);
+        var shortN = (u && u.short_name) || (uname.includes('_') ? uname.split('_').slice(1).join('_') : uname);
+        var active = u ? (u.issues||[]).filter(function(i){ return !isDone(i); }) : [];
+        var ov     = active.filter(function(i){ return i.due_date && new Date(i.due_date) < today; });
+        return { uname: uname, shortN: shortN, active: active.length, overdue: ov.length };
+      });
+      return Object.assign({}, g, { memberData: memberData });
+    });
+
+    el.innerHTML = '<div class="groups-grid" id="grp-grid"></div>';
+    var grid = document.getElementById('grp-grid');
+    grid.innerHTML = enriched.map(_buildGroupCard).join('');
+    _updateGroupCrown(groups.length, groups.filter(function(g){ return (g.overdue_now||0)>0; }).length);
+    _initGroupDrag(grid);
+    _applySavedGroupOrder(grid);
   } catch(e) {
     console.error(e);
     el.innerHTML = '<div class="no-data-msg">그룹 데이터를 불러오지 못했습니다.</div>';
