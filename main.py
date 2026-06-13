@@ -1521,8 +1521,6 @@ async def api_data(request: Request, project_id: str = "", updated_after: str = 
 
 @app.get("/api/groups")
 async def api_groups(request: Request, project_id: str = "", s: dict = Depends(_require_session)):
-    if not project_id:
-        return {"groups": []}
     groups = get_groups(project_id, redmine_url=s["url"], api_key=s["key"])
     return {"groups": groups}
 
