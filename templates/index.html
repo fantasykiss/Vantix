@@ -1210,6 +1210,11 @@ html, body {
 .grp-member-badge { font-size: 8px; font-weight: 700; letter-spacing: 0.06em; padding: 2px 6px; flex-shrink: 0; text-transform: uppercase; }
 .grp-member-badge.overload { background: rgba(255,80,80,0.15); color: var(--red); }
 .grp-member-badge.watch { background: rgba(255,160,50,0.12); color: var(--amber); }
+.grp-dept-header { cursor: pointer; }
+.grp-dept-header:hover { background: rgba(255,255,255,0.03); }
+.grp-dept-chevron { font-size: 11px; color: var(--text-dim); transition: transform 0.2s; flex-shrink: 0; }
+.grp-dept-chevron.open { transform: rotate(180deg); }
+.grp-members.dept-collapsed { display: none; }
 
 /* ── Milestones ── */
 .ms-list { display: flex; flex-direction: column; gap: 8px; }
@@ -1545,9 +1550,9 @@ html, body {
           </div>
           <div class="trend-head-ctrl">
             <div class="range-toggle" id="range-toggle">
-              <span class="active" data-w="52" onclick="setTrendRange(52,this)">52W</span>
+              <span data-w="52" onclick="setTrendRange(52,this)">52W</span>
               <span data-w="26" onclick="setTrendRange(26,this)">26W</span>
-              <span data-w="12" onclick="setTrendRange(12,this)">12W</span>
+              <span class="active" data-w="12" onclick="setTrendRange(12,this)">12W</span>
             </div>
             <div class="trend-divider"></div>
             <div class="range-legend">
@@ -1861,7 +1866,7 @@ var currentProjectId = localStorage.getItem('vx_last_project') !== null
 var currentUpdatedAfter = '__DEFAULT_UPDATED_AFTER__';
 if (!currentUpdatedAfter || currentUpdatedAfter === '__DEFAULT_UPDATED_AFTER__') currentUpdatedAfter = '2026-03-01';
 var _allHistory = [];
-var _currentTrendWeeks = 52;
+var _currentTrendWeeks = 12;
 var _nowRiskColor = null;
 var _refreshTimer = null;
 var _cacheTimer = null;
@@ -3847,6 +3852,20 @@ function switchSubTab(view) {
 }
 
 // ────────────────────────────────────────────────────────────
+// Shared top-bar loading helpers
+// ────────────────────────────────────────────────────────────
+function _showTopBar() {
+  var ov = document.getElementById('overview-loading-overlay');
+  if (!ov) return;
+  ov.innerHTML = '<div class="ov-bar"></div>';
+  ov.classList.add('show');
+}
+function _hideTopBar() {
+  var ov = document.getElementById('overview-loading-overlay');
+  if (ov) ov.classList.remove('show');
+}
+
+// ────────────────────────────────────────────────────────────
 // Groups sub-view
 // ────────────────────────────────────────────────────────────
 async function loadGroups() {
@@ -3863,10 +3882,12 @@ async function loadGroups() {
       if (_lastGroupsData && _lastGroupsProjectId === currentProjectId) {
         data = _lastGroupsData;
       } else {
-        el.innerHTML = '<div class="no-data-msg loading-pulse">그룹 로딩 중...</div>';
+        el.innerHTML = '';
+        _showTopBar();
         var res = await fetch('/api/groups?project_id=' + encodeURIComponent(currentProjectId));
         if (!res.ok) throw new Error(res.status);
         data = await res.json();
+        _hideTopBar();
         _lastGroupsData = data;
         _lastGroupsProjectId = currentProjectId;
       }
@@ -3925,10 +3946,8 @@ async function loadGroups() {
       el.innerHTML = '<div class="groups-grid" id="grp-grid"></div>';
       var grid = document.getElementById('grp-grid');
       if (!groups.length) { el.innerHTML = '<div class="no-data-msg">그룹 데이터가 없습니다.</div>'; return; }
-      grid.innerHTML = groups.map(_buildGroupCard).join('');
+      grid.innerHTML = groups.map(_buildDeptCard).join('');
       _updateGroupCrown(groups.length, groups.filter(function(g){ return (g.overdue_now||0)>0; }).length);
-      _initGroupDrag(grid);
-      _applySavedGroupOrder(grid);
     }
   } catch(e) {
     console.error(e);
@@ -3999,6 +4018,70 @@ function _buildGroupCard(g) {
     + '</div>';
 }
 
+function _toggleDeptCard(headerEl) {
+  var card = headerEl.closest('.grp-card');
+  var members = card.querySelector('.grp-members');
+  var chevron = card.querySelector('.grp-dept-chevron');
+  var isOpen = !members.classList.contains('dept-collapsed');
+  members.classList.toggle('dept-collapsed', isOpen);
+  if (chevron) chevron.classList.toggle('open', !isOpen);
+}
+
+function _buildDeptCard(g) {
+  var risk      = g.risk || 'Stable';
+  var isExtra   = g.is_extra;
+  var members   = (g.memberData || []).slice().sort(function(a, b) {
+    return b.overdue !== a.overdue ? b.overdue - a.overdue : b.active - a.active;
+  });
+  var total     = g.total_issues || 0;
+  var overdue   = g.overdue_now || 0;
+  var userCount = g.user_count || members.length;
+  var ratio     = total ? Math.min(100, Math.round(overdue / total * 100)) : 0;
+
+  var riskBg    = risk==='Critical' ? 'rgba(255,80,80,0.15)' : risk==='High' ? 'rgba(255,160,50,0.15)' : risk==='Medium' ? 'rgba(255,200,50,0.1)' : 'rgba(255,255,255,0.05)';
+  var riskColor = risk==='Critical' ? 'var(--red)' : risk==='High' ? 'var(--amber)' : risk==='Medium' ? 'var(--amber-deep)' : 'var(--text-dim)';
+  var barColor  = risk==='Critical' ? 'var(--red)' : risk==='High' ? 'var(--amber)' : 'var(--text-dim)';
+
+  var maxActive = members.reduce(function(m, mb){ return Math.max(m, mb.active); }, 1);
+  var avgActive = members.length ? members.reduce(function(s, mb){ return s + mb.active; }, 0) / members.length : 0;
+
+  var membersHtml = members.length ? members.map(function(m) {
+    var barW    = Math.round(m.active / maxActive * 100);
+    var mBarClr = m.overdue > 0 ? 'var(--red)' : 'var(--text-dim)';
+    var nameClr = m.overdue > 0 ? 'var(--red)' : 'var(--text)';
+    var badge   = avgActive > 0 && m.active >= avgActive * 2
+      ? '<span class="grp-member-badge overload">OVERLOAD</span>'
+      : avgActive > 0 && m.active >= avgActive * 1.3
+        ? '<span class="grp-member-badge watch">주의</span>'
+        : '';
+    var unameSafe = (m.uname || '').replace(/\\/g, '\\\\').replace(/'/g, "\\'");
+    return '<div class="grp-member">'
+      + '<div class="grp-member-name" style="color:' + nameClr + ';cursor:pointer;" onclick="event.stopPropagation();jumpToMatrixUser(\'' + unameSafe + '\')">' + escapeHtml(m.shortN || m.uname) + ' <span style="font-size:9px;opacity:0.45;font-family:var(--mono);">→매트릭스</span></div>'
+      + '<div class="grp-member-bar-wrap"><div class="grp-member-bar" style="width:' + barW + '%;background:' + mBarClr + ';"></div></div>'
+      + '<div class="grp-member-cnt">' + m.active + '건</div>'
+      + (m.overdue ? '<div class="grp-member-overdue">지연 ' + m.overdue + '</div>' : '')
+      + badge
+      + '</div>';
+  }).join('') : '<div class="grp-no-member">멤버 정보 없음</div>';
+
+  var overdueStr = overdue ? ' · <span style="color:var(--red);">지연 ' + overdue + '건</span>' : '';
+
+  return '<div class="grp-card' + (isExtra ? ' grp-extra' : '') + '" data-grp="' + escapeHtml(g.name) + '">'
+    + '<div class="grp-header grp-dept-header" onclick="_toggleDeptCard(this)">'
+    + '<div>'
+    + '<div class="grp-name">' + escapeHtml(g.name) + (isExtra ? ' <span class="grp-extra-label">미분류</span>' : '') + '</div>'
+    + '<div class="grp-summary-meta">' + userCount + '명 · ' + total + '건' + overdueStr + '</div>'
+    + '</div>'
+    + '<div style="display:flex;align-items:center;gap:8px;">'
+    + (isExtra ? '' : '<span class="grp-badge" style="background:' + riskBg + ';color:' + riskColor + ';">' + (risk==='Stable' ? 'STABLE' : risk.toUpperCase()) + '</span>')
+    + '<span class="grp-dept-chevron">▾</span>'
+    + '</div>'
+    + '</div>'
+    + '<div class="grp-bar-wrap"><div class="grp-bar" style="width:' + ratio + '%;background:' + barColor + ';"></div></div>'
+    + '<div class="grp-members dept-collapsed">' + membersHtml + '</div>'
+    + '</div>';
+}
+
 function _updateGroupCrown(total, overdue) {
   var p = _allProjects.find(function(x){ return x.identifier === currentProjectId; });
   var eyebrow = document.getElementById('group-eyebrow');
@@ -4063,16 +4146,19 @@ async function loadMilestones() {
     if (_lastVersionsData && _lastVersionsProjectId === currentProjectId) {
       versions = _lastVersionsData;
     } else {
-      el.innerHTML = '<div class="no-data-msg loading-pulse">마일스톤 로딩 중...</div>';
+      el.innerHTML = '';
+      _showTopBar();
       var res = await fetch('/api/versions?project_id=' + encodeURIComponent(currentProjectId));
       if (!res.ok) throw new Error(res.status);
       versions = await res.json();
+      _hideTopBar();
       _lastVersionsData = versions;
       _lastVersionsProjectId = currentProjectId;
     }
     renderMilestonesView(versions, el);
     _updateMsCrown(versions);
   } catch(e) {
+    _hideTopBar();
     el.innerHTML = '<div class="no-data-msg">마일스톤을 불러오지 못했습니다.</div>';
   }
 }
@@ -4748,7 +4834,7 @@ var _pendingRestoreChecked = null;
 var _pendingMxJump   = null;
 var _pendingMxBucket = null;
 var _mxTweaks   = JSON.parse(localStorage.getItem('vantix.issues.matrix.tweaks') || 'null') || {
-  display: 'count', sort: 'total', resolved: 'on', density: 'default', rollup: 'on'
+  display: 'count', sort: 'total', density: 'default', rollup: 'on'
 };
 var BUCKET_LABEL = { over: '마감 초과', soon: 'D-7 임박', prog: '진행 중', wait: '진행 대기', resolve: '해결' };
 var PROG_SET = { '진행': 1, '진행대기': 1, 'In Progress': 1, '진행중': 1 };
@@ -4809,12 +4895,14 @@ async function loadIssues() {
     return;
   }
 
-  el.innerHTML = '<div class="drill-empty" style="padding:80px 0;">이슈 매트릭스 로딩 중...</div>';
+  el.innerHTML = '';
+  _showTopBar();
   try {
     var params = new URLSearchParams({ project_id: currentProjectId, updated_after: currentUpdatedAfter });
     var res = await fetch('/api/data?' + params);
     if (!res.ok) throw new Error(res.status);
     var d = await res.json();
+    _hideTopBar();
     var prev = _clientDataCache[cacheKey] || {};
     _clientDataCache[cacheKey] = { data: d, forecast: prev.forecast || null, insightsData: prev.insightsData || null, historyData: prev.historyData || null, ts: Date.now() };
     var _p3 = _saveChecked();
@@ -4823,6 +4911,7 @@ async function loadIssues() {
     _updateMxCrown(d);
     _applyTweaks(); _applyMxJump(); _applyMxBucketHighlight(); _restoreChecked(_p3);
   } catch(e) {
+    _hideTopBar();
     el.innerHTML = '<div class="drill-empty">이슈를 불러오지 못했습니다.</div>';
   }
 }
@@ -4877,7 +4966,6 @@ function _mxOptHTML() {
     '<div class="mx-tweaks" id="mx-tweaks">' +
       '<div class="body">' +
         '<div class="row"><span class="k">행 정렬</span>' + tog('sort', [['total','총합'],['over','초과'],['name','이름']]) + '</div>' +
-        '<div class="row"><span class="k">해결 열 표시</span>' + tog('resolved', [['on','ON'],['off','OFF']]) + '</div>' +
         '<div class="row"><span class="k">밀도</span>' + tog('density', [['compact','COMPACT'],['default','DEFAULT']]) + '</div>' +
         '<div class="row"><span class="k">롤업 표시</span>' + tog('rollup', [['on','롤업'],['off','개별']]) + '</div>' +
       '</div>' +
@@ -5523,8 +5611,6 @@ function _applyTweaks() {
   var summary = document.getElementById('mx-summary');
   if (!grid) return;
   grid.classList.toggle('compact',      _mxTweaks.density === 'compact');
-  grid.classList.toggle('hide-resolve', _mxTweaks.resolved === 'off');
-  if (summary) summary.classList.toggle('hide-resolve', _mxTweaks.resolved === 'off');
   _updateCellDisplay();
   _syncTweaksPanel();
 }
