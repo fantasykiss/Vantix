@@ -49,6 +49,8 @@ class ReportData:
     urgent_total:       int   = 0
     milestone_risk:     int   = 0
     week_history:       list  = field(default_factory=list)
+    project_id:         str   = ""
+    is_single:          bool  = False
 
 
 
@@ -222,6 +224,8 @@ def build_report_data(dashboard: dict, project_label: str = "전체 프로젝트
         milestone_risk   = milestone_risk,
         week_history     = week_history,
         insights         = insights or [],
+        project_id       = project_id or "",
+        is_single        = bool(project_id),
     )
 
 
@@ -247,6 +251,9 @@ def render_html_report(report, sections=None, memo="") -> str:
     urgent_total   = _get("urgent_total",   0)
     milestone_risk = _get("milestone_risk", 0)
     week_history   = _get("week_history",   [])
+    top_risk_list  = _get("top_risk",       [])
+    versions_list  = _get("versions",       [])
+    is_single      = _get("is_single",      False)
 
     # ── 색상 ──
     RED   = "#ef4444"
@@ -421,6 +428,177 @@ def render_html_report(report, sections=None, memo="") -> str:
             f"</section>"
         )
 
+    # ══ 컨텍스트 섹션 빌더 ══════════════════════════════════
+    # 공통 진행바 헬퍼
+    def _bar(pct, color, h=6):
+        pct = max(0, min(100, pct))
+        return (
+            f"<div style='flex:1;height:{h}px;background:rgba(255,255,255,0.06);overflow:hidden;'>"
+            f"<div style='width:{pct}%;height:100%;background:{color};'></div></div>"
+        )
+
+    # ── AI INSIGHTS (inner) ──
+    insights_inner = (
+        f"<div class='sec-label'>AI INSIGHTS</div>"
+        f"<div class='insights-grid'>{insight_cards}</div>"
+    )
+
+    # ── 프로젝트별 현황 (전체 프로젝트 전용) ──
+    proj_rows = ""
+    for p in top_risk_list:
+        pname  = p.get("name", "")
+        praw   = p.get("risk_score", 0)
+        pnorm  = min(round(praw * 100 / 60), 100)
+        plevel = p.get("risk_level", "Low")
+        pc     = LEVEL_COLOR.get(plevel, MID)
+        pov    = p.get("overdue", 0)
+        pur    = p.get("urgent", 0)
+        meta   = []
+        if pov: meta.append(f"<span style='color:{RED};'>지연 {pov}</span>")
+        if pur: meta.append(f"<span style='color:{AMBER};'>임박 {pur}</span>")
+        meta_html = " · ".join(meta) if meta else f"<span style='color:{DIM};'>정상</span>"
+        proj_rows += (
+            f"<div style='display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,0.05);'>"
+            f"<span style='width:6px;height:6px;background:{pc};flex-shrink:0;'></span>"
+            f"<span style='flex:0 0 200px;font-size:13px;font-weight:500;color:#f2efea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>{pname}</span>"
+            f"{_bar(pnorm, pc)}"
+            f"<span style='flex:0 0 96px;text-align:right;font-size:10px;color:{MID};'>{meta_html}</span>"
+            f"<span class='mn' style='flex:0 0 38px;text-align:right;font-size:15px;font-weight:700;color:{pc};'>{pnorm}</span>"
+            f"</div>"
+        )
+    if not proj_rows:
+        proj_rows = f"<div style='color:{DIM};font-size:12px;padding:8px 0;'>프로젝트 데이터 없음</div>"
+    projects_inner = (
+        f"<div class='sec-label'>프로젝트별 리스크 현황 <span style='color:{GHOST};font-weight:400;'>/ RISK BY PROJECT</span></div>"
+        f"{proj_rows}"
+    )
+
+    # ── 마일스톤별 현황 (단일 프로젝트 전용) ──
+    BADGE_C = {"OVERDUE": RED, "CLOSED": GREEN, "LOCKED": DIM, "OPEN": MID}
+    ms_rows = ""
+    for v in versions_list:
+        badge = v.get("badge", "OPEN")
+        bc    = BADGE_C.get(badge, MID)
+        pct   = v.get("pct", 0)
+        ovc   = v.get("overdue", 0)
+        bar_c = RED if ovc > 0 else GREEN
+        due   = v.get("due", "")
+        due_html = f"<span style='font-size:10px;color:{DIM};' class='mn'>{due}</span>" if due else ""
+        ms_rows += (
+            f"<div style='display:flex;align-items:center;gap:14px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,0.05);'>"
+            f"<span style='flex:0 0 180px;display:flex;flex-direction:column;gap:3px;min-width:0;'>"
+            f"<span style='font-size:13px;font-weight:500;color:#f2efea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>{v.get('name','')}</span>"
+            f"{due_html}</span>"
+            f"<span style='flex:0 0 64px;font-family:\"DM Mono\",monospace;font-size:8px;letter-spacing:0.08em;color:{bc};'>{badge}</span>"
+            f"{_bar(pct, bar_c)}"
+            f"<span class='mn' style='flex:0 0 96px;text-align:right;font-size:10px;color:{MID};'>"
+            f"{v.get('closed',0)}/{v.get('total',0)}"
+            + (f" <span style='color:{RED};'>· 지연 {ovc}</span>" if ovc else "")
+            + f"</span>"
+            f"<span class='mn' style='flex:0 0 38px;text-align:right;font-size:15px;font-weight:700;color:{bar_c};'>{pct}%</span>"
+            f"</div>"
+        )
+    if not ms_rows:
+        ms_rows = f"<div style='color:{DIM};font-size:12px;padding:8px 0;'>마일스톤(버전) 데이터 없음</div>"
+    milestones_inner = (
+        f"<div class='sec-label'>마일스톤별 진행 현황 <span style='color:{GHOST};font-weight:400;'>/ MILESTONES</span></div>"
+        f"{ms_rows}"
+    )
+
+    # ── 담당자 부하 (단일 프로젝트 전용) ──
+    load_users = sorted(users_list, key=lambda u: -getattr(u, "open_cnt", 0))
+    max_load   = max((getattr(u, "open_cnt", 0) for u in load_users), default=1) or 1
+    wl_rows = ""
+    for u in load_users:
+        opn = getattr(u, "open_cnt",    0)
+        ovd = getattr(u, "overdue_cnt", 0)
+        urg = getattr(u, "urgent_cnt",  0)
+        pct = round(opn / max_load * 100)
+        # 과부하 판정: 부하 상위(80%+) AND 지연 보유 → 과부하 / 지연만 → 주의 / 그 외 정상·여유
+        if pct >= 80 and ovd > 0:
+            state, sc, bar_c = "과부하", RED, RED
+        elif ovd > 0:
+            state, sc, bar_c = "지연", AMBER, AMBER
+        elif pct >= 50:
+            state, sc, bar_c = "정상", MID, BLUE
+        else:
+            state, sc, bar_c = "여유", DIM, GREEN
+        ini = (u.name or "·")[0]
+        sub = []
+        if ovd: sub.append(f"<span style='color:{RED};'>지연 {ovd}</span>")
+        if urg: sub.append(f"<span style='color:{AMBER};'>임박 {urg}</span>")
+        sub_html = " · ".join(sub) if sub else ""
+        sub_line = (f"<span style='font-size:9px;color:{MID};white-space:nowrap;'>{sub_html}</span>") if sub_html else ""
+        wl_rows += (
+            f"<div style='display:flex;align-items:center;gap:12px;padding:13px 0;border-bottom:1px solid rgba(255,255,255,0.05);'>"
+            f"<span style='width:26px;height:26px;background:{bar_c};color:#0c0c0c;font-size:11px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;'>{ini}</span>"
+            f"<span style='flex:0 0 120px;display:flex;flex-direction:column;gap:2px;min-width:0;'>"
+            f"<span style='font-size:13px;font-weight:500;color:#f2efea;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;'>{u.name}</span>"
+            + (f"<span style='font-size:9px;color:{DIM};'>{u.dept}</span>" if getattr(u, 'dept', '') else "")
+            + f"</span>"
+            f"{_bar(pct, bar_c)}"
+            f"<span style='flex:0 0 92px;text-align:right;display:flex;flex-direction:column;gap:2px;align-items:flex-end;'>"
+            f"<span class='mn' style='font-size:11px;color:{sc};font-weight:700;white-space:nowrap;'>{opn}건 · {state}</span>"
+            f"{sub_line}</span>"
+            f"</div>"
+        )
+    if not wl_rows:
+        wl_rows = f"<div style='color:{DIM};font-size:12px;padding:8px 0;'>담당자 데이터 없음</div>"
+    workload_inner = (
+        f"<div class='sec-label'>담당자별 부하 현황 <span style='color:{GHOST};font-weight:400;'>/ ASSIGNEE LOAD</span></div>"
+        f"{wl_rows}"
+    )
+
+    # ── 이슈 매트릭스 (inner, 전체 프로젝트 전용) ──
+    matrix_inner = (
+        f"<div class='matrix-head'>"
+        f"<div class='sec-label' style='margin-bottom:0;'>ISSUE MATRIX</div>"
+        f"<span class='matrix-badge'>{len(overdue_list)} OVERDUE</span></div>"
+        f"<table><thead><tr>"
+        f"<th class='thl'>Dept</th><th class='thl'>Name</th>"
+        f"<th>마감초과</th><th>D-7임박</th><th>진행중</th><th>진행대기</th><th>해결</th>"
+        f"</tr></thead><tbody>{matrix_rows_html}</tbody></table>"
+    )
+
+    # ── 섹션 조립 (전체/단일 분기 + sections 순서 제어 + 2컬럼 그리드) ──
+    if is_single:
+        inner_map = {"insights": insights_inner, "milestones": milestones_inner, "workload": workload_inner}
+        span_map  = {"milestones": "half", "workload": "half", "insights": "full"}
+        default_order = ["milestones", "workload", "insights"]
+    else:
+        inner_map = {"insights": insights_inner, "projects": projects_inner, "matrix": matrix_inner}
+        span_map  = {"projects": "half", "insights": "half", "matrix": "full"}
+        default_order = ["projects", "insights", "matrix"]
+
+    if sections:
+        order = [s for s in sections if s in inner_map]
+    else:
+        order = default_order
+
+    # half 섹션은 2개씩 묶어 2컬럼 row, full 섹션은 단독 풀폭 row
+    def _half_row(cells):
+        return f"<div class='ctx-row ctx-row-2'>" + "".join(
+            f"<div class='ctx-cell'>{c}</div>" for c in cells
+        ) + "</div>"
+
+    rows_html = ""
+    buf = []
+    for s in order:
+        inner = inner_map.get(s, "")
+        if not inner:
+            continue
+        if span_map.get(s, "full") == "half":
+            buf.append(inner)
+            if len(buf) == 2:
+                rows_html += _half_row(buf); buf = []
+        else:
+            if buf:
+                rows_html += _half_row(buf); buf = []
+            rows_html += f"<div class='ctx-row ctx-row-1'><div class='ctx-cell'>{inner}</div></div>"
+    if buf:
+        rows_html += _half_row(buf)
+    context_sections = rows_html
+
     return f"""<!DOCTYPE html>
 <html lang="ko">
 <head>
@@ -434,7 +612,7 @@ def render_html_report(report, sections=None, memo="") -> str:
 body {{ background:#0c0c0c; color:#f2efea; font-family:'DM Sans',sans-serif; -webkit-font-smoothing:antialiased; }}
 table {{ border-collapse:collapse; width:100%; }}
 
-.page {{ max-width:960px; margin:0 auto; padding:0 40px 80px; }}
+.page {{ max-width:1180px; margin:0 auto; padding:0 40px 80px; }}
 
 /* ── header ── */
 .report-header {{
@@ -540,6 +718,19 @@ th  {{
 }}
 th.thl {{ text-align:left; }}
 .total-row {{ background:rgba(255,255,255,0.02); }}
+
+/* ── 2컬럼 컨텍스트 그리드 ── */
+.ctx-row {{ border-bottom:1px solid rgba(255,255,255,0.07); }}
+.ctx-row-2 {{ display:grid; grid-template-columns:1fr 1fr; }}
+.ctx-row-2 .ctx-cell {{ padding:32px 0; min-width:0; }}
+.ctx-row-2 .ctx-cell:first-child {{ padding-right:40px; border-right:1px solid rgba(255,255,255,0.07); }}
+.ctx-row-2 .ctx-cell:last-child {{ padding-left:40px; }}
+.ctx-row-1 .ctx-cell {{ padding:32px 0; }}
+@media (max-width:760px) {{
+  .ctx-row-2 {{ grid-template-columns:1fr; }}
+  .ctx-row-2 .ctx-cell:first-child {{ padding-right:0; border-right:none; border-bottom:1px solid rgba(255,255,255,0.07); }}
+  .ctx-row-2 .ctx-cell:last-child {{ padding-left:0; }}
+}}
 </style>
 </head>
 <body>
@@ -596,33 +787,8 @@ th.thl {{ text-align:left; }}
     {kpi_cells}
   </div>
 
-  <!-- AI INSIGHTS -->
-  <section class="report-section">
-    <div class="sec-label">AI INSIGHTS</div>
-    <div class="insights-grid">
-      {insight_cards}
-    </div>
-  </section>
-
-  <!-- ISSUE MATRIX -->
-  <section class="report-section">
-    <div class="matrix-head">
-      <div class="sec-label" style="margin-bottom:0;">ISSUE MATRIX</div>
-      <span class="matrix-badge">{len(overdue_list)} OVERDUE</span>
-    </div>
-    <table>
-      <thead><tr>
-        <th class="thl">Dept</th>
-        <th class="thl">Name</th>
-        <th>마감초과</th>
-        <th>D-7임박</th>
-        <th>진행중</th>
-        <th>진행대기</th>
-        <th>해결</th>
-      </tr></thead>
-      <tbody>{matrix_rows_html}</tbody>
-    </table>
-  </section>
+  <!-- CONTEXT SECTIONS (전체/단일 분기) -->
+  {context_sections}
 
   {memo_html}
 

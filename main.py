@@ -318,6 +318,9 @@ _init_analytics_tables()
 _warm_session_cache()
 
 # ==================== 유저 DB (SQLite) ====================
+from app.constants import (
+    DEFAULT_PLAN, plan_info, plan_allows, plan_project_limit,
+)
 _pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _USERS_DB = os.getenv("USERS_DB_PATH", os.path.join(os.path.dirname(__file__), "vantix_users.db"))
 
@@ -345,7 +348,20 @@ def _init_users_db():
                 updated_after     TEXT    DEFAULT '',
                 created_at        REAL    NOT NULL
             );
+            -- Phase 4: 유저가 모니터링하기로 선택한 프로젝트 (플랜별 개수 제한 적용 대상)
+            CREATE TABLE IF NOT EXISTS user_projects (
+                id           INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id      INTEGER NOT NULL REFERENCES users(id),
+                project_id   TEXT    NOT NULL,
+                project_name TEXT    DEFAULT '',
+                created_at   REAL    NOT NULL,
+                UNIQUE(user_id, project_id)
+            );
         """)
+        # Phase 4: 기존 DB에 plan 컬럼 마이그레이션 (없을 때만 추가)
+        cols = {r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
+        if "plan" not in cols:
+            conn.execute(f"ALTER TABLE users ADD COLUMN plan TEXT DEFAULT '{DEFAULT_PLAN}'")
 
 _init_users_db()
 
@@ -370,6 +386,58 @@ def _get_user_by_id(user_id: int) -> dict | None:
 
 def _verify_password(plain: str, hashed: str) -> bool:
     return _pwd_ctx.verify(plain, hashed)
+
+# ---------- Phase 4: 플랜 ----------
+def _get_user_plan(user_id: int | None) -> str:
+    """유저의 플랜. 계정 없음(익명/데모) → free."""
+    if not user_id:
+        return DEFAULT_PLAN
+    with _users_db() as conn:
+        row = conn.execute("SELECT plan FROM users WHERE id=? AND is_active=1", (user_id,)).fetchone()
+        return (row["plan"] if row and row["plan"] else DEFAULT_PLAN)
+
+def _set_user_plan(user_id: int, plan: str):
+    with _users_db() as conn:
+        conn.execute("UPDATE users SET plan=? WHERE id=?", (plan, user_id))
+
+# ---------- Phase 4: 선택 프로젝트 ----------
+def _get_user_projects(user_id: int) -> list[dict]:
+    with _users_db() as conn:
+        rows = conn.execute(
+            "SELECT project_id, project_name FROM user_projects WHERE user_id=? ORDER BY created_at",
+            (user_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+def _get_user_project_ids(user_id: int | None) -> set[str]:
+    if not user_id:
+        return set()
+    return {str(p["project_id"]) for p in _get_user_projects(user_id)}
+
+def _set_user_projects(user_id: int, projects: list[dict]) -> list[dict]:
+    """선택 프로젝트 일괄 교체. 플랜 개수 제한 초과 시 ValueError.
+    projects: [{"project_id": "..", "project_name": ".."}, ...]"""
+    plan = _get_user_plan(user_id)
+    limit = plan_project_limit(plan)
+    # 중복 project_id 제거 (입력 순서 유지)
+    seen, cleaned = set(), []
+    for p in projects:
+        pid = str(p.get("project_id") or "").strip()
+        if not pid or pid in seen:
+            continue
+        seen.add(pid)
+        cleaned.append({"project_id": pid, "project_name": (p.get("project_name") or "").strip()})
+    if limit != -1 and len(cleaned) > limit:
+        raise ValueError(f"{plan} 플랜은 프로젝트 {limit}개까지 선택할 수 있습니다 (요청: {len(cleaned)}개)")
+    with _users_db() as conn:
+        conn.execute("DELETE FROM user_projects WHERE user_id=?", (user_id,))
+        now = time.time()
+        for i, p in enumerate(cleaned):
+            conn.execute(
+                "INSERT INTO user_projects (user_id, project_id, project_name, created_at) VALUES (?,?,?,?)",
+                (user_id, p["project_id"], p["project_name"], now + i * 1e-6)
+            )
+    return cleaned
 
 def _save_redmine_connection(user_id: int, redmine_url: str, api_key: str,
                               default_project_id: str = "", updated_after: str = ""):
@@ -405,6 +473,51 @@ def _tag_session_user(token: str, user_id: int):
 def _get_session_user_id(token: str) -> int | None:
     return _session_user_map.get(token)
 
+# ---------- Phase 4: 요청 → user_id, 플랜 게이팅 ----------
+def _current_user_id(request: Request) -> int | None:
+    """요청에서 로그인 유저 id 추출. vx_user_id 쿠키 우선, 세션맵 폴백.
+    익명/데모 세션은 None (= free 취급)."""
+    uid_str = request.cookies.get("vx_user_id")
+    if uid_str and uid_str.isdigit():
+        return int(uid_str)
+    token = request.cookies.get("vx_session") or request.headers.get("X-VX-Session")
+    return _get_session_user_id(token or "") if token else None
+
+def _require_feature(feature: str):
+    """AI/리포트 기능 게이트 의존성. free 플랜이면 402(업그레이드 필요)."""
+    def _dep(request: Request):
+        plan = _get_user_plan(_current_user_id(request))
+        if not plan_allows(plan, feature):
+            raise HTTPException(
+                status_code=402,
+                detail={"error": "upgrade_required", "feature": feature,
+                        "plan": plan, "message": "Pro 플랜에서 사용할 수 있는 기능입니다."},
+            )
+        return plan
+    return _dep
+
+def _check_project_access(request: Request, project_id: str):
+    """선택 프로젝트 게이트. 로그인 유저가 프로젝트를 선택해 둔 경우,
+    그 목록 밖의 project_id 접근을 403으로 막는다.
+    - 익명/데모(user_id 없음) 또는 아직 선택 안 한 유저: 통과 (선택 UI는 3단계).
+    - project_id 미지정(전체 보기): 통과."""
+    pid = str(project_id or "").strip()
+    if not pid:
+        return
+    uid = _current_user_id(request)
+    if not uid:
+        return
+    selected = _get_user_project_ids(uid)
+    if not selected:
+        return
+    if pid not in selected:
+        raise HTTPException(
+            status_code=403,
+            detail={"error": "project_not_allowed", "project_id": pid,
+                    "plan": _get_user_plan(uid),
+                    "message": "선택한 프로젝트가 아닙니다. 요금제에서 모니터링 프로젝트를 변경하세요."},
+        )
+
 # ============================================================
 
 from app.reporter import build_report_data, render_html_report, render_tsv_report, send_report_email
@@ -425,6 +538,8 @@ SSL_CONTEXT.verify_mode = ssl.CERT_NONE
 app = FastAPI()
 if os.path.isdir("etc"):
     app.mount("/devlog", StaticFiles(directory="etc"), name="devlog")
+if os.path.isdir("static"):
+    app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # ==================== 캐시 ====================
 _cache = {}
@@ -1447,6 +1562,7 @@ async def api_projects(request: Request, s: dict = Depends(_require_session)):
 
 @app.get("/api/data")
 async def api_data(request: Request, project_id: str = "", updated_after: str = "2026-03-01", force: bool = False, s: dict = Depends(_require_session)):
+    _check_project_access(request, project_id)
     r_url = s["url"]
     r_key = s["key"]
     key = cache_key(project_id, updated_after, r_url)
@@ -2373,6 +2489,43 @@ async def api_auth_connect_redmine(request: Request):
     response.delete_cookie("vx_pending_uid")
     return response
 
+
+# ---------- Phase 4: 플랜 / 선택 프로젝트 ----------
+@app.get("/api/account/plan")
+async def api_account_plan(request: Request):
+    """현재 유저의 플랜·한도·선택 프로젝트. 익명/데모는 free."""
+    uid = _current_user_id(request)
+    plan = _get_user_plan(uid)
+    info = plan_info(plan)
+    return JSONResponse({
+        "plan": plan,
+        "label": info["label"],
+        "project_limit": info["project_limit"],
+        "ai": info["ai"],
+        "report": info["report"],
+        "selected_projects": _get_user_projects(uid) if uid else [],
+        "is_authenticated": uid is not None,
+    })
+
+
+@app.post("/api/account/projects")
+async def api_account_set_projects(request: Request):
+    """모니터링할 프로젝트 선택(일괄 교체). 플랜 개수 제한 초과 시 422.
+    body: {"projects": [{"project_id": "..", "project_name": ".."}, ...]}"""
+    uid = _current_user_id(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    body = await request.json()
+    projects = body.get("projects") or []
+    if not isinstance(projects, list):
+        raise HTTPException(status_code=400, detail="projects는 배열이어야 합니다")
+    try:
+        saved = _set_user_projects(uid, projects)
+    except ValueError as e:
+        raise HTTPException(status_code=422, detail=str(e))
+    return JSONResponse({"ok": True, "selected_projects": saved})
+
+
 # ============================================================
 
 @app.get("/connect", response_class=HTMLResponse)
@@ -2931,6 +3084,7 @@ async def api_report_preview(
     sections:      str = "",
     memo:          str = "",
     s: dict = Depends(_require_session),
+    _plan: str = Depends(_require_feature("report")),
 ):
     from fastapi.responses import HTMLResponse
 
@@ -3049,6 +3203,7 @@ async def api_report_preview(
 async def api_report_share(
     request: Request,
     s: dict = Depends(_require_session),
+    _plan: str = Depends(_require_feature("report")),
 ):
     body = await request.json()
     html = body.get("html", "")
@@ -3082,6 +3237,7 @@ async def api_report_tsv(
     updated_after: str = "2026-03-01",
     sections:      str = "",
     s: dict = Depends(_require_session),
+    _plan: str = Depends(_require_feature("report")),
 ):
     from fastapi.responses import PlainTextResponse
     redmine_url = s.get("url")
@@ -3096,7 +3252,7 @@ async def api_report_tsv(
 
 
 @app.post("/api/report/send")
-async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
+async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session), _plan: str = Depends(_require_feature("report"))):
     dashboard = get_cache(project_id, updated_after, s["url"])
     if not dashboard:
         dashboard = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
@@ -3122,7 +3278,7 @@ async def api_redmine_users(s: dict = Depends(_require_session)):
 
 
 @app.post("/api/report/send-html")
-async def api_report_send_html(request: Request, s: dict = Depends(_require_session)):
+async def api_report_send_html(request: Request, s: dict = Depends(_require_session), _plan: str = Depends(_require_feature("report"))):
     body       = await request.json()
     html       = body.get("html", "")
     recipients = body.get("recipients", [])
@@ -3141,6 +3297,7 @@ async def api_report_send_html(request: Request, s: dict = Depends(_require_sess
 
 @app.get("/api/ai/risk-comment")
 async def api_ai_risk_comment(s: dict = Depends(_require_session),
+    _plan: str = Depends(_require_feature("ai")),
     name: str = "", score: float = 0,
     overdue: int = 0, urgent: int = 0, open_issues: int = 0,
     top_issues: str = ""
@@ -3169,6 +3326,7 @@ async def api_ai_risk_comment(s: dict = Depends(_require_session),
 
 @app.get("/api/ai/action-signals")
 async def api_ai_action_signals(s: dict = Depends(_require_session),
+    _plan: str = Depends(_require_feature("ai")),
     project_id: str = "",
     updated_after: str = "2026-01-01",
     force: bool = False
@@ -3298,7 +3456,7 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
 
 
 @app.get("/api/ai/report-summary")
-async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
+async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session), _plan: str = Depends(_require_feature("ai"))):
     cache_k = f"report-summary|{s['url'].rstrip('/')}|{project_id}|{updated_after}"
     cached = _get_ai_cache(cache_k)
     if cached:
@@ -3390,6 +3548,7 @@ async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026
 
 @app.get("/api/ai/delay-prediction")
 async def api_ai_delay_prediction(s: dict = Depends(_require_session),
+    _plan: str = Depends(_require_feature("ai")),
     project_id: str = "", updated_after: str = "2026-03-01", project_name: str = ""
 ):
     cache_k = f"delay-pred|{s['url'].rstrip('/')}|{project_id}|{project_name}"
