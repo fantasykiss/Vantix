@@ -6,420 +6,808 @@
 <title>Vantix · Admin</title>
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;0,9..40,800&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet" />
+<script src="https://cdn.tailwindcss.com?plugins=forms"></script>
+<script>
+tailwind.config = {
+  theme: {
+    extend: {
+      colors: {
+        'vbg':    '#f7f9fb',
+        'vsurf':  '#ffffff',
+        'vlow':   '#f2f4f6',
+        'vmid':   '#eceef0',
+        'vbdr':   '#e0e3e5',
+        'vbdrm':  '#c5c6cd',
+        'vtxt':   '#191c1e',
+        'vtxt2':  '#45474c',
+        'vtxtm':  '#75777d',
+        'vpri':   '#091426',
+        'vblue':  '#0058be',
+        'vbluea': 'rgba(0,88,190,0.10)',
+        'vbluel': '#d8e2ff',
+        'verr':   '#ba1a1a',
+        'verrd':  '#ffdad6',
+        'vgrn':   '#16a34a',
+        'vgrnd':  '#dcfce7',
+        'vylw':   '#b45309',
+        'vylwd':  '#fef9c3',
+      },
+      fontFamily: { sans: ['DM Sans', '-apple-system', 'sans-serif'] },
+    }
+  }
+}
+</script>
 <style>
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
+/* CSS variables for JS-rendered components */
 :root {
-  --bg:           #0f1117;
-  --surface:      #181c27;
-  --surface2:     #1e2333;
-  --border:       rgba(255,255,255,.08);
-  --border-light: rgba(255,255,255,.05);
-  --text:         #e8eaf2;
-  --text-muted:   #6b7280;
-  --text-dim:     #9ca3af;
-  --accent:       #4f8ef7;
-  --accent-dim:   rgba(79,142,247,.15);
-  --green:        #4caf7d;
-  --green-dim:    rgba(76,175,125,.15);
-  --yellow:       #f0b429;
-  --yellow-dim:   rgba(240,180,41,.12);
-  --red:          #e05252;
-  --red-dim:      rgba(224,82,82,.12);
-  --radius:       0;
+  --text:       #191c1e;
+  --text-muted: #75777d;
+  --text-dim:   #45474c;
+  --surface:    #ffffff;
+  --surface2:   #f2f4f6;
+  --border:     rgba(0,0,0,.08);
+  --accent:     #0058be;
+  --accent-dim: rgba(0,88,190,.10);
+  --green:      #16a34a;
+  --green-dim:  rgba(22,163,74,.12);
+  --yellow:     #b45309;
+  --yellow-dim: rgba(180,83,9,.10);
+  --red:        #ba1a1a;
+  --red-dim:    rgba(186,26,26,.10);
+  --radius:     8px;
 }
 
-body { background: var(--bg); color: var(--text); font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; min-height: 100vh; }
+body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif; font-size: 14px; min-height: 100vh; }
 
-/* ── Login ── */
-#login-screen { display: flex; align-items: center; justify-content: center; min-height: 100vh; }
-.login-box { background: var(--surface); border: 1px solid var(--border); padding: 40px 36px; width: 360px; max-width: 90vw; }
-.login-logo { font-size: 13px; font-weight: 700; letter-spacing: .12em; color: var(--text-muted); text-transform: uppercase; margin-bottom: 24px; }
-.login-logo span { color: var(--accent); }
-.login-box h2 { font-size: 18px; font-weight: 600; margin-bottom: 20px; }
-.login-box input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--bg); color: var(--text); font-size: 14px; outline: none; margin-bottom: 12px; }
-.login-box input:focus { border-color: var(--accent); }
-.login-box button { width: 100%; padding: 11px; border: none; border-radius: var(--radius); background: var(--accent); color: #fff; font-size: 14px; font-weight: 600; cursor: pointer; transition: opacity .15s; }
-.login-box button:hover { opacity: .85; }
-.login-err { font-size: 12px; color: var(--red); margin-top: 8px; min-height: 16px; text-align: center; }
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  display: inline-block; line-height: 1; text-transform: none;
+  white-space: nowrap; direction: ltr; vertical-align: middle;
+}
 
-/* ── App ── */
-#app { display: none; }
-.topbar { height: 52px; background: var(--surface); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 24px; gap: 16px; position: sticky; top: 0; z-index: 100; }
-.topbar-logo { font-size: 12px; font-weight: 700; letter-spacing: .12em; color: var(--text-muted); text-transform: uppercase; cursor: pointer; }
-.topbar-logo:hover { color: var(--text); }
-.topbar-logo span { color: var(--accent); }
-.topbar-sep { width: 1px; height: 16px; background: var(--border); }
-.topbar-title { font-size: 14px; font-weight: 600; }
-.topbar-right { margin-left: auto; display: flex; gap: 8px; align-items: center; }
-.topbar-badge { font-size: 11px; padding: 3px 8px; background: var(--accent-dim); color: var(--accent); font-weight: 600; }
-.logout-btn { font-size: 12px; padding: 5px 12px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; transition: all .15s; }
-.logout-btn:hover { border-color: var(--red); color: var(--red); }
+/* ── Login (dark overlay) ── */
+#login-screen { position: fixed; inset: 0; background: #0d1117; display: flex; align-items: center; justify-content: center; z-index: 1000; }
+.login-box { background: #161b22; border: 1px solid rgba(255,255,255,.08); border-radius: 12px; padding: 40px 36px; width: 360px; max-width: 90vw; }
+.login-logo { font-size: 18px; font-weight: 800; color: #e6edf3; letter-spacing: -.5px; margin-bottom: 8px; }
+.login-logo span { color: #58a6ff; }
+.login-sub { font-size: 12px; color: #8b949e; margin-bottom: 28px; }
+.login-box label { display: block; font-size: 11px; font-weight: 600; color: #8b949e; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 6px; }
+.login-box input { width: 100%; padding: 10px 14px; border: 1px solid rgba(255,255,255,.1); border-radius: 8px; background: #0d1117; color: #e6edf3; font-size: 14px; font-family: 'DM Sans', inherit; outline: none; margin-bottom: 14px; }
+.login-box input:focus { border-color: #58a6ff; box-shadow: 0 0 0 3px rgba(88,166,255,.15); }
+.login-box button { width: 100%; padding: 11px; border: none; border-radius: 8px; background: #1f6feb; color: #fff; font-size: 14px; font-family: 'DM Sans', inherit; font-weight: 600; cursor: pointer; transition: background .15s; }
+.login-box button:hover { background: #388bfd; }
+.login-err { font-size: 12px; color: #f85149; margin-top: 10px; min-height: 16px; text-align: center; }
 
-/* ── Tabs + filter bar ── */
-.tabs-wrap { background: var(--surface); border-bottom: 1px solid var(--border); }
-.tabs { display: flex; gap: 2px; padding: 0 24px; align-items: center; }
-.tab-btn { padding: 14px 18px; font-size: 13px; font-weight: 500; cursor: pointer; background: none; border: none; color: var(--text-muted); border-bottom: 2px solid transparent; transition: color .15s; display: flex; align-items: center; gap: 6px; }
-.tab-btn.active { color: var(--text); border-bottom-color: var(--accent); }
-.tab-btn:hover { color: var(--text-dim); }
-.tab-cnt { font-size: 10px; font-weight: 700; padding: 2px 6px; background: var(--surface2); color: var(--text-muted); min-width: 18px; text-align: center; }
-.tab-btn.active .tab-cnt { background: var(--accent-dim); color: var(--accent); }
+/* ── Sidebar ── */
+.sidebar { position: fixed; left: 0; top: 0; width: 260px; height: 100vh; background: #fff; border-right: 1px solid #e0e3e5; display: flex; flex-direction: column; z-index: 50; }
+.sidebar-logo { padding: 20px 20px 16px; border-bottom: 1px solid #f0f2f4; }
+.sidebar-logo-name { font-size: 17px; font-weight: 800; color: #091426; letter-spacing: -.5px; }
+.sidebar-logo-sub { font-size: 11px; color: #75777d; margin-top: 2px; }
+.sidebar-nav { flex: 1; padding: 12px 10px; overflow-y: auto; }
+.nav-item { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 8px; cursor: pointer; font-size: 13px; font-weight: 500; color: #45474c; transition: background .12s, color .12s; text-decoration: none; margin-bottom: 2px; }
+.nav-item:hover { background: #f2f4f6; color: #091426; }
+.nav-item.active { background: #d8e2ff; color: #0058be; font-weight: 600; }
+.nav-item .material-symbols-outlined { font-size: 20px; flex-shrink: 0; }
+.nav-badge { margin-left: auto; background: #e0e3e5; color: #45474c; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 99px; }
+.nav-item.active .nav-badge { background: #0058be; color: #fff; }
+.sidebar-footer { padding: 14px 10px; border-top: 1px solid #f0f2f4; }
+.live-pill { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f2f4f6; border-radius: 8px; margin-bottom: 8px; }
+.live-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; animation: pulse 2s infinite; flex-shrink: 0; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.15)} }
+.live-text { font-size: 12px; color: #45474c; }
+.live-text strong { color: #16a34a; }
+.logout-btn { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; background: none; border: none; border-radius: 8px; color: #75777d; font-size: 13px; font-family: 'DM Sans', inherit; cursor: pointer; transition: background .12s, color .12s; }
+.logout-btn:hover { background: #f2f4f6; color: #191c1e; }
 
-.filter-bar { display: flex; align-items: center; gap: 12px; padding: 8px 24px; border-top: 1px solid var(--border-light); flex-wrap: wrap; }
-.filter-group { display: flex; align-items: center; gap: 5px; }
-.filter-label { font-size: 10px; color: var(--text-muted); letter-spacing: .06em; text-transform: uppercase; font-weight: 600; white-space: nowrap; }
-.filter-sep { width: 1px; height: 14px; background: var(--border); }
-.filter-btn { font-size: 11px; font-weight: 600; padding: 3px 10px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; transition: all .15s; }
-.filter-btn:hover { border-color: var(--accent); color: var(--accent); }
-.filter-btn.active { background: var(--accent-dim); border-color: var(--accent); color: var(--accent); }
+/* ── Topbar ── */
+.topbar { position: fixed; top: 0; right: 0; left: 260px; height: 52px; background: #fff; border-bottom: 1px solid #e0e3e5; display: flex; align-items: center; padding: 0 20px; gap: 8px; z-index: 40; }
+.topbar-title { font-size: 13px; font-weight: 600; color: #091426; margin-right: auto; }
+.filter-chip { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border: 1px solid #e0e3e5; border-radius: 6px; background: #fff; color: #45474c; font-size: 12px; font-family: 'DM Sans', inherit; font-weight: 500; cursor: pointer; transition: all .12s; }
+.filter-chip:hover { background: #f2f4f6; border-color: #c5c6cd; }
+.filter-chip.active { background: #0058be; border-color: #0058be; color: #fff; font-weight: 600; }
+.sep { width: 1px; height: 20px; background: #e0e3e5; flex-shrink: 0; }
 
-/* refresh */
-.refresh-btn { font-size: 11px; font-weight: 600; padding: 3px 10px; border: 1px solid var(--border); background: transparent; color: var(--text-muted); cursor: pointer; transition: all .15s; display: flex; align-items: center; gap: 5px; }
-.refresh-btn:hover { border-color: var(--green); color: var(--green); }
+/* ── Main content ── */
+.main-content { margin-left: 260px; padding-top: 52px; min-height: 100vh; background: #f7f9fb; }
+.view { padding: 24px; }
+.view-hidden { display: none; }
 
-.main { padding: 24px; max-width: 1140px; }
+/* ── Cards ── */
+.card { background: #fff; border: 1px solid #e0e3e5; border-radius: 12px; overflow: hidden; }
+.card-pad { padding: 20px; }
+.card-head { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; border-bottom: 1px solid #f0f2f4; }
+.card-title { font-size: 13px; font-weight: 600; color: #091426; }
+.card-sub { font-size: 11px; color: #75777d; margin-top: 2px; }
+.card-action { font-size: 12px; color: #0058be; font-weight: 600; cursor: pointer; text-decoration: none; }
+.card-action:hover { text-decoration: underline; }
 
-/* ── Stat cards ── */
-.cards { display: grid; grid-template-columns: repeat(6, 1fr); gap: 14px; margin-bottom: 24px; }
-.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px 20px; }
-.card-label { font-size: 11px; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 10px; }
-.card-value { font-size: 28px; font-weight: 700; color: var(--text); line-height: 1; }
-.card-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
-.anomaly-badge { display: inline-flex; align-items: center; gap: 3px; font-size: 10px; font-weight: 700; padding: 2px 7px; margin-top: 5px; }
-.anomaly-badge.spike { background: var(--green-dim); color: var(--green); }
-.anomaly-badge.drop { background: var(--red-dim); color: var(--red); }
+/* ── KPI cards ── */
+.kpi-icon { width: 36px; height: 36px; border-radius: 8px; background: #f0f4ff; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.kpi-icon .material-symbols-outlined { font-size: 20px; color: #0058be; }
+.kpi-num { font-size: 26px; font-weight: 800; color: #091426; letter-spacing: -.5px; line-height: 1; margin: 6px 0 2px; }
+.kpi-label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #75777d; }
+.kpi-note { font-size: 11px; color: #75777d; margin-top: 4px; }
 
-/* ── Section ── */
-.section { background: var(--surface); border: 1px solid var(--border); margin-bottom: 16px; }
-.section-head { padding: 14px 18px; border-bottom: 1px solid var(--border); font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .07em; color: var(--text-muted); display: flex; align-items: center; justify-content: space-between; }
-.section-body { padding: 0; }
+/* ── Anomaly badge ── */
+.anomaly-badge { display: inline-flex; align-items: center; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; }
+.anomaly-badge.spike { background: #ffdad6; color: #ba1a1a; }
+.anomaly-badge.drop  { background: #fef9c3; color: #b45309; }
 
-/* ── Line chart ── */
-.line-chart-wrap { padding: 16px 18px 12px; }
-
-/* ── Bar chart ── */
-.bar-row { display: flex; align-items: center; gap: 10px; padding: 10px 18px; border-bottom: 1px solid var(--border-light); }
-.bar-row:last-child { border-bottom: none; }
-.bar-label { width: 160px; font-size: 12px; color: var(--text-dim); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; display: flex; align-items: center; gap: 6px; }
-.bar-label-text { overflow: hidden; text-overflow: ellipsis; }
-.ui-tag { font-size: 9px; font-weight: 600; padding: 1px 5px; background: var(--surface2); color: var(--text-muted); flex-shrink: 0; letter-spacing: .03em; }
-.bar-track { flex: 1; height: 6px; background: var(--surface2); overflow: hidden; }
-.bar-fill { height: 100%; background: var(--accent); transition: width .4s; }
-.bar-fill.green { background: var(--green); }
-.bar-fill.yellow { background: var(--yellow); }
-.bar-val { font-size: 12px; color: var(--text-muted); width: 64px; text-align: right; flex-shrink: 0; }
+/* ── Bar rows ── */
+.bar-row { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+.bar-row:last-child { margin-bottom: 0; }
+.bar-label { width: 120px; flex-shrink: 0; }
+.bar-label-text { font-size: 11px; color: #45474c; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; display: block; }
+.bar-track { flex: 1; height: 6px; background: #f2f4f6; border-radius: 99px; overflow: hidden; }
+.bar-fill { height: 100%; background: #0058be; border-radius: 99px; transition: width .4s; }
+.bar-fill.green  { background: #16a34a; }
+.bar-fill.yellow { background: #b45309; }
+.bar-fill.red    { background: #ba1a1a; }
+.bar-val { font-size: 11px; color: #75777d; width: 56px; text-align: right; flex-shrink: 0; }
+.ui-tag { display: inline-block; font-size: 9px; font-weight: 700; padding: 0 4px; background: #e0e3e5; color: #75777d; border-radius: 3px; margin-left: 4px; vertical-align: middle; }
+.empty { font-size: 12px; color: #75777d; padding: 16px 0; text-align: center; }
 
 /* ── Funnel ── */
-.funnel-wrap { padding: 20px 18px; display: flex; align-items: flex-start; gap: 0; }
-.funnel-step { flex: 1; text-align: center; padding: 0 8px; }
-.funnel-step-val { font-size: 26px; font-weight: 700; color: var(--text); }
-.funnel-step-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: .05em; }
-.funnel-step-rate { font-size: 11px; color: var(--green); font-weight: 600; margin-top: 4px; }
-.funnel-bar-wrap { margin-top: 12px; height: 4px; background: var(--surface2); overflow: hidden; }
-.funnel-bar-fill { height: 100%; background: var(--accent); transition: width .4s; }
-.funnel-arrow { align-self: center; color: var(--text-muted); font-size: 18px; flex-shrink: 0; padding-bottom: 24px; }
-
-/* ── Feedback ── */
-.fb-item { padding: 16px 18px; border-bottom: 1px solid var(--border-light); }
-.fb-item:last-child { border-bottom: none; }
-.fb-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
-.fb-badge { font-size: 10px; font-weight: 700; padding: 2px 7px; text-transform: uppercase; letter-spacing: .05em; }
-.fb-badge.inquiry { background: var(--accent-dim); color: var(--accent); }
-.fb-badge.suggestion { background: var(--green-dim); color: var(--green); }
-.fb-meta { font-size: 11px; color: var(--text-muted); }
-.fb-message { font-size: 13px; color: var(--text); line-height: 1.6; }
-.fb-sender { font-size: 11px; color: var(--text-muted); margin-top: 6px; display: flex; gap: 8px; flex-wrap: wrap; }
+.funnel-step { display: flex; flex-direction: column; align-items: center; flex: 1; }
+.funnel-step-val { font-size: 20px; font-weight: 700; color: #091426; }
+.funnel-step-label { font-size: 11px; color: #75777d; margin: 2px 0 4px; text-align: center; }
+.funnel-step-rate { font-size: 10px; font-weight: 600; color: #0058be; background: #d8e2ff; padding: 1px 6px; border-radius: 99px; margin-bottom: 6px; }
+.funnel-bar-wrap { width: 100%; height: 4px; background: #f2f4f6; border-radius: 99px; overflow: hidden; }
+.funnel-bar-fill { height: 100%; background: #0058be; border-radius: 99px; transition: width .4s; }
+.funnel-arrow { display: flex; align-items: center; color: #c5c6cd; font-size: 16px; padding: 0 4px; padding-top: 0; }
 
 /* ── Events table ── */
-.events-table-wrap { overflow-x: auto; }
-.events-table { width: 100%; border-collapse: collapse; font-size: 12px; min-width: 700px; }
-.events-table th { padding: 8px 12px; text-align: left; font-size: 10px; font-weight: 600; color: var(--text-muted); text-transform: uppercase; letter-spacing: .06em; border-bottom: 1px solid var(--border); background: var(--surface2); white-space: nowrap; }
-.events-table td { padding: 7px 12px; border-bottom: 1px solid var(--border-light); color: var(--text-dim); vertical-align: middle; }
+.events-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.events-table th { padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #75777d; background: #f7f9fb; border-bottom: 1px solid #e0e3e5; }
+.events-table td { padding: 9px 16px; border-bottom: 1px solid #f0f2f4; color: #45474c; vertical-align: middle; }
 .events-table tr:last-child td { border-bottom: none; }
-.events-table tr:hover td { background: rgba(255,255,255,.02); }
-.evt-tag { font-size: 9px; font-weight: 700; padding: 2px 6px; text-transform: uppercase; letter-spacing: .03em; }
-.evt-tag.dwell { background: var(--accent-dim); color: var(--accent); }
-.evt-tag.click { background: var(--green-dim); color: var(--green); }
-.evt-tag.exit  { background: var(--yellow-dim); color: var(--yellow); }
-.new-badge { font-size: 9px; font-weight: 800; padding: 2px 6px; background: rgba(76,175,125,.2); color: var(--green); letter-spacing: .06em; border: 1px solid rgba(76,175,125,.4); }
+.events-table tr:hover td { background: #f7f9fb; }
+.evt-tag { display: inline-flex; padding: 1px 7px; border-radius: 99px; font-size: 10px; font-weight: 700; }
+.evt-tag.click { background: #d8e2ff; color: #0058be; }
+.evt-tag.dwell { background: #dcfce7; color: #16a34a; }
+.evt-tag.exit  { background: #fef9c3; color: #b45309; }
+.new-badge { font-size: 9px; font-weight: 700; padding: 1px 5px; background: #d8e2ff; color: #0058be; border-radius: 3px; font-family: monospace; }
 
-.empty { padding: 40px; text-align: center; color: var(--text-muted); font-size: 13px; }
+/* ── Feedback ── */
+.fb-item { padding: 14px 0; border-bottom: 1px solid #f0f2f4; }
+.fb-item:last-child { border-bottom: none; }
+.fb-item-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.fb-badge { display: inline-flex; padding: 2px 8px; border-radius: 99px; font-size: 10px; font-weight: 700; }
+.fb-badge.suggestion { background: #d8e2ff; color: #0058be; }
+.fb-badge.inquiry    { background: #dcfce7; color: #16a34a; }
+.fb-meta { font-size: 11px; color: #75777d; }
+.fb-message { font-size: 13px; color: #191c1e; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
+.fb-sender { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; font-size: 11px; color: #75777d; }
 
-/* ── Responsive ── */
-@media (max-width: 1200px) { .cards { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 860px) {
-  .cards { grid-template-columns: 1fr 1fr; }
-  .two-col { grid-template-columns: 1fr !important; }
+/* ── Connections table ── */
+.conn-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+.conn-table th { padding: 10px 16px; text-align: left; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: #75777d; background: #f7f9fb; border-bottom: 1px solid #e0e3e5; }
+.conn-table td { padding: 10px 16px; border-bottom: 1px solid #f0f2f4; color: #45474c; vertical-align: middle; }
+.conn-table tr:last-child td { border-bottom: none; }
+.conn-table tr:hover td { background: #f7f9fb; }
+.status-dot { display: inline-flex; align-items: center; gap: 5px; }
+.status-dot::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #16a34a; flex-shrink: 0; display: inline-block; }
+
+/* ── KPI Popover ── */
+.kpi-card { position: relative; overflow: visible !important; }
+.kpi-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  left: 0;
+  min-width: 220px;
+  background: #fff;
+  border: 1px solid #e0e3e5;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(9,20,38,.10);
+  padding: 12px 14px;
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-6px);
+  transition: opacity .15s ease, transform .15s ease;
 }
-@media (max-width: 600px) {
-  .main { padding: 16px; }
-  .topbar { padding: 0 16px; }
-  .tabs { padding: 0 16px; }
-  .filter-bar { padding: 8px 16px; }
-  .bar-label { width: 120px; }
+.kpi-card:hover .kpi-popover {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+.kpi-popover-title {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .07em;
+  color: #75777d;
+  margin-bottom: 8px;
+}
+.kpi-popover-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 0;
+  border-bottom: 1px solid #f2f4f6;
+  font-size: 12px;
+}
+.kpi-popover-row:last-child { border-bottom: none; }
+.kpi-popover-label { color: #45474c; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 160px; }
+.kpi-popover-val { font-weight: 700; color: #091426; flex-shrink: 0; margin-left: 8px; }
+.kpi-popover-dot::before { content: ''; display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: #16a34a; margin-right: 6px; vertical-align: middle; }
+
+/* ── Loading state ── */
+.main-content.loading { opacity: 0.55; pointer-events: none; transition: opacity .1s; }
+.topbar-spinner { width: 14px; height: 14px; border: 2px solid #e0e3e5; border-top-color: #0058be; border-radius: 50%; animation: spin .6s linear infinite; display: none; flex-shrink: 0; }
+.topbar-spinner.active { display: block; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+/* ── Grid helpers ── */
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+.grid-23 { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; }
+/* ── Mobile bottom nav ── */
+.mobile-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 60px;
+  background: #fff;
+  border-top: 1px solid #e0e3e5;
+  z-index: 100;
+  align-items: stretch;
+}
+.mobile-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  cursor: pointer;
+  color: #75777d;
+  font-size: 10px;
+  font-weight: 500;
+  transition: color .12s;
+  border: none;
+  background: none;
+  padding: 0;
+  font-family: 'DM Sans', inherit;
+  position: relative;
+}
+.mobile-nav-item.active { color: #0058be; }
+.mobile-nav-item.active::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 20%; right: 20%;
+  height: 2px;
+  background: #0058be;
+  border-radius: 0 0 2px 2px;
+}
+.mobile-nav-item .material-symbols-outlined { font-size: 22px; }
+.mobile-nav-badge {
+  position: absolute;
+  top: 8px; right: calc(50% - 18px);
+  background: #0058be; color: #fff;
+  font-size: 9px; font-weight: 700;
+  padding: 0 4px; min-width: 14px; height: 14px;
+  border-radius: 99px;
+  display: flex; align-items: center; justify-content: center;
+}
+.mobile-live {
+  display: none;
+  position: fixed;
+  top: 52px; right: 12px;
+  background: #fff;
+  border: 1px solid #e0e3e5;
+  border-radius: 99px;
+  padding: 4px 10px;
+  font-size: 11px;
+  color: #16a34a;
+  font-weight: 600;
+  z-index: 45;
+  align-items: center;
+  gap: 5px;
+  box-shadow: 0 2px 8px rgba(0,0,0,.06);
+}
+
+@media (max-width: 700px) {
+  .grid2, .grid4, .grid3, .grid-23 { grid-template-columns: 1fr !important; }
+  .sidebar { display: none !important; }
+  .sidebar-footer { display: none; }
+  .topbar { left: 0 !important; }
+  .main-content { margin-left: 0 !important; padding-bottom: 68px; }
+  .mobile-nav { display: flex; }
+  .mobile-live { display: flex; }
+  .topbar-title { font-size: 14px; font-weight: 700; }
+  #filter-bar { display: none !important; }
+  .kpi-popover { min-width: 180px !important; right: 0; left: auto; }
 }
 </style>
 </head>
 <body>
 
-<!-- Login -->
-<div id="login-screen" style="display:none;">
+<!-- ══════════════════════ LOGIN ══════════════════════ -->
+<div id="login-screen">
   <div class="login-box">
-    <div class="login-logo"><span>Vantix</span> Admin</div>
-    <h2>관리자 로그인</h2>
-    <input id="pw-input" type="password" placeholder="비밀번호" onkeydown="if(event.key==='Enter')doLogin()" autofocus />
+    <div class="login-logo">Vantix <span>Admin</span></div>
+    <div class="login-sub">관리자 대시보드에 로그인하세요</div>
+    <label>비밀번호</label>
+    <input type="password" id="pw-input" placeholder="••••••••" onkeydown="if(event.key==='Enter')doLogin()" />
     <button onclick="doLogin()">로그인</button>
     <div class="login-err" id="login-err"></div>
   </div>
 </div>
 
-<!-- App -->
-<div id="app">
-  <div class="topbar">
-    <div class="topbar-logo" onclick="location.reload()"><span>Vantix</span></div>
-    <div class="topbar-sep"></div>
-    <div class="topbar-title">Admin</div>
-    <div class="topbar-right">
-      <div class="topbar-badge" id="badge-sessions">— 세션</div>
-      <div class="topbar-badge" id="badge-today" style="background:var(--green-dim);color:var(--green);">오늘 —명</div>
-      <button class="logout-btn" onclick="doLogout()">로그아웃</button>
-    </div>
-  </div>
+<!-- ══════════════════════ APP ══════════════════════ -->
+<div id="app" style="display:none;">
 
-  <div class="tabs-wrap">
-    <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('analytics',this)">Analytics</button>
-      <button class="tab-btn" onclick="switchTab('feedback',this)">
-        문의 · 건의 <span class="tab-cnt" id="tab-fb-cnt">—</span>
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-name">Vantix</div>
+      <div class="sidebar-logo-sub">Admin Dashboard</div>
+    </div>
+    <nav class="sidebar-nav">
+      <a class="nav-item active" onclick="switchView('dashboard', this)" data-view="dashboard">
+        <span class="material-symbols-outlined">dashboard</span>
+        Dashboard
+      </a>
+      <a class="nav-item" onclick="switchView('analytics', this)" data-view="analytics">
+        <span class="material-symbols-outlined">analytics</span>
+        Analytics
+      </a>
+      <a class="nav-item" onclick="switchView('events', this)" data-view="events">
+        <span class="material-symbols-outlined">timeline</span>
+        이벤트 로그
+        <span class="nav-badge" id="nav-events-cnt">-</span>
+      </a>
+      <a class="nav-item" onclick="switchView('feedback', this)" data-view="feedback">
+        <span class="material-symbols-outlined">chat_bubble</span>
+        피드백
+        <span class="nav-badge" id="nav-fb-cnt">-</span>
+      </a>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="live-pill">
+        <div class="live-dot"></div>
+        <span class="live-text">실시간 접속 <strong id="live-count">-</strong>명</span>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">
+        <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
+        로그아웃
       </button>
-      <button class="tab-btn" onclick="switchTab('events',this)">이벤트 로그</button>
     </div>
-    <div class="filter-bar">
-      <div class="filter-group period-filter">
-        <span class="filter-label">기간</span>
-        <button class="filter-btn active" onclick="setPeriod('7d',this)">7일</button>
-        <button class="filter-btn" onclick="setPeriod('30d',this)">30일</button>
-        <button class="filter-btn" onclick="setPeriod('today',this)">오늘</button>
-        <button class="filter-btn" onclick="setPeriod('all',this)">전체</button>
+  </aside>
+
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <span class="topbar-title" id="topbar-title">Dashboard</span>
+    <div style="display:flex;align-items:center;gap:6px;" id="filter-bar">
+      <div style="display:flex;align-items:center;gap:4px;" class="period-filter">
+        <button class="filter-chip" onclick="setPeriod('today',this)">오늘</button>
+        <button class="filter-chip active" onclick="setPeriod('7d',this)">7일</button>
+        <button class="filter-chip" onclick="setPeriod('30d',this)">30일</button>
+        <button class="filter-chip" onclick="setPeriod('all',this)">전체</button>
       </div>
-      <div class="filter-sep"></div>
-      <div class="filter-sep"></div>
-      <div class="filter-group env-filter">
-        <span class="filter-label">환경</span>
-        <button class="filter-btn active" onclick="setEnv('',this)">전체</button>
-        <button class="filter-btn" onclick="setEnv('프로덕션',this)">프로덕션</button>
-        <button class="filter-btn" onclick="setEnv('로컬',this)">로컬</button>
+      <div class="sep"></div>
+      <div style="display:flex;align-items:center;gap:4px;" class="env-filter">
+        <button class="filter-chip active" onclick="setEnv('',this)">전체</button>
+        <button class="filter-chip" onclick="setEnv('프로덕션',this)">프로덕션</button>
+        <button class="filter-chip" onclick="setEnv('로컬',this)">로컬</button>
       </div>
-      <div class="filter-sep"></div>
-      <button class="refresh-btn" onclick="location.reload()">↻ 새로고침</button>
+      <div class="sep"></div>
+      <button class="filter-chip" onclick="loadAnalytics()">
+        <span class="material-symbols-outlined" style="font-size:14px;">refresh</span> 새로고침
+      </button>
+      <div class="topbar-spinner" id="topbar-spinner"></div>
     </div>
-  </div>
+  </header>
 
-  <!-- Analytics Tab -->
-  <div class="main" id="tab-analytics">
+  <!-- MAIN CONTENT -->
+  <main class="main-content">
 
-    <div class="cards">
-      <div class="card">
-        <div class="card-label">누적 세션</div>
-        <div class="card-value" id="stat-sessions">—</div>
-        <div class="card-sub">선택 기간</div>
+    <!-- ════════ DASHBOARD VIEW ════════ -->
+    <div id="view-dashboard" class="view">
+      <!-- Welcome -->
+      <div style="margin-bottom:20px;">
+        <div style="font-size:18px;font-weight:800;color:#091426;letter-spacing:-.3px;">Overview</div>
+        <div style="font-size:12px;color:#75777d;margin-top:2px;">Vantix 방문자 및 연동 현황을 한눈에 확인하세요.</div>
       </div>
-      <div class="card">
-        <div class="card-label">오늘 방문자</div>
-        <div class="card-value" id="stat-today">—</div>
-        <div id="anomaly-badge" style="display:none;"></div>
-        <div class="card-sub" id="stat-today-sub">7일 평균 <span id="stat-weekly-avg">—</span>명</div>
-      </div>
-      <div class="card">
-        <div class="card-label">고유 IP</div>
-        <div class="card-value" id="stat-unique-ips">—</div>
-        <div class="card-sub">누적 순방문자</div>
-      </div>
-      <div class="card">
-        <div class="card-label">가장 오래 머문 페이지</div>
-        <div class="card-value" id="stat-top-page" style="font-size:18px;margin-top:4px;">—</div>
-        <div class="card-sub" id="stat-top-page-sec"></div>
-      </div>
-      <div class="card">
-        <div class="card-label">신규 방문자</div>
-        <div class="card-value" id="stat-new-visitors">—</div>
-        <div class="card-sub">기간 내 첫 등장 IP</div>
-      </div>
-      <div class="card">
-        <div class="card-label">문의 · 건의</div>
-        <div class="card-value" id="stat-feedback-cnt">—</div>
-        <div class="card-sub">누적</div>
-      </div>
-    </div>
 
-    <!-- 방문자 추이 라인 차트 -->
-    <div class="section" style="margin-bottom:16px;">
-      <div class="section-head">
-        <span>방문자 추이</span>
-        <span id="chart-period-label" style="font-size:11px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;"></span>
+      <!-- KPI row -->
+      <div class="grid4" style="margin-bottom:16px;">
+        <!-- 총 세션 -->
+        <div class="card card-pad">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+            <div class="kpi-icon"><span class="material-symbols-outlined">analytics</span></div>
+            <span id="anomaly-badge" style="display:none;" class="anomaly-badge"></span>
+          </div>
+          <div class="kpi-label">총 세션</div>
+          <div class="kpi-num" id="stat-sessions">-</div>
+          <div class="kpi-note">주간 평균 <strong id="stat-weekly-avg">-</strong>명</div>
+        </div>
+        <!-- 오늘 방문자 -->
+        <div class="card card-pad">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+            <div class="kpi-icon"><span class="material-symbols-outlined">today</span></div>
+            <span id="badge-today" style="font-size:11px;font-weight:700;color:#0058be;background:#d8e2ff;padding:2px 8px;border-radius:99px;">-</span>
+          </div>
+          <div class="kpi-label">오늘 방문자</div>
+          <div class="kpi-num" id="stat-today">-</div>
+          <div class="kpi-note">신규 <strong id="stat-new-visitors">-</strong>명 포함</div>
+        </div>
+        <!-- 고유 IP -->
+        <div class="card card-pad kpi-card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+            <div class="kpi-icon"><span class="material-symbols-outlined">router</span></div>
+          </div>
+          <div class="kpi-label">고유 IP</div>
+          <div class="kpi-num" id="stat-unique-ips">-</div>
+          <div class="kpi-note">최다 체류: <span id="stat-top-page" style="font-weight:600;color:#091426;">-</span> <span id="stat-top-page-sec" style="color:#75777d;"></span></div>
+          <!-- Popover -->
+          <div class="kpi-popover">
+            <div class="kpi-popover-title">상위 접속 IP</div>
+            <div id="ip-popover-list"><div style="font-size:12px;color:#75777d;">로딩 중…</div></div>
+          </div>
+        </div>
+        <!-- Redmine 연동 / LIVE -->
+        <div class="card card-pad kpi-card">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:10px;">
+            <div class="kpi-icon"><span class="material-symbols-outlined">hub</span></div>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <div class="live-dot" style="width:7px;height:7px;"></div>
+              <span style="font-size:11px;font-weight:700;color:#16a34a;">LIVE <span id="live-count2">-</span></span>
+            </div>
+          </div>
+          <div class="kpi-label">Redmine 연동</div>
+          <div class="kpi-num" id="stat-connections">-</div>
+          <div class="kpi-note">활성 인스턴스 수</div>
+          <!-- Popover -->
+          <div class="kpi-popover" style="min-width:260px;">
+            <div class="kpi-popover-title">연동된 Redmine 인스턴스</div>
+            <div id="conn-popover-list"><div style="font-size:12px;color:#75777d;">로딩 중…</div></div>
+          </div>
+        </div>
       </div>
-      <div class="section-body">
-        <div class="line-chart-wrap">
-          <div id="line-chart-svg"></div>
+
+      <!-- Charts row -->
+      <div class="grid2" style="margin-bottom:16px;">
+        <!-- Traffic Trends -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Traffic Trends</div>
+              <div class="card-sub" id="chart-period-label">최근 7일 방문자</div>
+            </div>
+          </div>
+          <div class="card-pad" style="padding-top:12px;">
+            <div id="line-chart-svg" style="height:150px;"></div>
+          </div>
+        </div>
+        <!-- Funnel -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">전환 퍼널</div>
+              <div class="card-sub">방문 → 인터랙션 → 대시보드 진입</div>
+            </div>
+          </div>
+          <div class="card-pad" style="padding-top:12px;">
+            <div id="funnel-steps" style="display:flex;align-items:stretch;gap:4px;height:130px;"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Bottom row -->
+      <div class="grid-23">
+        <!-- Connections table -->
+        <div class="card">
+          <div class="card-head">
+            <div>
+              <div class="card-title">Active Connections</div>
+              <div class="card-sub">현재 세션이 있는 Redmine 인스턴스</div>
+            </div>
+          </div>
+          <table class="conn-table">
+            <thead>
+              <tr>
+                <th>Redmine URL</th>
+                <th>세션 수</th>
+                <th>마지막 접속</th>
+              </tr>
+            </thead>
+            <tbody id="connections-tbody">
+              <tr><td colspan="3" class="empty">로딩 중…</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Quick stats -->
+        <div class="card card-pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+            <div style="font-size:13px;font-weight:600;color:#091426;">Quick Stats</div>
+            <span class="material-symbols-outlined" style="font-size:20px;color:#16a34a;">check_circle</span>
+          </div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:8px;">이탈 상위 페이지</div>
+          <div id="exits-mini"></div>
+          <div style="border-top:1px solid #f0f2f4;margin:14px 0;"></div>
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:8px;">환경별 세션</div>
+          <div id="env-bars-mini"></div>
+          <div style="border-top:1px solid #f0f2f4;margin:14px 0;"></div>
+          <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;background:#f7f9fb;border-radius:8px;">
+            <span class="material-symbols-outlined" style="font-size:20px;color:#0058be;">storage</span>
+            <div>
+              <div style="font-size:12px;font-weight:600;color:#091426;">캐시 상태</div>
+              <div style="font-size:10px;color:#75777d;">30분 자동 갱신</div>
+            </div>
+            <span class="material-symbols-outlined" style="font-size:18px;color:#16a34a;margin-left:auto;">task_alt</span>
+          </div>
         </div>
       </div>
     </div>
 
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" class="two-col">
-      <div class="section">
-        <div class="section-head">페이지별 평균 체류시간</div>
-        <div class="section-body" id="pages-bars"></div>
+    <!-- ════════ ANALYTICS VIEW ════════ -->
+    <div id="view-analytics" class="view view-hidden">
+      <div style="margin-bottom:20px;">
+        <div style="font-size:18px;font-weight:800;color:#091426;letter-spacing:-.3px;">Analytics</div>
+        <div style="font-size:12px;color:#75777d;margin-top:2px;">페이지 체류, 클릭, 이탈 및 디바이스 세분화</div>
       </div>
-      <div class="section">
-        <div class="section-head">가장 많이 클릭한 영역 Top 10</div>
-        <div class="section-body" id="clicks-bars"></div>
+
+      <div class="grid2" style="margin-bottom:16px;">
+        <div class="card card-pad">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:12px;">페이지 체류시간 (↑ 많이 본 순)</div>
+          <div id="pages-bars"></div>
+        </div>
+        <div class="card card-pad">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:12px;">버튼 클릭 TOP 10</div>
+          <div id="clicks-bars"></div>
+        </div>
+      </div>
+
+      <div class="grid2" style="margin-bottom:16px;">
+        <div class="card card-pad">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:12px;">최소 클릭 버튼 (↓ 가장 안 눌린)</div>
+          <div id="bottom-clicks-bars"></div>
+        </div>
+        <div class="card card-pad">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;">이탈 페이지</div>
+            <span style="font-size:10px;color:#75777d;" id="exit-hint"></span>
+          </div>
+          <div id="exits-bars"></div>
+        </div>
+      </div>
+
+      <div class="grid4">
+        <div class="card card-pad">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:12px;">환경</div>
+          <div id="env-bars"></div>
+        </div>
+        <div class="card card-pad">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:12px;">디바이스</div>
+          <div id="device-bars"></div>
+        </div>
+        <div class="card card-pad">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:12px;">브라우저</div>
+          <div id="browser-bars"></div>
+        </div>
+        <div class="card card-pad">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:12px;">OS</div>
+          <div id="os-bars"></div>
+        </div>
       </div>
     </div>
 
-    <div class="section" style="margin-bottom:16px;">
-      <div class="section-head">
-        <span>이탈 페이지</span>
-        <span id="exit-hint" style="font-size:11px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;"></span>
+    <!-- ════════ EVENTS VIEW ════════ -->
+    <div id="view-events" class="view view-hidden">
+      <div style="margin-bottom:20px;">
+        <div style="font-size:18px;font-weight:800;color:#091426;letter-spacing:-.3px;">이벤트 로그</div>
+        <div style="font-size:12px;color:#75777d;margin-top:2px;">최근 200건 / 실시간 사용자 행동 추적</div>
       </div>
-      <div class="section-body" id="exits-bars"></div>
-    </div>
-
-    <!-- 퍼널 -->
-    <div class="section" style="margin-bottom:16px;">
-      <div class="section-head">전환 퍼널</div>
-      <div class="section-body">
-        <div class="funnel-wrap" id="funnel-steps"></div>
-      </div>
-    </div>
-
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" class="two-col">
-      <div class="section">
-        <div class="section-head">환경 (로컬 / 프로덕션)</div>
-        <div class="section-body" id="env-bars"></div>
-      </div>
-      <div class="section">
-        <div class="section-head">기기 타입</div>
-        <div class="section-body" id="device-bars"></div>
-      </div>
-    </div>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;" class="two-col">
-      <div class="section">
-        <div class="section-head">브라우저</div>
-        <div class="section-body" id="browser-bars"></div>
-      </div>
-      <div class="section">
-        <div class="section-head">운영체제</div>
-        <div class="section-body" id="os-bars"></div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">Events</div>
+          <span style="font-size:11px;color:#75777d;" id="events-count"></span>
+        </div>
+        <div style="overflow-x:auto;">
+          <table class="events-table">
+            <thead>
+              <tr>
+                <th>세션</th><th>유형</th><th>페이지</th><th>요소</th>
+                <th>IP</th><th>디바이스 / 브라우저</th><th>환경</th><th>시각</th>
+              </tr>
+            </thead>
+            <tbody id="events-table-body">
+              <tr><td colspan="8" class="empty">로딩 중…</td></tr>
+            </tbody>
+          </table>
+        </div>
       </div>
     </div>
 
+    <!-- ════════ FEEDBACK VIEW ════════ -->
+    <div id="view-feedback" class="view view-hidden">
+      <div style="margin-bottom:20px;">
+        <div style="font-size:18px;font-weight:800;color:#091426;letter-spacing:-.3px;">피드백 / 문의</div>
+        <div style="font-size:12px;color:#75777d;margin-top:2px;">
+          총 <strong id="stat-feedback-cnt">-</strong>건 접수
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title">피드백 목록</div>
+          <span style="font-size:11px;color:#75777d;" id="fb-count"></span>
+        </div>
+        <div class="card-pad">
+          <div id="feedback-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════════ MOBILE FILTER SHEET (7일/전체/프로덕션/로컬) ════════ -->
+    <div id="mobile-filter-sheet" style="display:none; position:fixed; bottom:60px; left:0; right:0; background:#fff; border-top:1px solid #e0e3e5; padding:14px 16px; z-index:99; box-shadow:0 -4px 16px rgba(0,0,0,.06);">
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:8px;">기간</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px;" class="period-filter">
+        <button class="filter-chip" onclick="setPeriod('today',this);closeMobileFilter()">오늘</button>
+        <button class="filter-chip active" onclick="setPeriod('7d',this);closeMobileFilter()">7일</button>
+        <button class="filter-chip" onclick="setPeriod('30d',this);closeMobileFilter()">30일</button>
+        <button class="filter-chip" onclick="setPeriod('all',this);closeMobileFilter()">전체</button>
+      </div>
+      <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:8px;">환경</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;" class="env-filter">
+        <button class="filter-chip active" onclick="setEnv('',this);closeMobileFilter()">전체</button>
+        <button class="filter-chip" onclick="setEnv('프로덕션',this);closeMobileFilter()">프로덕션</button>
+        <button class="filter-chip" onclick="setEnv('로컬',this);closeMobileFilter()">로컬</button>
+      </div>
+    </div>
+
+  </main><!-- /main-content -->
+
+  <!-- LIVE 모바일 뱃지 -->
+  <div class="mobile-live">
+    <div class="live-dot" style="width:6px;height:6px;"></div>
+    LIVE <span id="live-count3">-</span>
   </div>
 
-  <!-- Feedback Tab -->
-  <div class="main" id="tab-feedback" style="display:none;">
-    <div class="section">
-      <div class="section-head">
-        <span>문의 · 건의 목록</span>
-        <span id="fb-count" style="font-size:11px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;"></span>
-      </div>
-      <div class="section-body" id="feedback-list"></div>
-    </div>
-  </div>
+  <!-- 하단 탭바 (모바일 전용) -->
+  <nav class="mobile-nav">
+    <button class="mobile-nav-item active" onclick="switchView('dashboard',this)" data-view="dashboard">
+      <span class="material-symbols-outlined">dashboard</span>홈
+    </button>
+    <button class="mobile-nav-item" onclick="switchView('analytics',this)" data-view="analytics">
+      <span class="material-symbols-outlined">analytics</span>분석
+    </button>
+    <button class="mobile-nav-item" onclick="switchView('events',this)" data-view="events">
+      <span class="material-symbols-outlined">timeline</span>이벤트
+      <span class="mobile-nav-badge" id="mobile-events-cnt" style="display:none;">-</span>
+    </button>
+    <button class="mobile-nav-item" onclick="switchView('feedback',this)" data-view="feedback">
+      <span class="material-symbols-outlined">chat_bubble</span>피드백
+      <span class="mobile-nav-badge" id="mobile-fb-cnt" style="display:none;">-</span>
+    </button>
+    <button class="mobile-nav-item" onclick="toggleMobileFilter(this)">
+      <span class="material-symbols-outlined">tune</span>필터
+    </button>
+  </nav>
 
-  <!-- Events Tab -->
-  <div class="main" id="tab-events" style="display:none;">
-    <div class="section">
-      <div class="section-head">
-        <span>이벤트 로그</span>
-        <span id="events-count" style="font-size:11px;color:var(--text-muted);font-weight:400;text-transform:none;letter-spacing:0;"></span>
-      </div>
-      <div class="section-body events-table-wrap">
-        <table class="events-table">
-          <thead>
-            <tr>
-              <th>세션</th>
-              <th>이벤트</th>
-              <th>페이지</th>
-              <th>요소</th>
-              <th>IP</th>
-              <th>기기 / 브라우저</th>
-              <th>환경</th>
-              <th>시각</th>
-            </tr>
-          </thead>
-          <tbody id="events-table-body">
-            <tr><td colspan="8" class="empty">로딩 중…</td></tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-</div>
+</div><!-- /app -->
 
+<!-- ══════════════════════ JS ══════════════════════ -->
 <script>
-// ── State ──────────────────────────��───────────────────────────
-var _currentPeriod = '7d';
-var _currentEnv    = '';
+var _currentEnv = '', _currentPeriod = '7d', _currentView = 'dashboard';
+var _visitorTimer = null, _loadDebounce = null, _ownerIps = [];
 
-// ── Init ───────────────────────────────────────────────────────
-(function checkSession() {
+// ── Init ────────────────────────────────────────────────────────
+window.addEventListener('DOMContentLoaded', checkSession);
+
+function checkSession() {
   fetch('/api/admin/stats?period=7d', {credentials: 'same-origin'})
     .then(function(r) {
-      if (r.ok) return r.json().then(function(d) { showApp(d); });
-      else showLogin();
+      if (r.status === 401) { showLogin(); return null; }
+      return r.json();
     })
-    .catch(function() { showLogin(); });
-})();
+    .then(function(d) { if (d) showApp(d); })
+    .catch(showLogin);
+}
 
 function showLogin() {
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app').style.display = 'none';
-  setTimeout(function() { var el = document.getElementById('pw-input'); if (el) el.focus(); }, 50);
-}
-function showApp(preloaded) {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  if (preloaded) renderAnalytics(preloaded); else loadAnalytics();
-  loadFeedback();
+  stopVisitorPoll();
 }
 
-// ── Auth ───────────────────────────────────────────────────────
+function showApp(preloaded) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app').style.display = '';
+  if (preloaded) renderAnalytics(preloaded);
+  loadConnections();
+  loadFeedback();
+  startVisitorPoll();
+}
+
+// ── Auth ────────────────────────────────────────────────────────
 function doLogin() {
   var pw = document.getElementById('pw-input').value;
   document.getElementById('login-err').textContent = '';
-  fetch('/api/admin/login', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({password: pw})})
-    .then(function(r) {
-      if (r.ok) showApp(null);
-      else document.getElementById('login-err').textContent = '비밀번호가 틀렸습니다.';
-    }).catch(function() { document.getElementById('login-err').textContent = '서버 연결 실패'; });
+  fetch('/api/admin/login', {
+    method: 'POST', credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({password: pw})
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(d) { throw new Error(d.detail || '오류'); });
+    return r.json();
+  }).then(function() {
+    loadAnalytics();
+    loadConnections();
+    loadFeedback();
+    showApp(null);
+  }).catch(function(e) {
+    document.getElementById('login-err').textContent = e.message;
+  });
 }
 function doLogout() {
-  fetch('/api/admin/logout', {method:'POST'}).finally(function() { showLogin(); });
+  fetch('/api/admin/logout', {method: 'POST', credentials: 'same-origin'}).finally(showLogin);
 }
 
-// ── Tabs ───────────────────────────────────────────────────────
-function switchTab(name, btn) {
-  document.querySelectorAll('.tab-btn').forEach(function(b) { b.classList.remove('active'); });
-  btn.classList.add('active');
-  document.getElementById('tab-analytics').style.display = name === 'analytics' ? '' : 'none';
-  document.getElementById('tab-feedback').style.display  = name === 'feedback'  ? '' : 'none';
-  document.getElementById('tab-events').style.display    = name === 'events'    ? '' : 'none';
+// ── View switching ───────────────────────────────────────────────
+function switchView(name, btn) {
+  var views = ['dashboard', 'analytics', 'events', 'feedback'];
+  views.forEach(function(v) {
+    var el = document.getElementById('view-' + v);
+    if (el) el.classList[v === name ? 'remove' : 'add']('view-hidden');
+  });
+  // 사이드바 (데스크톱)
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var sidebarItem = document.querySelector('.nav-item[data-view="' + name + '"]');
+  if (sidebarItem) sidebarItem.classList.add('active');
+  // 하단 탭바 (모바일)
+  document.querySelectorAll('.mobile-nav-item').forEach(function(n) { n.classList.remove('active'); });
+  var mobileItem = document.querySelector('.mobile-nav-item[data-view="' + name + '"]');
+  if (mobileItem) mobileItem.classList.add('active');
+  _currentView = name;
+  var titles = {dashboard: 'Dashboard', analytics: 'Analytics', events: '이벤트', feedback: '피드백'};
+  document.getElementById('topbar-title').textContent = titles[name] || name;
   if (name === 'events') loadEvents();
+  if (name === 'feedback') loadFeedback();
+  closeMobileFilter();
 }
 
-// ── Filters ────────────────────────────────────────────────────
+// ── Mobile filter sheet ──────────────────────────────────────────
+function toggleMobileFilter(btn) {
+  var sheet = document.getElementById('mobile-filter-sheet');
+  var isOpen = sheet.style.display !== 'none';
+  sheet.style.display = isOpen ? 'none' : 'block';
+  btn.classList.toggle('active', !isOpen);
+}
+function closeMobileFilter() {
+  var sheet = document.getElementById('mobile-filter-sheet');
+  if (sheet) sheet.style.display = 'none';
+  var filterBtn = document.querySelector('.mobile-nav-item:not([data-view])');
+  if (filterBtn) filterBtn.classList.remove('active');
+}
+
+// ── Filters ─────────────────────────────────────────────────────
 function setEnv(env, btn) {
   _currentEnv = env;
-  document.querySelectorAll('.env-filter .filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.env-filter .filter-chip').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
-  loadAnalytics();
+  _debouncedLoad();
 }
 function setPeriod(period, btn) {
   _currentPeriod = period;
-  document.querySelectorAll('.period-filter .filter-btn').forEach(function(b) { b.classList.remove('active'); });
+  document.querySelectorAll('.period-filter .filter-chip').forEach(function(b) { b.classList.remove('active'); });
   btn.classList.add('active');
-  loadAnalytics();
+  _debouncedLoad();
+}
+function _debouncedLoad() {
+  if (_loadDebounce) clearTimeout(_loadDebounce);
+  _loadDebounce = setTimeout(loadAnalytics, 200);
 }
 function _qs() {
   var q = '?period=' + _currentPeriod;
@@ -427,11 +815,24 @@ function _qs() {
   return q;
 }
 
-// ── Analytics ──────────────────────────────────────────────────
+// ── Analytics ───────────────────────────────────────────────────
 function loadAnalytics() {
+  var mc = document.querySelector('.main-content');
+  var sp = document.getElementById('topbar-spinner');
+  if (mc) mc.classList.add('loading');
+  if (sp) sp.classList.add('active');
   fetch('/api/admin/stats' + _qs(), {credentials: 'same-origin'})
     .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then(renderAnalytics).catch(console.error);
+    .then(function(d) {
+      if (mc) mc.classList.remove('loading');
+      if (sp) sp.classList.remove('active');
+      renderAnalytics(d);
+    })
+    .catch(function(e) {
+      if (mc) mc.classList.remove('loading');
+      if (sp) sp.classList.remove('active');
+      console.error(e);
+    });
 }
 
 function renderAnalytics(d) {
@@ -439,15 +840,14 @@ function renderAnalytics(d) {
   var todayVisitors = d.today_visitors || 0;
   var weeklyAvg     = d.weekly_avg || 0;
 
-  document.getElementById('stat-sessions').textContent    = sessions.toLocaleString();
-  document.getElementById('badge-sessions').textContent   = sessions.toLocaleString() + ' 세션';
-  document.getElementById('stat-today').textContent       = todayVisitors.toLocaleString();
-  document.getElementById('badge-today').textContent      = '오늘 ' + todayVisitors + '명';
-  document.getElementById('stat-unique-ips').textContent    = (d.unique_ips || 0).toLocaleString();
+  document.getElementById('stat-sessions').textContent     = sessions.toLocaleString();
+  document.getElementById('stat-today').textContent        = todayVisitors.toLocaleString();
+  document.getElementById('badge-today').textContent       = '오늘 ' + todayVisitors + '명';
+  document.getElementById('stat-unique-ips').textContent   = (d.unique_ips || 0).toLocaleString();
   document.getElementById('stat-new-visitors').textContent = (d.new_visitors || 0).toLocaleString();
-  document.getElementById('stat-weekly-avg').textContent  = weeklyAvg;
+  document.getElementById('stat-weekly-avg').textContent   = weeklyAvg;
 
-  // 이상 감지
+  // anomaly badge
   var badge = document.getElementById('anomaly-badge');
   if (d.anomaly === 'spike') {
     badge.style.display = 'inline-flex'; badge.className = 'anomaly-badge spike';
@@ -461,29 +861,62 @@ function renderAnalytics(d) {
 
   if (d.pages && d.pages.length) {
     document.getElementById('stat-top-page').textContent    = d.pages[0].page;
-    document.getElementById('stat-top-page-sec').textContent = '평균 체류 ' + d.pages[0].avg_sec + '초';
+    var tps = document.getElementById('stat-top-page-sec');
+    if (tps) tps.textContent = '평균 체류 ' + d.pages[0].avg_sec + '초';
   }
 
-  var periodLabels = {today:'오늘 시간별', '7d':'최근 7일', '30d':'최근 30일', all:'전체'};
+  var periodLabels = {today: '오늘 시간별', '7d': '최근 7일', '30d': '최근 30일', all: '전체'};
   var pl = document.getElementById('chart-period-label');
   if (pl) pl.textContent = periodLabels[_currentPeriod] || '';
 
   renderLineChart(d.daily || []);
   renderBars('pages-bars', d.pages || [], 'page', 'avg_sec', function(v) { return v + '초'; }, '');
   renderClickBars('clicks-bars', d.clicks || []);
+  renderClickBars('bottom-clicks-bars', d.bottom_clicks || []);
   renderExitBars('exits-bars', d.exits || [], sessions);
   renderFunnel(d.funnel || []);
-  renderSimpleBars('env-bars',     d.env_stats     || [], 'env',  'sessions', function(v) { return v + '세션'; });
-  renderSimpleBars('device-bars',  d.device_stats  || [], 'name', 'cnt',      function(v) { return v + '세션'; });
-  renderSimpleBars('browser-bars', d.browser_stats || [], 'name', 'cnt',      function(v) { return v + '세션'; });
-  renderSimpleBars('os-bars',      d.os_stats      || [], 'name', 'cnt',      function(v) { return v + '세션'; });
+  renderSimpleBars('env-bars',     d.env_stats    || [], 'env',  'sessions', function(v) { return v + '세션'; });
+  renderSimpleBars('device-bars',  d.device_stats || [], 'name', 'cnt',      function(v) { return v + '세션'; });
+  renderSimpleBars('browser-bars', d.browser_stats|| [], 'name', 'cnt',      function(v) { return v + '세션'; });
+  renderSimpleBars('os-bars',      d.os_stats     || [], 'name', 'cnt',      function(v) { return v + '세션'; });
+
+  // mini bars for dashboard sidebar
+  renderSimpleBars('exits-mini', (d.exits || []).slice(0, 3), 'page', 'cnt', function(v) { return v + '회'; });
+  renderSimpleBars('env-bars-mini', d.env_stats || [], 'env', 'sessions', function(v) { return v + '세션'; });
+
+  if (d.owner_ips && d.owner_ips.length) _ownerIps = d.owner_ips;
+
+  // IP 팝오버
+  var ipList = document.getElementById('ip-popover-list');
+  if (ipList) {
+    var ips = d.top_ips || [];
+    var nowSec = Date.now() / 1000;
+    var weekSec = 7 * 24 * 3600;
+    if (!ips.length) {
+      ipList.innerHTML = '<div style="font-size:12px;color:#75777d;">데이터 없음</div>';
+    } else {
+      ipList.innerHTML = ips.map(function(item) {
+        var isMe = _ownerIps.indexOf(item.ip) !== -1;
+        var isNew = item.first_seen && (nowSec - item.first_seen) < weekSec;
+        var rowStyle = isMe ? 'background:#f0f4ff;border-radius:6px;padding:4px 6px;margin:0 -6px;' : '';
+        var labelStyle = isMe ? 'color:#0058be;font-weight:600;' : (isNew ? 'color:#0058be;font-weight:500;' : '');
+        var badge = isMe
+          ? '<span style="font-size:9px;font-weight:700;padding:1px 6px;background:#0058be;color:#fff;border-radius:3px;margin-left:5px;">나</span>'
+          : (isNew ? '<span style="font-size:9px;font-weight:700;padding:1px 5px;background:#fef9c3;color:#b45309;border-radius:3px;margin-left:5px;">NEW</span>' : '');
+        return '<div class="kpi-popover-row" style="' + rowStyle + '">' +
+          '<span class="kpi-popover-label" style="' + labelStyle + '">' + escHtml(item.ip) + badge + '</span>' +
+          '<span class="kpi-popover-val">' + item.sessions + '세션</span>' +
+        '</div>';
+      }).join('');
+    }
+  }
 }
 
-// ── Line Chart (SVG) ───────────────────────────────────────────
+// ── Line Chart (SVG) ────────────────────────────────────────────
 function renderLineChart(daily) {
   var el = document.getElementById('line-chart-svg');
   if (!daily.length) {
-    el.innerHTML = '<div style="height:150px;display:flex;align-items:center;justify-content:center;color:var(--text-muted);font-size:12px;">데이터 없음</div>';
+    el.innerHTML = '<div style="height:150px;display:flex;align-items:center;justify-content:center;color:#75777d;font-size:12px;">데이터 없음</div>';
     return;
   }
   var VW = 560, VH = 130;
@@ -508,34 +941,40 @@ function renderLineChart(daily) {
   for (var i = 0; i <= 3; i++) {
     var v  = Math.round(nMax * i / 3);
     var gy = +(pT + cH - (v / nMax) * cH).toFixed(1);
-    grid += '<line x1="' + pL + '" y1="' + gy + '" x2="' + (VW - pR) + '" y2="' + gy + '" stroke="rgba(255,255,255,.04)" stroke-width="1"/>';
-    grid += '<text x="' + (pL - 3) + '" y="' + (gy + 3.5).toFixed(1) + '" text-anchor="end" font-size="8" fill="#6b7280">' + v + '</text>';
+    grid += '<line x1="' + pL + '" y1="' + gy + '" x2="' + (VW - pR) + '" y2="' + gy + '" stroke="#e8eaed" stroke-width="1"/>';
+    grid += '<text x="' + (pL - 3) + '" y="' + (gy + 3.5).toFixed(1) + '" text-anchor="end" font-size="8" fill="#9aa0a6">' + v + '</text>';
   }
 
   var xLbls = '', step = Math.max(1, Math.floor(n / 7)), shown = {};
-  for (var i = 0; i < n; i += step) {
-    shown[i] = 1;
-    xLbls += '<text x="' + pts[i][0] + '" y="' + (pT + cH + 14) + '" text-anchor="middle" font-size="8" fill="#6b7280">' + pts[i][3] + '</text>';
+  for (var j = 0; j < n; j += step) {
+    shown[j] = 1;
+    xLbls += '<text x="' + pts[j][0] + '" y="' + (pT + cH + 14) + '" text-anchor="middle" font-size="8" fill="#9aa0a6">' + pts[j][3] + '</text>';
   }
   if (n > 1 && !shown[n - 1]) {
-    xLbls += '<text x="' + pts[n-1][0] + '" y="' + (pT + cH + 14) + '" text-anchor="middle" font-size="8" fill="#6b7280">' + pts[n-1][3] + '</text>';
+    xLbls += '<text x="' + pts[n-1][0] + '" y="' + (pT + cH + 14) + '" text-anchor="middle" font-size="8" fill="#9aa0a6">' + pts[n-1][3] + '</text>';
   }
 
   var todayStr = getTodayLabel();
-  var dots = pts.map(function(p) {
+  var labelStep = n > 20 ? Math.ceil(n / 10) : 1;
+  var dots = '', labels = '';
+  pts.forEach(function(p, i) {
     var isToday = (p[3] === todayStr);
-    return '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (isToday ? 4 : 2.5) + '" fill="' + (isToday ? '#4f8ef7' : '#181c27') + '" stroke="#4f8ef7" stroke-width="1.5"><title>' + p[3] + ': ' + p[2] + '명</title></circle>';
-  }).join('');
+    dots += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (isToday ? 4 : 2.5) + '" fill="' + (isToday ? '#0058be' : '#ffffff') + '" stroke="#0058be" stroke-width="1.5"><title>' + p[3] + ': ' + p[2] + '명</title></circle>';
+    if (p[2] > 0 && (isToday || i % labelStep === 0)) {
+      var ly = Math.max(p[1] - 7, pT + 6);
+      labels += '<text x="' + p[0] + '" y="' + ly.toFixed(1) + '" text-anchor="middle" font-size="9" font-weight="' + (isToday ? '700' : '500') + '" fill="' + (isToday ? '#0058be' : '#45474c') + '">' + p[2] + '</text>';
+    }
+  });
 
   el.innerHTML = '<svg viewBox="0 0 ' + VW + ' ' + VH + '" style="width:100%;height:150px;display:block;" preserveAspectRatio="none">' +
-    '<defs><linearGradient id="lg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#4f8ef7" stop-opacity=".25"/><stop offset="100%" stop-color="#4f8ef7" stop-opacity=".02"/></linearGradient></defs>' +
+    '<defs><linearGradient id="lgg1" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#0058be" stop-opacity=".15"/><stop offset="100%" stop-color="#0058be" stop-opacity=".01"/></linearGradient></defs>' +
     grid +
-    '<path d="' + area + '" fill="url(#lg1)"/>' +
-    '<polyline points="' + poly + '" fill="none" stroke="#4f8ef7" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>' +
-    xLbls + dots + '</svg>';
+    '<path d="' + area + '" fill="url(#lgg1)"/>' +
+    '<polyline points="' + poly + '" fill="none" stroke="#0058be" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>' +
+    xLbls + dots + labels + '</svg>';
 }
 
-// ── Funnel ─────────────────────────────────────────────────────
+// ── Funnel ──────────────────────────────────────────────────────
 function renderFunnel(steps) {
   var el = document.getElementById('funnel-steps');
   if (!steps.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
@@ -548,20 +987,21 @@ function renderFunnel(steps) {
     html += '<div class="funnel-step">' +
       '<div class="funnel-step-val">' + s.cnt.toLocaleString() + '</div>' +
       '<div class="funnel-step-label">' + escHtml(s.step) + '</div>' +
-      (i > 0 ? '<div class="funnel-step-rate">' + rate + '% 전환</div>' : '<div style="height:18px;"></div>') +
+      (i > 0 ? '<div class="funnel-step-rate">' + rate + '% 전환</div>' : '<div style="height:22px;"></div>') +
       '<div class="funnel-bar-wrap"><div class="funnel-bar-fill" style="width:' + pct + '%"></div></div>' +
     '</div>';
   });
   el.innerHTML = html;
 }
 
-// ── Bar charts ─────────────────────────────────────────────────
+// ── Bar charts ───────────────────────────────────────────────────
 function isUiSymbol(str) {
   return /^[\s…×↵\.\,\!\?\-\_\+\=\/\\\|\@\#\$\%\^\&\*\(\)\[\]\{\}\<\>\"\'`~]{1,3}$/.test(str.trim());
 }
 
 function renderBars(cid, items, lk, vk, fmt, colorClass) {
   var el = document.getElementById(cid);
+  if (!el) return;
   if (!items.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
   var max = Math.max.apply(null, items.map(function(i) { return i[vk]; }));
   el.innerHTML = items.map(function(item) {
@@ -574,6 +1014,7 @@ function renderBars(cid, items, lk, vk, fmt, colorClass) {
 
 function renderClickBars(cid, items) {
   var el = document.getElementById(cid);
+  if (!el) return;
   if (!items.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
   var max = Math.max.apply(null, items.map(function(i) { return i.cnt; }));
   el.innerHTML = items.map(function(item) {
@@ -587,6 +1028,7 @@ function renderClickBars(cid, items) {
 
 function renderExitBars(cid, items, totalSessions) {
   var el = document.getElementById(cid);
+  if (!el) return;
   var hint = document.getElementById('exit-hint');
   if (!items.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; if (hint) hint.textContent = ''; return; }
   if (hint && totalSessions > 0) hint.textContent = '총 세션 ' + totalSessions.toLocaleString() + '개 기준';
@@ -602,6 +1044,7 @@ function renderExitBars(cid, items, totalSessions) {
 
 function renderSimpleBars(cid, items, lk, vk, fmt) {
   var el = document.getElementById(cid);
+  if (!el) return;
   if (!items.length) { el.innerHTML = '<div class="empty">데이터 없음</div>'; return; }
   var max = Math.max.apply(null, items.map(function(i) { return i[vk]; }));
   el.innerHTML = items.map(function(item) {
@@ -612,7 +1055,7 @@ function renderSimpleBars(cid, items, lk, vk, fmt) {
   }).join('');
 }
 
-// ── Events Log ─────────────────────────────────────────────────
+// ── Events Log ───────────────────────────────────────────────────
 function loadEvents() {
   fetch('/api/admin/events' + _qs(), {credentials: 'same-origin'})
     .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
@@ -623,67 +1066,130 @@ function renderEvents(d) {
   var items = d.items || [];
   var cnt = document.getElementById('events-count');
   if (cnt) cnt.textContent = items.length + '건 (최근 200)';
+  var ncnt = document.getElementById('nav-events-cnt');
+  if (ncnt) ncnt.textContent = items.length;
+  var mcnt = document.getElementById('mobile-events-cnt');
+  if (mcnt) { mcnt.textContent = items.length; mcnt.style.display = items.length ? 'flex' : 'none'; }
   var tbody = document.getElementById('events-table-body');
   if (!items.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">이벤트 없음</td></tr>'; return; }
   tbody.innerHTML = items.map(function(item) {
     var tagCls = item.event === 'click' ? 'click' : item.event === 'exit' ? 'exit' : 'dwell';
     return '<tr>' +
-      '<td><code style="font-size:10px;color:var(--text-muted);">' + escHtml(item.session) + '…</code></td>' +
+      '<td><code style="font-size:10px;color:#75777d;">' + escHtml(item.session) + '…</code></td>' +
       '<td><span class="evt-tag ' + tagCls + '">' + escHtml(item.event) + '</span>' + (item.is_new ? ' <span class="new-badge">NEW</span>' : '') + '</td>' +
       '<td>' + escHtml(item.page) + '</td>' +
       '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(item.element) + '">' + escHtml(item.element) + '</td>' +
-      '<td style="font-size:11px;">' + escHtml(item.ip) + (item.is_owner ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;background:#e0f0ff;color:#1d4ed8;border-radius:3px;font-family:monospace;">나</span>' : '') + '</td>' +
+      '<td style="font-size:11px;">' + escHtml(item.ip) + (item.is_owner ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;background:#d8e2ff;color:#0058be;border-radius:3px;font-family:monospace;">나</span>' : '') + '</td>' +
       '<td>' + escHtml(item.device) + ' / ' + escHtml(item.browser) + '</td>' +
-      '<td><span style="font-size:10px;padding:2px 6px;background:var(--surface2);color:var(--text-muted);">' + escHtml(item.env) + '</span></td>' +
-      '<td style="color:var(--text-muted);font-size:11px;white-space:nowrap;">' + escHtml(item.ts) + '</td>' +
+      '<td><span style="font-size:10px;padding:2px 6px;background:#f2f4f6;color:#75777d;border-radius:4px;">' + escHtml(item.env) + '</span></td>' +
+      '<td style="color:#75777d;font-size:11px;white-space:nowrap;">' + escHtml(item.ts) + '</td>' +
     '</tr>';
   }).join('');
 }
 
-// ── Feedback ───────────────────────────────────────────────────
+// ── Feedback ─────────────────────────────────────────────────────
 function loadFeedback() {
   fetch('/api/admin/feedback', {credentials: 'same-origin'})
-    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); }).then(function(d) {
-    var items = d.items || [];
-    document.getElementById('stat-feedback-cnt').textContent = items.length.toLocaleString();
-    document.getElementById('tab-fb-cnt').textContent = items.length;
-    document.getElementById('fb-count').textContent = '총 ' + items.length + '건';
-    var el = document.getElementById('feedback-list');
-    if (!items.length) { el.innerHTML = '<div class="empty">접수된 문의가 없습니다.</div>'; return; }
-    el.innerHTML = items.map(function(item) {
-      var badge = item.type === 'suggestion'
-        ? '<span class="fb-badge suggestion">건의</span>'
-        : '<span class="fb-badge inquiry">문의</span>';
-      var parts = [];
-      if (item.name)  parts.push('<span>👤 ' + escHtml(item.name) + '</span>');
-      if (item.email) parts.push('<span>✉ ' + escHtml(item.email) + '</span>');
-      if (item.ip)    parts.push('<span>🌐 ' + escHtml(item.ip) + (item.is_owner ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;background:#e0f0ff;color:#1d4ed8;border-radius:3px;font-family:monospace;">나</span>' : '') + '</span>');
-      return '<div class="fb-item"><div class="fb-item-head">' + badge + '<span class="fb-meta">' + escHtml(item.ts) + '</span></div>' +
-        '<div class="fb-message">' + escHtml(item.message) + '</div>' +
-        (parts.length ? '<div class="fb-sender">' + parts.join('') + '</div>' : '') +
-      '</div>';
-    }).join('');
-  }).catch(console.error);
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(d) {
+      var items = d.items || [];
+      var cnt = items.length;
+      var sfcnt = document.getElementById('stat-feedback-cnt');
+      if (sfcnt) sfcnt.textContent = cnt.toLocaleString();
+      var nfcnt = document.getElementById('nav-fb-cnt');
+      if (nfcnt) nfcnt.textContent = cnt;
+      var mfcnt = document.getElementById('mobile-fb-cnt');
+      if (mfcnt) { mfcnt.textContent = cnt; mfcnt.style.display = cnt ? 'flex' : 'none'; }
+      var fbcnt = document.getElementById('fb-count');
+      if (fbcnt) fbcnt.textContent = '총 ' + cnt + '건';
+      var el = document.getElementById('feedback-list');
+      if (!items.length) { el.innerHTML = '<div class="empty">접수된 문의가 없습니다.</div>'; return; }
+      el.innerHTML = items.map(function(item) {
+        var badge = item.type === 'suggestion'
+          ? '<span class="fb-badge suggestion">건의</span>'
+          : '<span class="fb-badge inquiry">문의</span>';
+        var parts = [];
+        if (item.name)  parts.push('<span>👤 ' + escHtml(item.name) + '</span>');
+        if (item.email) parts.push('<span>✉ ' + escHtml(item.email) + '</span>');
+        if (item.ip)    parts.push('<span>🌐 ' + escHtml(item.ip) + (item.is_owner ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;background:#d8e2ff;color:#0058be;border-radius:3px;font-family:monospace;">나</span>' : '') + '</span>');
+        return '<div class="fb-item"><div class="fb-item-head">' + badge + '<span class="fb-meta">' + escHtml(item.ts) + '</span></div>' +
+          '<div class="fb-message">' + escHtml(item.message) + '</div>' +
+          (parts.length ? '<div class="fb-sender">' + parts.join('') + '</div>' : '') +
+        '</div>';
+      }).join('');
+    }).catch(console.error);
+}
+
+// ── Connections ───────────────────────────────────────────────────
+function loadConnections() {
+  fetch('/api/admin/connections', {credentials: 'same-origin'})
+    .then(function(r) { if (!r.ok) return {connections: [], total: 0}; return r.json(); })
+    .then(function(d) {
+      var list = d.connections || [];
+      document.getElementById('stat-connections').textContent = d.total || 0;
+      var tbody = document.getElementById('connections-tbody');
+      if (!list.length) {
+        tbody.innerHTML = '<tr><td colspan="3" class="empty">연결된 Redmine 인스턴스가 없습니다</td></tr>';
+      } else {
+        tbody.innerHTML = list.map(function(c) {
+          var short = c.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+          return '<tr>' +
+            '<td><span class="status-dot"></span> <a href="' + escHtml(c.url) + '" target="_blank" rel="noopener" style="font-size:12px;color:#0058be;font-weight:500;">' + escHtml(short) + '</a></td>' +
+            '<td style="font-size:12px;font-weight:600;">' + c.sessions + '</td>' +
+            '<td style="font-size:11px;color:#75777d;">' + escHtml(c.age_str) + '</td>' +
+          '</tr>';
+        }).join('');
+      }
+
+      // 연동 팝오버
+      var connPop = document.getElementById('conn-popover-list');
+      if (connPop) {
+        if (!list.length) {
+          connPop.innerHTML = '<div style="font-size:12px;color:#75777d;">연결된 인스턴스 없음</div>';
+        } else {
+          connPop.innerHTML = list.map(function(c) {
+            var short = c.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+            return '<div class="kpi-popover-row">' +
+              '<span class="kpi-popover-label kpi-popover-dot">' + escHtml(short) + '</span>' +
+              '<span class="kpi-popover-val">' + c.sessions + '세션<span style="font-size:10px;font-weight:400;color:#75777d;margin-left:4px;">' + escHtml(c.age_str) + '</span></span>' +
+            '</div>';
+          }).join('');
+        }
+      }
+    }).catch(console.error);
+}
+
+// ── Realtime visitors ─────────────────────────────────────────────
+function pollVisitors() {
+  fetch('/api/visitors', {credentials: 'same-origin'})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var cnt = d.count || 0;
+      var el1 = document.getElementById('live-count');
+      var el2 = document.getElementById('live-count2');
+      var el3 = document.getElementById('live-count3');
+      if (el1) el1.textContent = cnt;
+      if (el2) el2.textContent = cnt;
+      if (el3) el3.textContent = cnt;
+    }).catch(function() {});
+}
+function startVisitorPoll() {
+  pollVisitors();
+  _visitorTimer = setInterval(pollVisitors, 30000);
+}
+function stopVisitorPoll() {
+  if (_visitorTimer) { clearInterval(_visitorTimer); _visitorTimer = null; }
 }
 
 // ── Helpers ────────────────────────────────────────────────────
 function getTodayLabel() {
   var now = new Date();
-  return String(now.getMonth() + 1).padStart(2,'0') + '/' + String(now.getDate()).padStart(2,'0');
+  return String(now.getMonth() + 1).padStart(2, '0') + '/' + String(now.getDate()).padStart(2, '0');
 }
 function escHtml(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
-
-// ── Responsive ─────────────────────────────────────────────────
-function checkLayout() {
-  document.querySelectorAll('.two-col').forEach(function(tc) {
-    tc.style.gridTemplateColumns = window.innerWidth < 700 ? '1fr' : '1fr 1fr';
-  });
-}
-window.addEventListener('resize', checkLayout);
-checkLayout();
 </script>
 </body>
 </html>
