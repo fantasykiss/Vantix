@@ -483,38 +483,46 @@
     <!-- ===================== FOOTER ===================== -->
     <footer style="background:#15171A; color:#A9ADB2;">
       <div style="max-width:1320px; margin:0 auto; padding:clamp(56px,8vh,90px) clamp(20px,5vw,80px) 40px;">
-        <div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:48px 32px; padding-bottom:clamp(48px,7vh,80px); border-bottom:1px solid rgba(255,255,255,.1);">
+        <div class="footer-top-grid" style="display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:40px 32px; padding-bottom:clamp(32px,5vh,56px); border-bottom:1px solid rgba(255,255,255,.1);">
           <div>
-            <div style="display:flex; align-items:center; gap:10px; margin-bottom:18px;">
+            <div style="display:flex; align-items:center; gap:10px; margin-bottom:14px;">
               <span style="width:11px; height:11px; background:#2DD4BF; display:block;"></span>
               <span style="font-family:'Archivo',sans-serif; font-weight:800; font-size:19px; letter-spacing:.14em; color:#F5F4EF;">VANTIX</span>
             </div>
             <p style="margin:0; max-width:260px; font-size:14px; line-height:1.6; color:#80858b;">AI-native issue tracking, built on Redmine.</p>
           </div>
-          <div>
-            <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#2DD4BF; margin-bottom:18px;">Product</div>
-            <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px; font-size:14px;">
-              <li><a href="#features" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">기능</a></li>
-              <li><a href="#ai" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">AI</a></li>
-              <li><a href="#dashboard" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">대시보드</a></li>
-            </ul>
-          </div>
-          <div>
-            <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#2DD4BF; margin-bottom:18px;">Company</div>
-            <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px; font-size:14px;">
-              <li><a href="#about" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">소개</a></li>
-              <li><a href="#trust" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">고객</a></li>
-              <li><a href="#start" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">시작하기</a></li>
-            </ul>
-          </div>
-          <div>
-            <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#2DD4BF; margin-bottom:18px;">Account</div>
-            <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:12px; font-size:14px;">
-              <li><span class="coming-soon-wrap"><a href="#" onclick="return false;" class="footer-link" style="color:#A9ADB2; text-decoration:none; opacity:.4; cursor:not-allowed;">로그인</a><span class="cs-tip">출시 준비 중이에요</span></span></li>
-              <li><span class="coming-soon-wrap"><a href="#" onclick="return false;" class="footer-link" style="color:#A9ADB2; text-decoration:none; opacity:.4; cursor:not-allowed;">회원가입</a><span class="cs-tip">곧 오픈해요</span></span></li>
-            </ul>
+          <div class="footer-links-grid" style="display:grid; grid-template-columns:repeat(3,1fr); gap:24px 16px;">
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#2DD4BF; margin-bottom:14px;">Product</div>
+              <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; font-size:14px;">
+                <li><a href="#features" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">기능</a></li>
+                <li><a href="#ai" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">AI</a></li>
+                <li><a href="#dashboard" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">대시보드</a></li>
+              </ul>
+            </div>
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#2DD4BF; margin-bottom:14px;">Company</div>
+              <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; font-size:14px;">
+                <li><a href="#about" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">소개</a></li>
+                <li><a href="#trust" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">고객</a></li>
+                <li><a href="#start" class="footer-link" style="color:#A9ADB2; text-decoration:none; transition:color .2s;">시작하기</a></li>
+              </ul>
+            </div>
+            <div>
+              <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase; color:#2DD4BF; margin-bottom:14px;">Account</div>
+              <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:10px; font-size:14px;">
+                <li><span class="coming-soon-wrap"><a href="#" onclick="return false;" class="footer-link" style="color:#A9ADB2; text-decoration:none; opacity:.4; cursor:not-allowed;">로그인</a><span class="cs-tip">출시 준비 중이에요</span></span></li>
+                <li><span class="coming-soon-wrap"><a href="#" onclick="return false;" class="footer-link" style="color:#A9ADB2; text-decoration:none; opacity:.4; cursor:not-allowed;">회원가입</a><span class="cs-tip">곧 오픈해요</span></span></li>
+              </ul>
+            </div>
           </div>
         </div>
+        <style>
+          @media (max-width: 600px) {
+            .footer-top-grid { grid-template-columns: 1fr !important; gap: 24px !important; }
+            .footer-links-grid { grid-template-columns: repeat(3,1fr) !important; }
+          }
+        </style>
         <div style="display:flex; justify-content:space-between; flex-wrap:wrap; gap:16px; margin-top:36px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.12em; text-transform:uppercase; color:#80858b;">
           <span>© 2026 Vantix — See What Matters</span>
           <span>Built on Redmine</span>
