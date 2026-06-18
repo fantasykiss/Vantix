@@ -2143,6 +2143,14 @@ async def api_admin_stats(request: Request, env: str = "", period: str = "7d", _
                 clicks = [{"element": r[0], "cnt": r[1]} for r in cur.fetchall()]
 
                 cur.execute(f"""
+                    SELECT element, COUNT(*) as cnt
+                    FROM analytics_events
+                    WHERE event_type='click' AND element IS NOT NULL AND element != '' {tf}
+                    GROUP BY element ORDER BY cnt ASC LIMIT 5
+                """, tp)
+                bottom_clicks = [{"element": r[0], "cnt": r[1]} for r in cur.fetchall()]
+
+                cur.execute(f"""
                     SELECT page, COUNT(*) as cnt
                     FROM analytics_events
                     WHERE event_type='exit' AND page IS NOT NULL AND page != '' {tf}
@@ -2248,8 +2256,17 @@ async def api_admin_stats(request: Request, env: str = "", period: str = "7d", _
                 """, ep)
                 new_visitors = cur.fetchone()[0]
 
+                cur.execute(f"""
+                    SELECT ip, COUNT(DISTINCT session_id) as sessions, MIN(ts) as first_seen
+                    FROM analytics_events
+                    WHERE ip IS NOT NULL AND ip != ''
+                    GROUP BY ip ORDER BY sessions DESC LIMIT 8
+                """)
+                top_ips = [{"ip": r[0], "sessions": r[1], "first_seen": r[2]} for r in cur.fetchall()]
+
         return {
-            "pages": pages, "clicks": clicks, "exits": exits,
+            "pages": pages, "clicks": clicks, "exits": exits, "bottom_clicks": bottom_clicks,
+            "top_ips": top_ips, "owner_ips": OWNER_IPS,
             "sessions": total_sessions, "daily": daily, "today_visitors": today_visitors,
             "unique_ips": unique_ips, "env_stats": env_stats,
             "device_stats": device_stats, "browser_stats": browser_stats, "os_stats": os_stats,
@@ -2279,6 +2296,25 @@ async def api_admin_feedback(request: Request, _=Depends(_require_admin)):
     except Exception as e:
         print(f"[admin/feedback] 오류: {e}")
         return {"items": []}
+
+
+@app.get("/api/admin/connections")
+async def api_admin_connections(_=Depends(_require_admin)):
+    now = time.time()
+    url_map: dict = {}
+    for token, s in list(_session_cache.items()):
+        if now - s.get("created", 0) < SESSION_TTL:
+            url = s.get("url", "")
+            if url:
+                if url not in url_map:
+                    url_map[url] = {"url": url, "sessions": 0, "last_seen": s.get("created", 0)}
+                url_map[url]["sessions"] += 1
+                url_map[url]["last_seen"] = max(url_map[url]["last_seen"], s.get("created", 0))
+    connections = sorted(url_map.values(), key=lambda x: -x["last_seen"])
+    for c in connections:
+        age = int((now - c["last_seen"]) / 60)
+        c["age_str"] = f"{age}분 전" if age < 60 else f"{age // 60}시간 전"
+    return {"connections": connections, "total": len(connections)}
 
 
 @app.get("/api/admin/events")
