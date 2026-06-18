@@ -2573,6 +2573,18 @@ async def api_account_set_projects(request: Request):
 
 # ============================================================
 
+@app.get("/privacy", response_class=HTMLResponse)
+async def privacy_page():
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "privacy.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
+@app.get("/terms", response_class=HTMLResponse)
+async def terms_page():
+    template_path = os.path.join(os.path.dirname(__file__), "templates", "terms.html")
+    with open(template_path, "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read())
+
 @app.get("/connect", response_class=HTMLResponse)
 async def connect_page(request: Request):
     token = request.cookies.get("vx_session")

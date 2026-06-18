@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>서비스 이용약관 — Vantix</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0E1012; color: #D4D6DA; font-family: 'Archivo', sans-serif; font-size: 15px; line-height: 1.8; }
+    a { color: #2DD4BF; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(14,16,18,.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      padding: 16px clamp(20px,5vw,80px);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-dot { width: 10px; height: 10px; background: #2DD4BF; }
+    .nav-logo-text { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 17px; letter-spacing: .14em; color: #F5F4EF; }
+    .nav-back { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .1em; color: #80858b; text-transform: uppercase; }
+    .nav-back:hover { color: #2DD4BF; text-decoration: none; }
+
+    .container { max-width: 760px; margin: 0 auto; padding: clamp(48px,8vh,80px) clamp(20px,5vw,48px) 120px; }
+
+    .badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .14em;
+      text-transform: uppercase; color: #2DD4BF;
+      border: 1px solid rgba(45,212,191,.3); border-radius: 2px;
+      padding: 4px 10px; margin-bottom: 24px;
+    }
+    h1 { font-size: clamp(28px, 5vw, 40px); font-weight: 800; color: #F5F4EF; letter-spacing: -.01em; margin-bottom: 12px; }
+    .meta { font-size: 13px; color: #555a60; font-family: 'IBM Plex Mono', monospace; margin-bottom: 56px; }
+
+    h2 {
+      font-size: 17px; font-weight: 700; color: #F5F4EF;
+      margin: 48px 0 16px;
+      padding-left: 14px;
+      border-left: 3px solid #2DD4BF;
+    }
+    p { color: #A9ADB2; margin-bottom: 14px; }
+    ul, ol { color: #A9ADB2; padding-left: 20px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+
+    .divider { border: none; border-top: 1px solid rgba(255,255,255,.07); margin: 48px 0; }
+
+    footer { background: #0a0c0e; border-top: 1px solid rgba(255,255,255,.07); padding: 32px clamp(20px,5vw,80px); text-align: center; font-size: 12px; color: #555a60; font-family: 'IBM Plex Mono', monospace; }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="/connect" class="nav-logo">
+      <span class="nav-logo-dot"></span>
+      <span class="nav-logo-text">VANTIX</span>
+    </a>
+    <a href="/connect" class="nav-back">← 홈으로</a>
+  </nav>
+
+  <div class="container">
+    <div class="badge">Legal</div>
+    <h1>서비스 이용약관</h1>
+    <p class="meta">시행일: 2026년 06월 19일 &nbsp;|&nbsp; 버전: 1.0</p>
+
+    <h2>제1조 (목적)</h2>
+    <p>이 약관은 인디랩스(이하 "회사")가 제공하는 Vantix 서비스(이하 "서비스")의 이용과 관련하여 회사와 이용자 간의 권리·의무 및 책임사항, 기타 필요한 사항을 규정함을 목적으로 합니다.</p>
+
+    <h2>제2조 (정의)</h2>
+    <ul>
+      <li><strong>"서비스"</strong>란 회사가 제공하는 Redmine 연동 프로젝트 리스크 관리 대시보드 및 관련 제반 서비스를 의미합니다.</li>
+      <li><strong>"이용자"</strong>란 이 약관에 따라 회사가 제공하는 서비스를 이용하는 자를 말합니다.</li>
+      <li><strong>"유료 서비스"</strong>란 이용자가 일정한 요금을 지불하고 이용하는 서비스를 말합니다.</li>
+    </ul>
+
+    <h2>제3조 (약관의 효력 및 변경)</h2>
+    <p>이 약관은 서비스 화면에 게시하거나 기타의 방법으로 이용자에게 공지함으로써 효력이 발생합니다. 회사는 합리적인 사유가 있는 경우 관련 법령에 위배되지 않는 범위에서 약관을 변경할 수 있으며, 변경 시 7일 전에 공지합니다.</p>
+
+    <h2>제4조 (서비스의 제공)</h2>
+    <p>회사는 다음과 같은 서비스를 제공합니다.</p>
+    <ul>
+      <li>Redmine 연동 프로젝트 리스크 대시보드</li>
+      <li>AI 기반 리스크 분석 및 코멘트 생성</li>
+      <li>프로젝트 현황 리포트 생성 및 이메일 발송</li>
+      <li>기타 회사가 추가 개발하거나 다른 회사와 제휴하여 제공하는 서비스</li>
+    </ul>
+
+    <h2>제5조 (서비스 이용)</h2>
+    <p>서비스는 연중무휴, 1일 24시간 제공함을 원칙으로 합니다. 단, 회사는 정기점검·설비 교체 및 보수·장애 등의 이유로 서비스가 일시 중단될 수 있으며, 이 경우 사전 또는 사후에 공지합니다.</p>
+
+    <h2>제6조 (이용자의 의무)</h2>
+    <p>이용자는 다음 행위를 하여서는 안 됩니다.</p>
+    <ul>
+      <li>타인의 정보 도용</li>
+      <li>회사가 게시한 정보의 무단 변경</li>
+      <li>회사가 정한 정보 이외의 정보 송신 또는 게시</li>
+      <li>회사와 기타 제3자의 저작권 등 지식재산권 침해</li>
+      <li>서비스를 이용하여 얻은 정보를 회사의 사전 승낙 없이 복제·유통·조장하거나 상업적으로 이용하는 행위</li>
+      <li>기타 불법적이거나 부당한 행위</li>
+    </ul>
+
+    <h2>제7조 (유료 서비스 및 결제)</h2>
+    <p>유료 서비스를 이용하고자 하는 이용자는 회사가 정한 요금제를 선택하고 결제를 진행해야 합니다. 결제는 토스페이먼츠를 통해 처리되며, 회사의 요금 정책은 서비스 내 안내 페이지에 따릅니다.</p>
+    <p>유료 서비스 결제 후 서비스 미이용 등 이용자 귀책 사유로 인한 환불은 관련 법령 및 환불 정책에 따릅니다.</p>
+
+    <h2>제8조 (책임의 제한)</h2>
+    <p>회사는 천재지변, 전쟁 및 기타 이에 준하는 불가항력으로 인하여 서비스를 제공할 수 없는 경우에는 서비스 제공에 관한 책임이 면제됩니다.</p>
+    <p>회사는 이용자의 귀책 사유로 인한 서비스 이용의 장애에 대하여 책임을 지지 않습니다. 회사는 이용자가 서비스를 통해 얻은 정보나 자료로 인해 발생한 손해에 대해 책임을 지지 않습니다.</p>
+
+    <h2>제9조 (Redmine 연동 관련)</h2>
+    <p>서비스는 이용자가 직접 운영하는 Redmine 인스턴스와 연동됩니다. 이용자가 제공한 Redmine 서버 URL 및 API 키는 세션 내에서만 사용되며, 회사의 서버에 영구 저장되지 않습니다. Redmine 서버의 운영 및 보안은 이용자의 책임입니다.</p>
+
+    <h2>제10조 (분쟁 해결)</h2>
+    <p>서비스 이용과 관련하여 발생한 분쟁에 대해 소송이 제기되는 경우 대한민국 법원을 관할 법원으로 합니다.</p>
+
+    <hr class="divider">
+    <p style="font-size:13px; color:#555a60;">문의: <a href="mailto:vantix.kr@gmail.com">vantix.kr@gmail.com</a> &nbsp;|&nbsp; 인디랩스(INDDY LABS) &nbsp;|&nbsp; 대표 김민석</p>
+  </div>
+
+  <footer>
+    © 2026 Vantix &nbsp;|&nbsp; 인디랩스(INDDY LABS) &nbsp;|&nbsp; 사업자등록번호 201-19-77098
+  </footer>
+
+</body>
+</html>
