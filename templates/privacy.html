@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>개인정보처리방침 — Vantix</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;800&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { background: #0E1012; color: #D4D6DA; font-family: 'Archivo', sans-serif; font-size: 15px; line-height: 1.8; }
+    a { color: #2DD4BF; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+
+    .nav {
+      position: sticky; top: 0; z-index: 100;
+      background: rgba(14,16,18,.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      padding: 16px clamp(20px,5vw,80px);
+      display: flex; align-items: center; justify-content: space-between;
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
+    .nav-logo-dot { width: 10px; height: 10px; background: #2DD4BF; }
+    .nav-logo-text { font-family: 'Archivo', sans-serif; font-weight: 800; font-size: 17px; letter-spacing: .14em; color: #F5F4EF; }
+    .nav-back { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .1em; color: #80858b; text-transform: uppercase; }
+    .nav-back:hover { color: #2DD4BF; text-decoration: none; }
+
+    .container { max-width: 760px; margin: 0 auto; padding: clamp(48px,8vh,80px) clamp(20px,5vw,48px) 120px; }
+
+    .badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .14em;
+      text-transform: uppercase; color: #2DD4BF;
+      border: 1px solid rgba(45,212,191,.3); border-radius: 2px;
+      padding: 4px 10px; margin-bottom: 24px;
+    }
+    h1 { font-size: clamp(28px, 5vw, 40px); font-weight: 800; color: #F5F4EF; letter-spacing: -.01em; margin-bottom: 12px; }
+    .meta { font-size: 13px; color: #555a60; font-family: 'IBM Plex Mono', monospace; margin-bottom: 56px; }
+
+    h2 {
+      font-size: 17px; font-weight: 700; color: #F5F4EF;
+      margin: 48px 0 16px;
+      padding-left: 14px;
+      border-left: 3px solid #2DD4BF;
+    }
+    p { color: #A9ADB2; margin-bottom: 14px; }
+    ul, ol { color: #A9ADB2; padding-left: 20px; margin-bottom: 14px; }
+    li { margin-bottom: 6px; }
+
+    table { width: 100%; border-collapse: collapse; margin: 16px 0 24px; font-size: 13px; }
+    th { background: rgba(45,212,191,.08); color: #2DD4BF; font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .08em; text-transform: uppercase; padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(45,212,191,.2); }
+    td { padding: 10px 14px; color: #A9ADB2; border-bottom: 1px solid rgba(255,255,255,.05); vertical-align: top; }
+    tr:last-child td { border-bottom: none; }
+
+    .divider { border: none; border-top: 1px solid rgba(255,255,255,.07); margin: 48px 0; }
+
+    footer { background: #0a0c0e; border-top: 1px solid rgba(255,255,255,.07); padding: 32px clamp(20px,5vw,80px); text-align: center; font-size: 12px; color: #555a60; font-family: 'IBM Plex Mono', monospace; }
+  </style>
+</head>
+<body>
+
+  <nav class="nav">
+    <a href="/connect" class="nav-logo">
+      <span class="nav-logo-dot"></span>
+      <span class="nav-logo-text">VANTIX</span>
+    </a>
+    <a href="/connect" class="nav-back">← 홈으로</a>
+  </nav>
+
+  <div class="container">
+    <div class="badge">Legal</div>
+    <h1>개인정보처리방침</h1>
+    <p class="meta">시행일: 2026년 06월 19일 &nbsp;|&nbsp; 버전: 1.0</p>
+
+    <p>인디랩스(이하 "회사")는 Vantix 서비스(이하 "서비스") 운영과 관련하여 이용자의 개인정보를 소중하게 생각하며, 「개인정보 보호법」 및 관련 법령을 준수합니다.</p>
+
+    <h2>1. 수집하는 개인정보의 항목 및 목적</h2>
+    <table>
+      <thead>
+        <tr><th>수집 항목</th><th>수집 목적</th><th>보유 기간</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>이메일 주소</td><td>서비스 리포트 발송, 계정 관리</td><td>회원 탈퇴 시 즉시 삭제</td></tr>
+        <tr><td>Redmine 서버 URL</td><td>Redmine 연동 서비스 제공</td><td>세션 종료 시 삭제 (서버 저장 없음)</td></tr>
+        <tr><td>Redmine API 키</td><td>Redmine 데이터 조회</td><td>세션 종료 시 삭제 (암호화 처리)</td></tr>
+        <tr><td>접속 IP 주소</td><td>동시 접속자 수 카운팅, 보안 모니터링</td><td>접속 종료 시 삭제</td></tr>
+        <tr><td>서비스 이용 기록</td><td>서비스 개선, 장애 대응</td><td>6개월</td></tr>
+      </tbody>
+    </table>
+
+    <h2>2. 개인정보 수집 방법</h2>
+    <p>회사는 다음과 같은 방법으로 개인정보를 수집합니다.</p>
+    <ul>
+      <li>서비스 이용 과정에서 이용자가 직접 입력하는 방법</li>
+      <li>서비스 이용 중 자동으로 생성되는 방법 (접속 IP, 이용 기록 등)</li>
+    </ul>
+
+    <h2>3. 개인정보의 제3자 제공</h2>
+    <p>회사는 이용자의 개인정보를 원칙적으로 외부에 제공하지 않습니다. 다만, 아래의 경우에는 예외로 합니다.</p>
+    <ul>
+      <li>이용자가 사전에 동의한 경우</li>
+      <li>법령의 규정에 의거하거나 수사 목적으로 법령에 정해진 절차와 방법에 따라 수사기관의 요구가 있는 경우</li>
+    </ul>
+
+    <h2>4. 개인정보 처리 위탁</h2>
+    <table>
+      <thead>
+        <tr><th>위탁 업체</th><th>위탁 업무</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Anthropic</td><td>AI 기반 리스크 분석 및 리포트 생성</td></tr>
+        <tr><td>Railway (Railsware Products, Inc.)</td><td>서비스 서버 호스팅</td></tr>
+        <tr><td>토스페이먼츠(주)</td><td>결제 처리 (유료 플랜 이용 시)</td></tr>
+      </tbody>
+    </table>
+
+    <h2>5. 개인정보의 보유 및 이용 기간</h2>
+    <p>회사는 법령에 따른 개인정보 보유·이용기간 또는 이용자로부터 개인정보를 수집 시에 동의받은 개인정보 보유·이용기간 내에서 개인정보를 처리·보유합니다. 서비스 이용 계약 해지(회원 탈퇴) 시 즉시 파기합니다.</p>
+    <p>단, 관계 법령에 의해 보존이 필요한 경우 해당 법령에서 정한 기간 동안 보존합니다.</p>
+    <ul>
+      <li>전자상거래 등에서 소비자 보호에 관한 법률: 계약·청약철회 기록 5년, 대금결제·공급 기록 5년, 소비자 불만·분쟁 기록 3년</li>
+      <li>통신비밀보호법: 서비스 이용 로그 3개월</li>
+    </ul>
+
+    <h2>6. 개인정보의 파기</h2>
+    <p>회사는 개인정보 보유기간의 경과, 처리목적 달성 등 개인정보가 불필요하게 되었을 때에는 지체없이 해당 개인정보를 파기합니다.</p>
+    <ul>
+      <li><strong>전자적 파일</strong>: 복구 불가능한 방법으로 영구 삭제</li>
+      <li><strong>종이 문서</strong>: 분쇄기로 분쇄하거나 소각</li>
+    </ul>
+
+    <h2>7. 이용자의 권리와 행사 방법</h2>
+    <p>이용자는 회사에 대해 언제든지 다음 각 호의 개인정보 보호 관련 권리를 행사할 수 있습니다.</p>
+    <ul>
+      <li>개인정보 열람 요구</li>
+      <li>오류 등이 있을 경우 정정 요구</li>
+      <li>삭제 요구</li>
+      <li>처리 정지 요구</li>
+    </ul>
+    <p>권리 행사는 이메일(<a href="mailto:vantix.kr@gmail.com">vantix.kr@gmail.com</a>)로 요청하실 수 있으며, 지체없이 조치하겠습니다.</p>
+
+    <h2>8. 개인정보 보호책임자</h2>
+    <table>
+      <thead>
+        <tr><th>구분</th><th>내용</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>성명</td><td>김민석</td></tr>
+        <tr><td>직책</td><td>대표</td></tr>
+        <tr><td>이메일</td><td><a href="mailto:vantix.kr@gmail.com">vantix.kr@gmail.com</a></td></tr>
+      </tbody>
+    </table>
+
+    <h2>9. 개인정보 자동 수집 장치의 설치·운영 및 거부</h2>
+    <p>회사는 이용자에게 개별적인 맞춤 서비스를 제공하기 위해 이용정보를 저장하고 수시로 불러오는 세션(Session)을 사용합니다. 세션은 웹사이트를 운영하는 데 있어 필수적으로 사용되며, 이를 거부하실 경우 서비스 이용이 제한될 수 있습니다.</p>
+
+    <h2>10. 개인정보처리방침 변경</h2>
+    <p>이 개인정보처리방침은 시행일로부터 적용되며, 법령 및 방침에 따른 변경내용의 추가·삭제 및 정정이 있는 경우에는 변경사항의 시행 7일 전부터 공지사항을 통하여 고지합니다.</p>
+
+    <hr class="divider">
+    <p style="font-size:13px; color:#555a60;">문의: <a href="mailto:vantix.kr@gmail.com">vantix.kr@gmail.com</a> &nbsp;|&nbsp; 인디랩스(INDDY LABS) &nbsp;|&nbsp; 대표 김민석</p>
+  </div>
+
+  <footer>
+    © 2026 Vantix &nbsp;|&nbsp; 인디랩스(INDDY LABS) &nbsp;|&nbsp; 사업자등록번호 201-19-77098
+  </footer>
+
+</body>
+</html>
