@@ -2008,9 +2008,9 @@ async def api_risk_history(project_id: str = "", weeks: int = 12, s: dict = Depe
 
 
 @app.get("/api/visitors")
-async def visitors(request: Request):
-    ip = request.client.host
-    _visitors[ip] = datetime.now()
+async def visitors(request: Request, sid: str = ""):
+    key = sid.strip() if sid.strip() else request.client.host
+    _visitors[key] = datetime.now()
     active = get_active_visitors()
     return {"count": len(active)}
 

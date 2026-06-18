@@ -1160,8 +1160,16 @@ function loadConnections() {
 }
 
 // ── Realtime visitors ─────────────────────────────────────────────
+function getVisitorSid() {
+  var sid = localStorage.getItem('vx_visitor_sid');
+  if (!sid) {
+    sid = 'v-' + Math.random().toString(36).slice(2) + Math.random().toString(36).slice(2);
+    localStorage.setItem('vx_visitor_sid', sid);
+  }
+  return sid;
+}
 function pollVisitors() {
-  fetch('/api/visitors', {credentials: 'same-origin'})
+  fetch('/api/visitors?sid=' + encodeURIComponent(getVisitorSid()), {credentials: 'same-origin'})
     .then(function(r) { return r.json(); })
     .then(function(d) {
       var cnt = d.count || 0;
