@@ -669,34 +669,34 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
 
   </main><!-- /main-content -->
 
-  <!-- LIVE 모바일 뱃지 -->
-  <div class="mobile-live">
-    <div class="live-dot" style="width:6px;height:6px;"></div>
-    LIVE <span id="live-count3">-</span>
-  </div>
-
-  <!-- 하단 탭바 (모바일 전용) -->
-  <nav class="mobile-nav">
-    <button class="mobile-nav-item active" onclick="switchView('dashboard',this)" data-view="dashboard">
-      <span class="material-symbols-outlined">dashboard</span>홈
-    </button>
-    <button class="mobile-nav-item" onclick="switchView('analytics',this)" data-view="analytics">
-      <span class="material-symbols-outlined">analytics</span>분석
-    </button>
-    <button class="mobile-nav-item" onclick="switchView('events',this)" data-view="events">
-      <span class="material-symbols-outlined">timeline</span>이벤트
-      <span class="mobile-nav-badge" id="mobile-events-cnt" style="display:none;">-</span>
-    </button>
-    <button class="mobile-nav-item" onclick="switchView('feedback',this)" data-view="feedback">
-      <span class="material-symbols-outlined">chat_bubble</span>피드백
-      <span class="mobile-nav-badge" id="mobile-fb-cnt" style="display:none;">-</span>
-    </button>
-    <button class="mobile-nav-item" onclick="toggleMobileFilter(this)">
-      <span class="material-symbols-outlined">tune</span>필터
-    </button>
-  </nav>
-
 </div><!-- /app -->
+
+<!-- LIVE 모바일 뱃지 — #app 밖으로 꺼내 fixed 정상 작동 -->
+<div class="mobile-live">
+  <div class="live-dot" style="width:6px;height:6px;"></div>
+  LIVE <span id="live-count3">-</span>
+</div>
+
+<!-- 하단 탭바 — #app 밖으로 꺼내 fixed 정상 작동 -->
+<nav class="mobile-nav">
+  <button class="mobile-nav-item active" onclick="switchView('dashboard',this)" data-view="dashboard">
+    <span class="material-symbols-outlined">dashboard</span>홈
+  </button>
+  <button class="mobile-nav-item" onclick="switchView('analytics',this)" data-view="analytics">
+    <span class="material-symbols-outlined">analytics</span>분석
+  </button>
+  <button class="mobile-nav-item" onclick="switchView('events',this)" data-view="events">
+    <span class="material-symbols-outlined">timeline</span>이벤트
+    <span class="mobile-nav-badge" id="mobile-events-cnt" style="display:none;">-</span>
+  </button>
+  <button class="mobile-nav-item" onclick="switchView('feedback',this)" data-view="feedback">
+    <span class="material-symbols-outlined">chat_bubble</span>피드백
+    <span class="mobile-nav-badge" id="mobile-fb-cnt" style="display:none;">-</span>
+  </button>
+  <button class="mobile-nav-item" onclick="toggleMobileFilter(this)">
+    <span class="material-symbols-outlined">tune</span>필터
+  </button>
+</nav>
 
 <!-- ══════════════════════ JS ══════════════════════ -->
 <script>
