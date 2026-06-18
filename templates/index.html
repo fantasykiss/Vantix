@@ -13,7 +13,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="Vantix">
-<meta name="theme-color" content="#00C9A7">
+<meta name="theme-color" content="#17181A">
 <script>(function(){
   var h = location.hostname;
   if (h === 'localhost' || h === '127.0.0.1') {
@@ -375,7 +375,7 @@ html, body {
 .sidebar-open-btn {
   display: none; align-items: center; gap: 8px;
   padding: clamp(14px, 1.6vw, 20px) var(--section-pad) 0;
-  cursor: pointer; color: var(--text-dim); font-size: 14px;
+  cursor: pointer; color: var(--text); font-size: 14px;
   flex-shrink: 0;
 }
 .sidebar-open-btn:hover { color: var(--text); }
@@ -1988,6 +1988,7 @@ document.addEventListener('DOMContentLoaded', function() {
   var savedTheme = localStorage.getItem('vantix-theme') || 'dark';
   document.documentElement.setAttribute('data-theme', savedTheme);
   _updateThemeIcons(savedTheme);
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', savedTheme === 'light' ? '#F5F4EF' : '#17181A');
 
   // Sidebar: auto-show at wide viewport, auto-hide at narrow
   initSidebar();
@@ -2007,6 +2008,9 @@ document.addEventListener('DOMContentLoaded', function() {
   renderTrend([], 52);
   // 초기 URL 세팅 (replaceState — 히스토리 스택에 추가하지 않고 현재 엔트리 교체)
   _replaceNav(currentProjectId, _initialView);
+
+  var _initLoadingEl = document.getElementById('overview-loading-overlay');
+  if (_initLoadingEl) _initLoadingEl.classList.add('show');
 
   loadProjects().then(function() {
     return loadAll().then(function() {
@@ -3834,6 +3838,7 @@ function toggleTheme() {
   html.setAttribute('data-theme', next);
   localStorage.setItem('vantix-theme', next);
   _updateThemeIcons(next);
+  document.querySelector('meta[name="theme-color"]').setAttribute('content', next === 'light' ? '#F5F4EF' : '#17181A');
 }
 
 function _updateThemeIcons(theme) {
@@ -5908,6 +5913,14 @@ if ('serviceWorker' in navigator) {
       .catch((err) => console.warn('SW registration failed:', err));
   });
 }
+</script>
+<script>
+(function() {
+  if ('__IS_DEMO__' !== 'true') return;
+  window.addEventListener('beforeunload', function() {
+    navigator.sendBeacon('/api/disconnect');
+  });
+})();
 </script>
 </body>
 </html>
