@@ -45,6 +45,8 @@ def _decrypt_key(stored: str) -> str:
 
 # ── 세션 스토어 (Postgres 우선, 파일 폴백) ──────────────────
 SESSION_TTL = 86400 * 30      # 30일
+DEMO_SESSION_TTL = 30 * 60   # 30분
+_demo_tokens: set = set()    # 데모 세션 토큰 추적 (메모리 전용)
 _SESSION_FILE = os.getenv("SESSIONS_PATH", os.path.join(os.path.dirname(__file__), "sessions.json"))
 _DATABASE_URL = os.getenv("DATABASE_URL", "")
 
@@ -270,8 +272,11 @@ def _get_session(token: str) -> dict | None:
     # 메모리 캐시에서 즉시 반환 (DB 미접촉)
     s = _session_cache.get(token)
     if s is not None:
-        if time.time() - s["created"] > SESSION_TTL:
+        ttl = DEMO_SESSION_TTL if token in _demo_tokens else SESSION_TTL
+        if time.time() - s["created"] > ttl:
+            _demo_tokens.discard(token)
             _session_cache.pop(token, None)
+            _delete_session(token)
             return None
         return s
     # 캐시 미스 → DB 조회 (최초 로그인 또는 서버 재시작 직후)
@@ -284,7 +289,9 @@ def _get_session(token: str) -> dict | None:
             if not row:
                 return None
             url, key, created = row
-            if time.time() - created > SESSION_TTL:
+            ttl = DEMO_SESSION_TTL if token in _demo_tokens else SESSION_TTL
+            if time.time() - created > ttl:
+                _demo_tokens.discard(token)
                 _delete_session(token)
                 return None
             s = {"url": url, "key": _decrypt_key(key), "created": created}
@@ -1552,6 +1559,8 @@ async def root(request: Request):
     html = html.replace("__DEFAULT_UPDATED_AFTER__", DEFAULT_UPDATED_AFTER)
     html = html.replace("__DEFAULT_PROJECT_ID__", DEFAULT_PROJECT_ID or "")
     html = html.replace("__REDMINE_PUBLIC_URL__", REDMINE_PUBLIC_URL or s["url"])
+    is_demo = "true" if token in _demo_tokens else "false"
+    html = html.replace("__IS_DEMO__", is_demo)
     return HTMLResponse(content=html)
 
 @app.get("/api/projects")
@@ -2548,8 +2557,9 @@ async def api_connect_demo(request: Request):
         raise HTTPException(status_code=404, detail="데모 미설정")
     token = str(_uuid.uuid4())
     _save_session(token, DEMO_URL, DEMO_KEY, time.time())
+    _demo_tokens.add(token)
     response = JSONResponse({"ok": True})
-    response.set_cookie("vx_session", token, httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
+    response.set_cookie("vx_session", token, httponly=True, max_age=DEMO_SESSION_TTL, samesite="lax", secure=True)
     return response
 
 @app.post("/api/connect")
