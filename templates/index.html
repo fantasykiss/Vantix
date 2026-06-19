@@ -357,6 +357,14 @@ html, body {
 
 /* Actions (right) */
 .topbar-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
+.topbar-user { display: none; align-items: center; gap: 8px; }
+.topbar-user-name { font-family: 'IBM Plex Mono', monospace; font-size: 11px; color: var(--text-mid); letter-spacing: .04em; white-space: nowrap; max-width: 120px; overflow: hidden; text-overflow: ellipsis; }
+.topbar-plan-badge { font-family: 'IBM Plex Mono', monospace; font-size: 9px; letter-spacing: .14em; text-transform: uppercase; padding: 2px 6px; border: 1px solid currentColor; line-height: 1.5; flex-shrink: 0; }
+.topbar-plan-badge.free     { color: var(--text-dim); }
+.topbar-plan-badge.pro      { color: #0D9488; }
+.topbar-plan-badge.business { color: #7C3AED; }
+.topbar-login-link { font-family: 'IBM Plex Mono', monospace; font-size: 11px; letter-spacing: .08em; color: var(--text-mid); text-decoration: none; display: none; }
+.topbar-login-link:hover { color: var(--text); }
 .icon-btn {
   width: 28px; height: 28px;
   display: inline-flex; align-items: center; justify-content: center;
@@ -1442,6 +1450,17 @@ html, body {
       <button class="icon-btn" title="연결 설정" onclick="openSettingsModal()">
         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
       </button>
+      <span class="topbar-divider"></span>
+      <!-- 유저 정보 -->
+      <div id="topbar-user" class="topbar-user">
+        <span id="topbar-plan-badge" class="topbar-plan-badge free">FREE</span>
+        <span id="topbar-user-name" class="topbar-user-name">—</span>
+        <button class="icon-btn" title="로그아웃" onclick="doLogout()">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+        </button>
+      </div>
+      <!-- 비로그인(데모) -->
+      <a id="topbar-login-link" class="topbar-login-link" href="/connect">로그인</a>
     </div>
   </header>
 
@@ -3399,10 +3418,39 @@ var _myIsAdmin = false;
 var _redmineUsers = [];
 
 function _loadMyInfo() {
-  fetch('/api/auth/me').then(function(r) { return r.json(); }).then(function(d) {
+  fetch('/api/auth/me').then(function(r) { return r.ok ? r.json() : null; }).then(function(d) {
+    if (!d) {
+      // 비로그인(데모): 로그인 링크 표시
+      var loginLink = document.getElementById('topbar-login-link');
+      if (loginLink) loginLink.style.display = 'inline';
+      return;
+    }
     _myDisplayName = d.display_name || d.email || '나';
     _myIsAdmin = !!d.is_admin;
-  }).catch(function() {});
+
+    // topbar 유저 영역 채우기
+    var nameEl = document.getElementById('topbar-user-name');
+    if (nameEl) nameEl.textContent = d.display_name || d.email || '—';
+    var userEl = document.getElementById('topbar-user');
+    if (userEl) userEl.style.display = 'flex';
+
+    // 플랜 뱃지
+    fetch('/api/account/plan').then(function(r) { return r.json(); }).then(function(p) {
+      var badge = document.getElementById('topbar-plan-badge');
+      if (!badge) return;
+      var plan = p.plan || 'free';
+      badge.textContent = plan.toUpperCase();
+      badge.className = 'topbar-plan-badge ' + plan;
+    }).catch(function() {});
+  }).catch(function() {
+    var loginLink = document.getElementById('topbar-login-link');
+    if (loginLink) loginLink.style.display = 'inline';
+  });
+}
+
+async function doLogout() {
+  await fetch('/api/auth/logout', { method: 'POST' });
+  window.location.href = '/connect';
 }
 
 function _loadRedmineUsers() {

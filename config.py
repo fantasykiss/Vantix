@@ -3,7 +3,8 @@ from datetime import date, timedelta
 
 try:
     from dotenv import load_dotenv
-    load_dotenv(override=True)
+    _env_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), ".env")
+    load_dotenv(_env_path, override=True)
 except ImportError:
     pass
 
@@ -48,3 +49,6 @@ DEFAULT_PROJECT_ID    = os.getenv("DEFAULT_PROJECT_ID", "")
 DEFAULT_UPDATED_AFTER = os.getenv("DEFAULT_UPDATED_AFTER",
     (date.today() - timedelta(days=90)).strftime("%Y-%m-%d"))
 AI_MODEL = os.getenv("AI_MODEL", "claude-haiku-4-5-20251001")
+
+RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+RESEND_FROM    = os.getenv("RESEND_FROM", "onboarding@resend.dev")

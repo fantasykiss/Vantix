@@ -328,6 +328,10 @@ _warm_session_cache()
 from app.constants import (
     DEFAULT_PLAN, plan_info, plan_allows, plan_project_limit,
 )
+from config import RESEND_API_KEY, RESEND_FROM
+import resend as _resend
+_resend.api_key = RESEND_API_KEY
+
 _pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
 _USERS_DB = os.getenv("USERS_DB_PATH", os.path.join(os.path.dirname(__file__), "vantix_users.db"))
 
@@ -365,21 +369,56 @@ def _init_users_db():
                 UNIQUE(user_id, project_id)
             );
         """)
-        # Phase 4: 기존 DB에 plan 컬럼 마이그레이션 (없을 때만 추가)
         cols = {r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
         if "plan" not in cols:
             conn.execute(f"ALTER TABLE users ADD COLUMN plan TEXT DEFAULT '{DEFAULT_PLAN}'")
+        if "email_verified" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0")
+        if "email_verify_token" not in cols:
+            conn.execute("ALTER TABLE users ADD COLUMN email_verify_token TEXT")
 
 _init_users_db()
 
-def _create_user(email: str, password: str) -> int:
+def _create_user(email: str, password: str) -> tuple[int, str]:
     hashed = _pwd_ctx.hash(password)
+    token = str(_uuid.uuid4()).replace("-", "")
     with _users_db() as conn:
         cur = conn.execute(
-            "INSERT INTO users (email, hashed_password, created_at) VALUES (?,?,?)",
-            (email.lower().strip(), hashed, time.time())
+            "INSERT INTO users (email, hashed_password, created_at, email_verified, email_verify_token) VALUES (?,?,?,0,?)",
+            (email.lower().strip(), hashed, time.time(), token)
         )
-        return cur.lastrowid
+        return cur.lastrowid, token
+
+def _verify_email_token(token: str) -> dict | None:
+    with _users_db() as conn:
+        row = conn.execute(
+            "SELECT * FROM users WHERE email_verify_token=? AND is_active=1", (token,)
+        ).fetchone()
+        if not row:
+            return None
+        conn.execute(
+            "UPDATE users SET email_verified=1, email_verify_token=NULL WHERE id=?", (row["id"],)
+        )
+        return dict(row)
+
+def _send_verification_email(email: str, token: str, base_url: str):
+    verify_url = f"{base_url}/api/auth/verify-email?token={token}"
+    try:
+        _resend.Emails.send({
+            "from": f"Vantix <{RESEND_FROM}>",
+            "to": [email],
+            "subject": "[Vantix] 이메일 인증을 완료해주세요",
+            "html": f"""
+<div style="font-family:'IBM Plex Mono',monospace;max-width:520px;margin:0 auto;padding:40px 32px;background:#F5F4EF;border:1px solid rgba(23,24,26,.1);">
+  <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#0F766E;margin-bottom:16px;">VANTIX — EMAIL VERIFICATION</div>
+  <h2 style="font-family:sans-serif;font-weight:700;font-size:22px;color:#17181A;margin:0 0 12px;">이메일 인증</h2>
+  <p style="font-size:14px;line-height:1.7;color:#46494d;margin:0 0 28px;">아래 버튼을 클릭하면 가입이 완료되고 Redmine 연결 단계로 이동합니다. 링크는 24시간 동안 유효합니다.</p>
+  <a href="{verify_url}" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#0F766E;text-decoration:none;padding:14px 28px;">이메일 인증하기 ↗</a>
+  <p style="margin:24px 0 0;font-size:11px;color:#8a8d91;">버튼이 작동하지 않으면 아래 링크를 복사해 브라우저에 붙여넣으세요.<br><a href="{verify_url}" style="color:#0F766E;word-break:break-all;">{verify_url}</a></p>
+</div>""",
+        })
+    except Exception as e:
+        print(f"[resend] 이메일 발송 실패: {e}")
 
 def _get_user_by_email(email: str) -> dict | None:
     with _users_db() as conn:
@@ -490,18 +529,7 @@ def _current_user_id(request: Request) -> int | None:
     token = request.cookies.get("vx_session") or request.headers.get("X-VX-Session")
     return _get_session_user_id(token or "") if token else None
 
-def _require_feature(feature: str):
-    """AI/리포트 기능 게이트 의존성. free 플랜이면 402(업그레이드 필요)."""
-    def _dep(request: Request):
-        plan = _get_user_plan(_current_user_id(request))
-        if not plan_allows(plan, feature):
-            raise HTTPException(
-                status_code=402,
-                detail={"error": "upgrade_required", "feature": feature,
-                        "plan": plan, "message": "Pro 플랜에서 사용할 수 있는 기능입니다."},
-            )
-        return plan
-    return _dep
+
 
 def _check_project_access(request: Request, project_id: str):
     """선택 프로젝트 게이트. 로그인 유저가 프로젝트를 선택해 둔 경우,
@@ -2388,7 +2416,7 @@ async def admin_page(request: Request):
 
 @app.post("/api/auth/signup")
 async def api_auth_signup(request: Request):
-    """이메일 + 비밀번호로 계정 생성"""
+    """이메일 + 비밀번호로 계정 생성 → 인증 이메일 발송"""
     body = await request.json()
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
@@ -2398,11 +2426,22 @@ async def api_auth_signup(request: Request):
     if len(password) < 8:
         raise HTTPException(status_code=400, detail="비밀번호는 8자 이상이어야 합니다")
 
-    if _get_user_by_email(email):
+    existing = _get_user_by_email(email)
+    if existing:
+        if not existing.get("email_verified"):
+            # 미인증 계정 재가입 시도 → 인증 이메일 재발송
+            token = str(_uuid.uuid4()).replace("-", "")
+            with _users_db() as conn:
+                conn.execute("UPDATE users SET email_verify_token=? WHERE id=?", (token, existing["id"]))
+            base_url = str(request.base_url).rstrip("/")
+            _send_verification_email(email, token, base_url)
+            return JSONResponse({"ok": True, "email_sent": True, "email": email})
         raise HTTPException(status_code=409, detail="이미 사용 중인 이메일입니다")
 
-    user_id = _create_user(email, password)
-    return JSONResponse({"ok": True, "user_id": user_id, "email": email})
+    user_id, token = _create_user(email, password)
+    base_url = str(request.base_url).rstrip("/")
+    _send_verification_email(email, token, base_url)
+    return JSONResponse({"ok": True, "email_sent": True, "email": email})
 
 
 @app.post("/api/auth/login")
@@ -2415,6 +2454,9 @@ async def api_auth_login(request: Request):
     user = _get_user_by_email(email)
     if not user or not _verify_password(password, user["hashed_password"]):
         raise HTTPException(status_code=401, detail="이메일 또는 비밀번호가 올바르지 않습니다")
+
+    if not user.get("email_verified"):
+        raise HTTPException(status_code=403, detail="email_not_verified")
 
     conn_info = _get_redmine_connection(user["id"])
     if conn_info:
@@ -2431,6 +2473,44 @@ async def api_auth_login(request: Request):
         response = JSONResponse({"ok": True, "has_connection": False, "email": email})
         response.set_cookie("vx_pending_uid", str(user["id"]), httponly=True, max_age=600, samesite="lax", secure=True)
         return response
+
+
+@app.get("/api/auth/verify-email")
+async def api_auth_verify_email(token: str, request: Request):
+    """이메일 인증 링크 클릭 → 인증 완료 후 Redmine 연결 페이지로 이동"""
+    user = _verify_email_token(token)
+    if not user:
+        return HTMLResponse("<h3>인증 링크가 유효하지 않거나 이미 사용되었습니다.</h3><a href='/connect'>홈으로</a>", status_code=400)
+
+    conn_info = _get_redmine_connection(user["id"])
+    response = RedirectResponse(url="/connect?verified=1", status_code=302)
+    if conn_info:
+        # Redmine 연결이 이미 있으면 세션 발급 후 대시보드로
+        sess_token = str(_uuid.uuid4())
+        _save_session(sess_token, conn_info["redmine_url"], conn_info["api_key"], time.time())
+        _tag_session_user(sess_token, user["id"])
+        response = RedirectResponse(url="/", status_code=302)
+        response.set_cookie("vx_session", sess_token, httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
+        response.set_cookie("vx_user_id", str(user["id"]), httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
+    else:
+        response.set_cookie("vx_pending_uid", str(user["id"]), httponly=True, max_age=600, samesite="lax", secure=True)
+    return response
+
+
+@app.post("/api/auth/resend-verification")
+async def api_auth_resend_verification(request: Request):
+    """인증 이메일 재발송"""
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    user = _get_user_by_email(email)
+    if not user or user.get("email_verified"):
+        return JSONResponse({"ok": True})  # 보안상 항상 ok 반환
+    token = str(_uuid.uuid4()).replace("-", "")
+    with _users_db() as conn:
+        conn.execute("UPDATE users SET email_verify_token=? WHERE id=?", (token, user["id"]))
+    base_url = str(request.base_url).rstrip("/")
+    _send_verification_email(email, token, base_url)
+    return JSONResponse({"ok": True})
 
 
 @app.post("/api/auth/logout")
@@ -3142,7 +3222,7 @@ async def api_report_preview(
     sections:      str = "",
     memo:          str = "",
     s: dict = Depends(_require_session),
-    _plan: str = Depends(_require_feature("report")),
+
 ):
     from fastapi.responses import HTMLResponse
 
@@ -3261,7 +3341,7 @@ async def api_report_preview(
 async def api_report_share(
     request: Request,
     s: dict = Depends(_require_session),
-    _plan: str = Depends(_require_feature("report")),
+
 ):
     body = await request.json()
     html = body.get("html", "")
@@ -3295,7 +3375,7 @@ async def api_report_tsv(
     updated_after: str = "2026-03-01",
     sections:      str = "",
     s: dict = Depends(_require_session),
-    _plan: str = Depends(_require_feature("report")),
+
 ):
     from fastapi.responses import PlainTextResponse
     redmine_url = s.get("url")
@@ -3310,7 +3390,7 @@ async def api_report_tsv(
 
 
 @app.post("/api/report/send")
-async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session), _plan: str = Depends(_require_feature("report"))):
+async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
     dashboard = get_cache(project_id, updated_after, s["url"])
     if not dashboard:
         dashboard = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
@@ -3336,7 +3416,7 @@ async def api_redmine_users(s: dict = Depends(_require_session)):
 
 
 @app.post("/api/report/send-html")
-async def api_report_send_html(request: Request, s: dict = Depends(_require_session), _plan: str = Depends(_require_feature("report"))):
+async def api_report_send_html(request: Request, s: dict = Depends(_require_session)):
     body       = await request.json()
     html       = body.get("html", "")
     recipients = body.get("recipients", [])
@@ -3355,7 +3435,7 @@ async def api_report_send_html(request: Request, s: dict = Depends(_require_sess
 
 @app.get("/api/ai/risk-comment")
 async def api_ai_risk_comment(s: dict = Depends(_require_session),
-    _plan: str = Depends(_require_feature("ai")),
+
     name: str = "", score: float = 0,
     overdue: int = 0, urgent: int = 0, open_issues: int = 0,
     top_issues: str = ""
@@ -3384,7 +3464,7 @@ async def api_ai_risk_comment(s: dict = Depends(_require_session),
 
 @app.get("/api/ai/action-signals")
 async def api_ai_action_signals(s: dict = Depends(_require_session),
-    _plan: str = Depends(_require_feature("ai")),
+
     project_id: str = "",
     updated_after: str = "2026-01-01",
     force: bool = False
@@ -3514,7 +3594,7 @@ async def api_ai_action_signals(s: dict = Depends(_require_session),
 
 
 @app.get("/api/ai/report-summary")
-async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session), _plan: str = Depends(_require_feature("ai"))):
+async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
     cache_k = f"report-summary|{s['url'].rstrip('/')}|{project_id}|{updated_after}"
     cached = _get_ai_cache(cache_k)
     if cached:
@@ -3606,7 +3686,7 @@ async def api_ai_report_summary(project_id: str = "", updated_after: str = "2026
 
 @app.get("/api/ai/delay-prediction")
 async def api_ai_delay_prediction(s: dict = Depends(_require_session),
-    _plan: str = Depends(_require_feature("ai")),
+
     project_id: str = "", updated_after: str = "2026-03-01", project_name: str = ""
 ):
     cache_k = f"delay-pred|{s['url'].rstrip('/')}|{project_id}|{project_name}"

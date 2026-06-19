@@ -2,7 +2,7 @@
 # value-metric = 모니터링 프로젝트 수. -1 = 무제한.
 # AI 3종·이메일 리포트는 Pro 이상에서만 해금.
 PLANS = {
-    "free":     {"label": "Free",     "project_limit": 1,  "ai": False, "report": False},
+    "free":     {"label": "Free",     "project_limit": 1,  "ai": True,  "report": True},
     "pro":      {"label": "Pro",      "project_limit": 5,  "ai": True,  "report": True},
     "business": {"label": "Business", "project_limit": -1, "ai": True,  "report": True},
 }
