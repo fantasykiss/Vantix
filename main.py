@@ -2958,7 +2958,15 @@ def _charge_billing_key(billing_key: str, payment_id: str, plan: str, user_id: i
                 "customer": {"id": f"user-{user_id}", "email": email},
             },
         )
-    return resp.json()
+    try:
+        data = resp.json()
+    except Exception:
+        data = {}
+    # 4xx/5xx인데 메시지가 없으면 raw 응답을 보존해 디버깅 가능하게
+    if resp.status_code >= 400 and "message" not in data:
+        data = {"type": f"HTTP_{resp.status_code}", "message": (resp.text or "")[:300]}
+    print(f"[billing] charge resp status={resp.status_code} body={str(data)[:300]}")
+    return data
 
 
 @app.post("/api/billing/issue")
@@ -2989,11 +2997,13 @@ async def api_billing_issue(request: Request, s: dict = Depends(_require_session
     import uuid as _uuid_mod
     payment_id = f"vantix-{plan}-{uid}-{int(time.time())}"
     result = _charge_billing_key(billing_key, payment_id, plan, uid, email)
-    status = result.get("status", "")
+    # 포트원 V2 빌링키 결제 성공 응답은 { "payment": { "status": "PAID", ... } } 구조
+    payment = result.get("payment") or {}
+    status = payment.get("status", "")
 
     if status != "PAID":
-        code = result.get("code", "UNKNOWN")
-        msg = result.get("message", "결제에 실패했습니다")
+        code = result.get("type", "UNKNOWN")
+        msg = result.get("message") or "결제에 실패했습니다"
         raise HTTPException(status_code=402, detail=f"결제 실패: {msg} ({code})")
 
     # 빌링키 저장 + 플랜 업데이트
