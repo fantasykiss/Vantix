@@ -28,3 +28,4 @@ psycopg2-binary==2.9.10
 cryptography==48.0.0
 bcrypt==3.2.2
 passlib==1.7.4
+resend==2.32.2
