@@ -2965,6 +2965,8 @@ def _charge_billing_key(billing_key: str, payment_id: str, plan: str, user_id: i
     # 4xx/5xx인데 메시지가 없으면 raw 응답을 보존해 디버깅 가능하게
     if resp.status_code >= 400 and "message" not in data:
         data = {"type": f"HTTP_{resp.status_code}", "message": (resp.text or "")[:300]}
+    if isinstance(data, dict):
+        data["_http_status"] = resp.status_code
     print(f"[billing] charge resp status={resp.status_code} body={str(data)[:300]}")
     return data
 
@@ -2997,11 +2999,13 @@ async def api_billing_issue(request: Request, s: dict = Depends(_require_session
     import uuid as _uuid_mod
     payment_id = f"vantix-{plan}-{uid}-{int(time.time())}"
     result = _charge_billing_key(billing_key, payment_id, plan, uid, email)
-    # 포트원 V2 빌링키 결제 성공 응답은 { "payment": { "status": "PAID", ... } } 구조
+    # 포트원 V2 빌링키 결제: 성공 시 HTTP 200 + { "payment": { pgTxId, paidAt } }.
+    # status 필드를 안 주므로 HTTP 200 + payment 존재로 성공 판정. 실패는 4xx + type/message.
+    http_status = result.get("_http_status", 0)
     payment = result.get("payment") or {}
-    status = payment.get("status", "")
+    paid = http_status == 200 and bool(payment) and payment.get("status", "PAID") == "PAID"
 
-    if status != "PAID":
+    if not paid:
         code = result.get("type", "UNKNOWN")
         msg = result.get("message") or "결제에 실패했습니다"
         raise HTTPException(status_code=402, detail=f"결제 실패: {msg} ({code})")
