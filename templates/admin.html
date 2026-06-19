@@ -372,6 +372,11 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
         피드백
         <span class="nav-badge" id="nav-fb-cnt">-</span>
       </a>
+      <a class="nav-item" onclick="switchView('saas', this)" data-view="saas">
+        <span class="material-symbols-outlined">paid</span>
+        회원 · 결제
+        <span class="nav-badge" id="nav-saas-cnt">-</span>
+      </a>
     </nav>
     <div class="sidebar-footer">
       <div class="live-pill">
@@ -650,6 +655,75 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
       </div>
     </div>
 
+    <!-- ════════ SAAS (회원·결제) VIEW ════════ -->
+    <div id="view-saas" class="view view-hidden">
+      <div style="margin-bottom:20px;">
+        <div style="font-size:18px;font-weight:800;color:#091426;letter-spacing:-.3px;">회원 · 결제</div>
+        <div style="font-size:12px;color:#75777d;margin-top:2px;">가입 회원, 구독 매출, 팀 현황을 확인하세요.</div>
+      </div>
+
+      <!-- KPI row -->
+      <div class="grid4" style="margin-bottom:16px;">
+        <div class="card card-pad">
+          <div class="kpi-icon" style="margin-bottom:10px;"><span class="material-symbols-outlined">group</span></div>
+          <div class="kpi-label">총 회원</div>
+          <div class="kpi-num" id="saas-total">-</div>
+          <div class="kpi-note">Free <strong id="saas-free">-</strong> · Pro <strong id="saas-pro">-</strong> · Biz <strong id="saas-biz">-</strong></div>
+        </div>
+        <div class="card card-pad">
+          <div class="kpi-icon" style="margin-bottom:10px;"><span class="material-symbols-outlined">paid</span></div>
+          <div class="kpi-label">MRR (월 매출)</div>
+          <div class="kpi-num" id="saas-mrr">-</div>
+          <div class="kpi-note">VAT 별도</div>
+        </div>
+        <div class="card card-pad">
+          <div class="kpi-icon" style="margin-bottom:10px;"><span class="material-symbols-outlined">card_membership</span></div>
+          <div class="kpi-label">활성 구독</div>
+          <div class="kpi-num" id="saas-subs">-</div>
+          <div class="kpi-note">유료 결제 중</div>
+        </div>
+        <div class="card card-pad">
+          <div class="kpi-icon" style="margin-bottom:10px;"><span class="material-symbols-outlined">groups</span></div>
+          <div class="kpi-label">팀(워크스페이스)</div>
+          <div class="kpi-num" id="saas-teams">-</div>
+          <div class="kpi-note">초대 운영 중</div>
+        </div>
+      </div>
+
+      <!-- 회원 목록 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-head"><div class="card-title">회원 목록</div><span style="font-size:11px;color:#75777d;" id="saas-members-count"></span></div>
+        <div style="overflow-x:auto;">
+          <table class="conn-table">
+            <thead><tr><th>이메일</th><th>플랜</th><th>인증</th><th>Redmine</th><th>가입일</th></tr></thead>
+            <tbody id="saas-members-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 결제 이력 -->
+      <div class="card" style="margin-bottom:16px;">
+        <div class="card-head"><div class="card-title">결제 이력</div></div>
+        <div style="overflow-x:auto;">
+          <table class="conn-table">
+            <thead><tr><th>이메일</th><th>플랜</th><th>금액</th><th>상태</th><th>일시</th></tr></thead>
+            <tbody id="saas-payments-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 팀 현황 -->
+      <div class="card">
+        <div class="card-head"><div class="card-title">팀 현황</div></div>
+        <div style="overflow-x:auto;">
+          <table class="conn-table">
+            <thead><tr><th>오너</th><th>플랜</th><th>멤버 수</th><th>대기 초대</th></tr></thead>
+            <tbody id="saas-teams-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
     <!-- ════════ MOBILE FILTER SHEET (7일/전체/프로덕션/로컬) ════════ -->
     <div id="mobile-filter-sheet" style="display:none; position:fixed; bottom:60px; left:0; right:0; background:#fff; border-top:1px solid #e0e3e5; padding:14px 16px; z-index:99; box-shadow:0 -4px 16px rgba(0,0,0,.06);">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:8px;">기간</div>
@@ -692,6 +766,9 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
   <button class="mobile-nav-item" onclick="switchView('feedback',this)" data-view="feedback">
     <span class="material-symbols-outlined">chat_bubble</span>피드백
     <span class="mobile-nav-badge" id="mobile-fb-cnt" style="display:none;">-</span>
+  </button>
+  <button class="mobile-nav-item" onclick="switchView('saas',this)" data-view="saas">
+    <span class="material-symbols-outlined">paid</span>회원
   </button>
   <button class="mobile-nav-item" onclick="toggleMobileFilter(this)">
     <span class="material-symbols-outlined">tune</span>필터
@@ -757,7 +834,7 @@ function doLogout() {
 
 // ── View switching ───────────────────────────────────────────────
 function switchView(name, btn) {
-  var views = ['dashboard', 'analytics', 'events', 'feedback'];
+  var views = ['dashboard', 'analytics', 'events', 'feedback', 'saas'];
   views.forEach(function(v) {
     var el = document.getElementById('view-' + v);
     if (el) el.classList[v === name ? 'remove' : 'add']('view-hidden');
@@ -771,11 +848,69 @@ function switchView(name, btn) {
   var mobileItem = document.querySelector('.mobile-nav-item[data-view="' + name + '"]');
   if (mobileItem) mobileItem.classList.add('active');
   _currentView = name;
-  var titles = {dashboard: 'Dashboard', analytics: 'Analytics', events: '이벤트', feedback: '피드백'};
+  var titles = {dashboard: 'Dashboard', analytics: 'Analytics', events: '이벤트', feedback: '피드백', saas: '회원 · 결제'};
   document.getElementById('topbar-title').textContent = titles[name] || name;
   if (name === 'events') loadEvents();
   if (name === 'feedback') loadFeedback();
+  if (name === 'saas') loadSaas();
   closeMobileFilter();
+}
+
+// ── 회원·결제 ─────────────────────────────────────────────────────
+function _fmtWon(n) { return '₩' + (n || 0).toLocaleString('ko-KR'); }
+function _fmtDate(ts) {
+  if (!ts) return '-';
+  var d = new Date(ts * 1000);
+  return d.getFullYear() + '.' + ('0'+(d.getMonth()+1)).slice(-2) + '.' + ('0'+d.getDate()).slice(-2);
+}
+function _planChip(plan) {
+  var c = plan === 'business' ? '#7C3AED' : (plan === 'pro' ? '#0D9488' : '#75777d');
+  return '<span style="font-size:10px;font-weight:700;text-transform:uppercase;color:' + c + ';border:1px solid ' + c + ';padding:1px 6px;border-radius:99px;">' + (plan || 'free') + '</span>';
+}
+function loadSaas() {
+  fetch('/api/admin/saas', {credentials: 'same-origin'})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var s = d.summary || {};
+      var dist = s.plan_dist || {};
+      document.getElementById('saas-total').textContent = s.total_members || 0;
+      document.getElementById('saas-free').textContent = dist.free || 0;
+      document.getElementById('saas-pro').textContent = dist.pro || 0;
+      document.getElementById('saas-biz').textContent = dist.business || 0;
+      document.getElementById('saas-mrr').textContent = _fmtWon(s.mrr);
+      document.getElementById('saas-subs').textContent = s.active_subscriptions || 0;
+      document.getElementById('saas-teams').textContent = (d.teams || []).length;
+      var navc = document.getElementById('nav-saas-cnt'); if (navc) navc.textContent = s.total_members || 0;
+
+      // 회원
+      var mb = document.getElementById('saas-members-body');
+      document.getElementById('saas-members-count').textContent = (d.members || []).length + '명';
+      mb.innerHTML = (d.members || []).map(function(m) {
+        return '<tr><td>' + (m.email || '') + '</td><td>' + _planChip(m.plan) + '</td>'
+          + '<td>' + (m.email_verified ? '✓' : '<span style="color:#c0392b;">미인증</span>') + '</td>'
+          + '<td>' + (m.has_connection ? '✓' : '–') + '</td>'
+          + '<td style="color:#75777d;">' + _fmtDate(m.created_at) + '</td></tr>';
+      }).join('') || '<tr><td colspan="5" style="color:#75777d;text-align:center;padding:20px;">아직 회원이 없습니다</td></tr>';
+
+      // 결제
+      var pb = document.getElementById('saas-payments-body');
+      pb.innerHTML = (d.payments || []).map(function(p) {
+        var stColor = p.status === 'paid' ? '#0D9488' : '#c0392b';
+        return '<tr><td>' + (p.email || '') + '</td><td>' + _planChip(p.plan) + '</td>'
+          + '<td>' + _fmtWon(p.amount) + '</td>'
+          + '<td><span style="color:' + stColor + ';font-weight:600;">' + (p.status || '') + '</span></td>'
+          + '<td style="color:#75777d;">' + _fmtDate(p.paid_at) + '</td></tr>';
+      }).join('') || '<tr><td colspan="5" style="color:#75777d;text-align:center;padding:20px;">아직 결제 내역이 없습니다</td></tr>';
+
+      // 팀
+      var tb = document.getElementById('saas-teams-body');
+      tb.innerHTML = (d.teams || []).map(function(t) {
+        return '<tr><td>' + (t.owner_email || '') + '</td><td>' + _planChip(t.owner_plan) + '</td>'
+          + '<td>' + (t.member_count || 0) + '명</td>'
+          + '<td style="color:#75777d;">' + (t.pending_count || 0) + '건</td></tr>';
+      }).join('') || '<tr><td colspan="4" style="color:#75777d;text-align:center;padding:20px;">아직 팀이 없습니다</td></tr>';
+    })
+    .catch(function(e) { console.error('loadSaas:', e); });
 }
 
 // ── Mobile filter sheet ──────────────────────────────────────────

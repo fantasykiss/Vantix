@@ -2,9 +2,9 @@
 # value-metric = 모니터링 프로젝트 수. -1 = 무제한.
 # AI 3종·이메일 리포트는 Pro 이상에서만 해금.
 PLANS = {
-    "free":     {"label": "Free",     "project_limit": 1,  "ai": True,  "report": True},
-    "pro":      {"label": "Pro",      "project_limit": 5,  "ai": True,  "report": True},
-    "business": {"label": "Business", "project_limit": -1, "ai": True,  "report": True},
+    "free":     {"label": "Free",     "project_limit": 1,  "member_limit": 3,  "ai": True, "report": False, "csv": False},
+    "pro":      {"label": "Pro",      "project_limit": 5,  "member_limit": 15, "ai": True, "report": True,  "csv": False},
+    "business": {"label": "Business", "project_limit": -1, "member_limit": -1, "ai": True, "report": True,  "csv": True},
 }
 DEFAULT_PLAN = "free"
 PLAN_ORDER = ["free", "pro", "business"]  # 등급 비교용
@@ -23,6 +23,11 @@ def plan_allows(plan: str, feature: str) -> bool:
 def plan_project_limit(plan: str) -> int:
     """프로젝트 개수 제한. -1 = 무제한."""
     return plan_info(plan).get("project_limit", 1)
+
+
+def plan_member_limit(plan: str) -> int:
+    """팀원 수 제한 (오너 포함). -1 = 무제한."""
+    return plan_info(plan).get("member_limit", 3)
 
 
 PROGRESS_SET = {"진행", "진행대기", "In Progress"}

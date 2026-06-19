@@ -8,7 +8,6 @@ Redmine 실시간 웹 대시보드
 import json
 import os
 import re
-import sqlite3
 import ssl
 import threading
 import time
@@ -326,56 +325,133 @@ _warm_session_cache()
 
 # ==================== 유저 DB (SQLite) ====================
 from app.constants import (
-    DEFAULT_PLAN, plan_info, plan_allows, plan_project_limit,
+    DEFAULT_PLAN, plan_info, plan_allows, plan_project_limit, plan_member_limit,
 )
-from config import RESEND_API_KEY, RESEND_FROM
+from config import RESEND_API_KEY, RESEND_FROM, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_API_SECRET, PLAN_PRICES
 import resend as _resend
 _resend.api_key = RESEND_API_KEY
+import httpx as _httpx
 
 _pwd_ctx = CryptContext(schemes=["bcrypt"], deprecated="auto")
-_USERS_DB = os.getenv("USERS_DB_PATH", os.path.join(os.path.dirname(__file__), "vantix_users.db"))
 
-def _users_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(_USERS_DB, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    return conn
+# 회원/결제/팀 데이터는 PostgreSQL(DATABASE_URL)에 저장 → 로컬·Railway 공유, 재배포 시 보존.
+# 기존 SQLite 호출 패턴(conn.execute(...).fetchone(), dict(row))을 그대로 쓰도록 감싸는 호환 래퍼.
+from psycopg2.extras import RealDictCursor as _RealDictCursor
+
+class _PgUsersConn:
+    """SQLite 호환 인터페이스로 PostgreSQL 커넥션을 감싼다."""
+    def __init__(self, conn):
+        self._conn = conn
+    def execute(self, sql, params=()):
+        sql = sql.replace("?", "%s")
+        cur = self._conn.cursor(cursor_factory=_RealDictCursor)
+        cur.execute(sql, params)
+        return cur
+    def executescript(self, sql):
+        cur = self._conn.cursor()
+        cur.execute(sql)
+        cur.close()
+    def cursor(self, *a, **k):
+        return self._conn.cursor(*a, **k)
+    def commit(self):
+        self._conn.commit()
+
+class _users_db:
+    """`with _users_db() as conn:` — 풀에서 꺼내 쓰고 정상 종료 시 commit, 예외 시 rollback."""
+    def __enter__(self):
+        self._raw = _get_pool().getconn()
+        return _PgUsersConn(self._raw)
+    def __exit__(self, exc_type, *_):
+        try:
+            if exc_type:
+                self._raw.rollback()
+            else:
+                self._raw.commit()
+        finally:
+            _get_pool().putconn(self._raw)
 
 def _init_users_db():
+    if not _DATABASE_URL:
+        print("[users-db] DATABASE_URL 없음 — 회원 DB 초기화 건너뜀")
+        return
     with _users_db() as conn:
-        conn.executescript("""
-            CREATE TABLE IF NOT EXISTS users (
-                id               INTEGER PRIMARY KEY AUTOINCREMENT,
+        conn.executescript(f"""
+            CREATE TABLE IF NOT EXISTS vantix_users (
+                id               SERIAL PRIMARY KEY,
                 email            TEXT    UNIQUE NOT NULL,
                 hashed_password  TEXT    NOT NULL,
-                created_at       REAL    NOT NULL,
-                is_active        INTEGER DEFAULT 1
+                created_at       DOUBLE PRECISION NOT NULL,
+                is_active        INTEGER DEFAULT 1,
+                plan             TEXT    DEFAULT '{DEFAULT_PLAN}',
+                email_verified   INTEGER DEFAULT 0,
+                email_verify_token TEXT
             );
-            CREATE TABLE IF NOT EXISTS redmine_connections (
-                id                INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id           INTEGER NOT NULL REFERENCES users(id),
+            CREATE TABLE IF NOT EXISTS vantix_redmine_connections (
+                id                SERIAL PRIMARY KEY,
+                user_id           INTEGER NOT NULL REFERENCES vantix_users(id),
                 redmine_url       TEXT    NOT NULL,
                 api_key           TEXT    NOT NULL,
                 default_project_id TEXT   DEFAULT '',
                 updated_after     TEXT    DEFAULT '',
-                created_at        REAL    NOT NULL
+                created_at        DOUBLE PRECISION NOT NULL
             );
             -- Phase 4: 유저가 모니터링하기로 선택한 프로젝트 (플랜별 개수 제한 적용 대상)
-            CREATE TABLE IF NOT EXISTS user_projects (
-                id           INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id      INTEGER NOT NULL REFERENCES users(id),
+            CREATE TABLE IF NOT EXISTS vantix_user_projects (
+                id           SERIAL PRIMARY KEY,
+                user_id      INTEGER NOT NULL REFERENCES vantix_users(id),
                 project_id   TEXT    NOT NULL,
                 project_name TEXT    DEFAULT '',
-                created_at   REAL    NOT NULL,
+                created_at   DOUBLE PRECISION NOT NULL,
                 UNIQUE(user_id, project_id)
             );
+            CREATE TABLE IF NOT EXISTS vantix_billing_keys (
+                id          SERIAL PRIMARY KEY,
+                user_id     INTEGER NOT NULL REFERENCES vantix_users(id),
+                billing_key TEXT    NOT NULL,
+                plan        TEXT    NOT NULL,
+                status      TEXT    DEFAULT 'active',
+                created_at  DOUBLE PRECISION NOT NULL,
+                expires_at  DOUBLE PRECISION
+            );
+            CREATE TABLE IF NOT EXISTS vantix_payment_history (
+                id             SERIAL PRIMARY KEY,
+                user_id        INTEGER NOT NULL,
+                payment_id     TEXT    NOT NULL UNIQUE,
+                billing_key_id INTEGER,
+                plan           TEXT    NOT NULL,
+                amount         INTEGER NOT NULL,
+                status         TEXT    NOT NULL,
+                paid_at        DOUBLE PRECISION
+            );
+            -- Phase 4: 팀(워크스페이스) — 오너가 결제, 팀원은 자기 Redmine 키로 합류
+            CREATE TABLE IF NOT EXISTS vantix_workspaces (
+                id            SERIAL PRIMARY KEY,
+                owner_user_id INTEGER NOT NULL UNIQUE REFERENCES vantix_users(id),
+                created_at    DOUBLE PRECISION NOT NULL
+            );
+            CREATE TABLE IF NOT EXISTS vantix_workspace_members (
+                id           SERIAL PRIMARY KEY,
+                workspace_id INTEGER NOT NULL REFERENCES vantix_workspaces(id),
+                user_id      INTEGER NOT NULL REFERENCES vantix_users(id),
+                role         TEXT    NOT NULL DEFAULT 'viewer',
+                created_at   DOUBLE PRECISION NOT NULL,
+                UNIQUE(workspace_id, user_id),
+                UNIQUE(user_id)
+            );
+            CREATE TABLE IF NOT EXISTS vantix_invitations (
+                id           SERIAL PRIMARY KEY,
+                workspace_id INTEGER NOT NULL REFERENCES vantix_workspaces(id),
+                email        TEXT    NOT NULL,
+                role         TEXT    NOT NULL DEFAULT 'viewer',
+                token        TEXT    NOT NULL UNIQUE,
+                status       TEXT    NOT NULL DEFAULT 'pending',
+                created_at   DOUBLE PRECISION NOT NULL
+            );
+            -- 기존 배포에서 누락 가능한 컬럼 보강 (idempotent)
+            ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT '{DEFAULT_PLAN}';
+            ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0;
+            ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS email_verify_token TEXT;
         """)
-        cols = {r["name"] for r in conn.execute("PRAGMA table_info(users)").fetchall()}
-        if "plan" not in cols:
-            conn.execute(f"ALTER TABLE users ADD COLUMN plan TEXT DEFAULT '{DEFAULT_PLAN}'")
-        if "email_verified" not in cols:
-            conn.execute("ALTER TABLE users ADD COLUMN email_verified INTEGER DEFAULT 0")
-        if "email_verify_token" not in cols:
-            conn.execute("ALTER TABLE users ADD COLUMN email_verify_token TEXT")
 
 _init_users_db()
 
@@ -384,20 +460,20 @@ def _create_user(email: str, password: str) -> tuple[int, str]:
     token = str(_uuid.uuid4()).replace("-", "")
     with _users_db() as conn:
         cur = conn.execute(
-            "INSERT INTO users (email, hashed_password, created_at, email_verified, email_verify_token) VALUES (?,?,?,0,?)",
+            "INSERT INTO vantix_users (email, hashed_password, created_at, email_verified, email_verify_token) VALUES (?,?,?,0,?) RETURNING id",
             (email.lower().strip(), hashed, time.time(), token)
         )
-        return cur.lastrowid, token
+        return cur.fetchone()["id"], token
 
 def _verify_email_token(token: str) -> dict | None:
     with _users_db() as conn:
         row = conn.execute(
-            "SELECT * FROM users WHERE email_verify_token=? AND is_active=1", (token,)
+            "SELECT * FROM vantix_users WHERE email_verify_token=? AND is_active=1", (token,)
         ).fetchone()
         if not row:
             return None
         conn.execute(
-            "UPDATE users SET email_verified=1, email_verify_token=NULL WHERE id=?", (row["id"],)
+            "UPDATE vantix_users SET email_verified=1, email_verify_token=NULL WHERE id=?", (row["id"],)
         )
         return dict(row)
 
@@ -420,14 +496,39 @@ def _send_verification_email(email: str, token: str, base_url: str):
     except Exception as e:
         print(f"[resend] 이메일 발송 실패: {e}")
 
+def _send_invite_email(email: str, inviter_email: str, role: str, base_url: str, is_existing: bool):
+    role_label = {"admin": "관리자", "viewer": "뷰어"}.get(role, role)
+    action_url = f"{base_url}/connect"
+    guide = ("이미 Vantix 계정이 있으시네요. 로그인하면 자동으로 팀에 합류됩니다."
+             if is_existing else
+             "아래 버튼에서 이 이메일로 가입하시면 자동으로 팀에 합류됩니다.")
+    btn_label = "로그인하기 ↗" if is_existing else "가입하고 합류하기 ↗"
+    try:
+        _resend.Emails.send({
+            "from": f"Vantix <{RESEND_FROM}>",
+            "to": [email],
+            "subject": f"[Vantix] {inviter_email}님이 팀에 초대했습니다",
+            "html": f"""
+<div style="font-family:'IBM Plex Mono',monospace;max-width:520px;margin:0 auto;padding:40px 32px;background:#F5F4EF;border:1px solid rgba(23,24,26,.1);">
+  <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#0F766E;margin-bottom:16px;">VANTIX — TEAM INVITATION</div>
+  <h2 style="font-family:sans-serif;font-weight:700;font-size:22px;color:#17181A;margin:0 0 12px;">팀 초대</h2>
+  <p style="font-size:14px;line-height:1.7;color:#46494d;margin:0 0 8px;"><b>{inviter_email}</b>님이 당신을 Vantix 팀에 <b>{role_label}</b> 역할로 초대했습니다.</p>
+  <p style="font-size:13px;line-height:1.7;color:#46494d;margin:0 0 28px;">{guide}</p>
+  <a href="{action_url}" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#0F766E;text-decoration:none;padding:14px 28px;">{btn_label}</a>
+  <p style="margin:24px 0 0;font-size:11px;color:#8a8d91;">합류 후에는 본인의 Redmine API 키로 대시보드를 연결하게 됩니다. 당신의 Redmine 권한 범위 내 프로젝트만 표시됩니다.</p>
+</div>""",
+        })
+    except Exception as e:
+        print(f"[resend] 초대 이메일 발송 실패: {e}")
+
 def _get_user_by_email(email: str) -> dict | None:
     with _users_db() as conn:
-        row = conn.execute("SELECT * FROM users WHERE email=? AND is_active=1", (email.lower().strip(),)).fetchone()
+        row = conn.execute("SELECT * FROM vantix_users WHERE email=? AND is_active=1", (email.lower().strip(),)).fetchone()
         return dict(row) if row else None
 
 def _get_user_by_id(user_id: int) -> dict | None:
     with _users_db() as conn:
-        row = conn.execute("SELECT * FROM users WHERE id=? AND is_active=1", (user_id,)).fetchone()
+        row = conn.execute("SELECT * FROM vantix_users WHERE id=? AND is_active=1", (user_id,)).fetchone()
         return dict(row) if row else None
 
 def _verify_password(plain: str, hashed: str) -> bool:
@@ -435,22 +536,23 @@ def _verify_password(plain: str, hashed: str) -> bool:
 
 # ---------- Phase 4: 플랜 ----------
 def _get_user_plan(user_id: int | None) -> str:
-    """유저의 플랜. 계정 없음(익명/데모) → free."""
+    """유저의 유효 플랜. 워크스페이스 멤버면 오너 플랜을 상속. 익명/데모 → free."""
     if not user_id:
         return DEFAULT_PLAN
+    owner_id = _plan_owner_id(user_id)
     with _users_db() as conn:
-        row = conn.execute("SELECT plan FROM users WHERE id=? AND is_active=1", (user_id,)).fetchone()
+        row = conn.execute("SELECT plan FROM vantix_users WHERE id=? AND is_active=1", (owner_id,)).fetchone()
         return (row["plan"] if row and row["plan"] else DEFAULT_PLAN)
 
 def _set_user_plan(user_id: int, plan: str):
     with _users_db() as conn:
-        conn.execute("UPDATE users SET plan=? WHERE id=?", (plan, user_id))
+        conn.execute("UPDATE vantix_users SET plan=? WHERE id=?", (plan, user_id))
 
 # ---------- Phase 4: 선택 프로젝트 ----------
 def _get_user_projects(user_id: int) -> list[dict]:
     with _users_db() as conn:
         rows = conn.execute(
-            "SELECT project_id, project_name FROM user_projects WHERE user_id=? ORDER BY created_at",
+            "SELECT project_id, project_name FROM vantix_user_projects WHERE user_id=? ORDER BY created_at",
             (user_id,)
         ).fetchall()
         return [dict(r) for r in rows]
@@ -476,11 +578,11 @@ def _set_user_projects(user_id: int, projects: list[dict]) -> list[dict]:
     if limit != -1 and len(cleaned) > limit:
         raise ValueError(f"{plan} 플랜은 프로젝트 {limit}개까지 선택할 수 있습니다 (요청: {len(cleaned)}개)")
     with _users_db() as conn:
-        conn.execute("DELETE FROM user_projects WHERE user_id=?", (user_id,))
+        conn.execute("DELETE FROM vantix_user_projects WHERE user_id=?", (user_id,))
         now = time.time()
         for i, p in enumerate(cleaned):
             conn.execute(
-                "INSERT INTO user_projects (user_id, project_id, project_name, created_at) VALUES (?,?,?,?)",
+                "INSERT INTO vantix_user_projects (user_id, project_id, project_name, created_at) VALUES (?,?,?,?)",
                 (user_id, p["project_id"], p["project_name"], now + i * 1e-6)
             )
     return cleaned
@@ -489,26 +591,114 @@ def _save_redmine_connection(user_id: int, redmine_url: str, api_key: str,
                               default_project_id: str = "", updated_after: str = ""):
     encrypted_key = _encrypt_key(api_key)
     with _users_db() as conn:
-        existing = conn.execute("SELECT id FROM redmine_connections WHERE user_id=?", (user_id,)).fetchone()
+        existing = conn.execute("SELECT id FROM vantix_redmine_connections WHERE user_id=?", (user_id,)).fetchone()
         if existing:
             conn.execute(
-                "UPDATE redmine_connections SET redmine_url=?, api_key=?, default_project_id=?, updated_after=? WHERE user_id=?",
+                "UPDATE vantix_redmine_connections SET redmine_url=?, api_key=?, default_project_id=?, updated_after=? WHERE user_id=?",
                 (redmine_url, encrypted_key, default_project_id, updated_after, user_id)
             )
         else:
             conn.execute(
-                "INSERT INTO redmine_connections (user_id, redmine_url, api_key, default_project_id, updated_after, created_at) VALUES (?,?,?,?,?,?)",
+                "INSERT INTO vantix_redmine_connections (user_id, redmine_url, api_key, default_project_id, updated_after, created_at) VALUES (?,?,?,?,?,?)",
                 (user_id, redmine_url, encrypted_key, default_project_id, updated_after, time.time())
             )
 
 def _get_redmine_connection(user_id: int) -> dict | None:
     with _users_db() as conn:
-        row = conn.execute("SELECT * FROM redmine_connections WHERE user_id=?", (user_id,)).fetchone()
+        row = conn.execute("SELECT * FROM vantix_redmine_connections WHERE user_id=?", (user_id,)).fetchone()
         if not row:
             return None
         d = dict(row)
         d["api_key"] = _decrypt_key(d["api_key"])
         return d
+
+# ---------- Phase 4: 팀(워크스페이스) ----------
+def _ensure_workspace(owner_user_id: int) -> int:
+    """오너의 워크스페이스 id 반환. 없으면 생성하고 오너를 owner 멤버로 등록."""
+    with _users_db() as conn:
+        row = conn.execute("SELECT id FROM vantix_workspaces WHERE owner_user_id=?", (owner_user_id,)).fetchone()
+        if row:
+            return row["id"]
+        now = time.time()
+        cur = conn.execute(
+            "INSERT INTO vantix_workspaces (owner_user_id, created_at) VALUES (?,?) RETURNING id", (owner_user_id, now)
+        )
+        ws_id = cur.fetchone()["id"]
+        conn.execute(
+            "INSERT INTO vantix_workspace_members (workspace_id, user_id, role, created_at) VALUES (?,?,'owner',?) ON CONFLICT DO NOTHING",
+            (ws_id, owner_user_id, now)
+        )
+        return ws_id
+
+def _get_membership(user_id: int | None) -> dict | None:
+    """유저가 속한 워크스페이스 멤버십. {workspace_id, role, owner_user_id} 또는 None."""
+    if not user_id:
+        return None
+    with _users_db() as conn:
+        row = conn.execute(
+            "SELECT m.workspace_id, m.role, w.owner_user_id "
+            "FROM vantix_workspace_members m JOIN vantix_workspaces w ON w.id=m.workspace_id "
+            "WHERE m.user_id=?", (user_id,)
+        ).fetchone()
+        return dict(row) if row else None
+
+def _get_workspace_role(user_id: int | None) -> str:
+    """유저의 역할. 워크스페이스 미소속이면 'owner'(자기 자신이 곧 오너)."""
+    m = _get_membership(user_id)
+    return m["role"] if m else "owner"
+
+def _can_edit(user_id: int | None) -> bool:
+    """이슈 수정·리포트 발송 권한. owner/admin만 True. viewer는 False."""
+    return _get_workspace_role(user_id) in ("owner", "admin")
+
+def _plan_owner_id(user_id: int | None) -> int | None:
+    """플랜·결제 기준이 되는 유저 id. 멤버면 워크스페이스 오너, 아니면 자기 자신."""
+    if not user_id:
+        return None
+    m = _get_membership(user_id)
+    return m["owner_user_id"] if m else user_id
+
+def _get_workspace_members(workspace_id: int) -> list[dict]:
+    """워크스페이스 멤버 목록 (이메일·역할 포함)."""
+    with _users_db() as conn:
+        rows = conn.execute(
+            "SELECT m.user_id, m.role, m.created_at, u.email "
+            "FROM vantix_workspace_members m JOIN vantix_users u ON u.id=m.user_id "
+            "WHERE m.workspace_id=? ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, m.created_at",
+            (workspace_id,)
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+def _count_workspace_seats(workspace_id: int) -> int:
+    """현재 멤버 수 + 대기중 초대 수 (좌석 점유 기준)."""
+    with _users_db() as conn:
+        m = conn.execute("SELECT COUNT(*) c FROM vantix_workspace_members WHERE workspace_id=?", (workspace_id,)).fetchone()["c"]
+        i = conn.execute("SELECT COUNT(*) c FROM vantix_invitations WHERE workspace_id=? AND status='pending'", (workspace_id,)).fetchone()["c"]
+        return m + i
+
+def _add_member(workspace_id: int, user_id: int, role: str):
+    """유저를 워크스페이스 멤버로 추가 (이미 있으면 무시)."""
+    with _users_db() as conn:
+        conn.execute(
+            "INSERT INTO vantix_workspace_members (workspace_id, user_id, role, created_at) VALUES (?,?,?,?) ON CONFLICT DO NOTHING",
+            (workspace_id, user_id, role, time.time())
+        )
+
+def _claim_pending_invites(user_id: int, email: str):
+    """이메일로 온 대기중 초대를 가입/로그인 시 자동 합류 처리."""
+    m = _get_membership(user_id)
+    if m:  # 이미 어떤 워크스페이스 소속이면 스킵
+        return
+    with _users_db() as conn:
+        inv = conn.execute(
+            "SELECT * FROM vantix_invitations WHERE email=? AND status='pending' ORDER BY created_at DESC LIMIT 1",
+            (email.lower().strip(),)
+        ).fetchone()
+        if not inv:
+            return
+    _add_member(inv["workspace_id"], user_id, inv["role"])
+    with _users_db() as conn:
+        conn.execute("UPDATE vantix_invitations SET status='accepted' WHERE id=?", (inv["id"],))
 
 # 세션에 user_id를 태그하기 위한 확장 저장소 (메모리)
 _session_user_map: dict[str, int] = {}  # token → user_id
@@ -1589,6 +1779,8 @@ async def root(request: Request):
     html = html.replace("__REDMINE_PUBLIC_URL__", REDMINE_PUBLIC_URL or s["url"])
     is_demo = "true" if token in _demo_tokens else "false"
     html = html.replace("__IS_DEMO__", is_demo)
+    html = html.replace("__PORTONE_STORE_ID__", PORTONE_STORE_ID)
+    html = html.replace("__PORTONE_CHANNEL_KEY__", PORTONE_CHANNEL_KEY)
     return HTMLResponse(content=html)
 
 @app.get("/api/projects")
@@ -2404,6 +2596,57 @@ async def api_admin_events(request: Request, env: str = "", period: str = "7d", 
         return {"items": []}
 
 
+@app.get("/api/admin/saas")
+async def api_admin_saas(_=Depends(_require_admin)):
+    """회원·결제·팀 운영 대시보드. 민감정보(비번해시·빌링키·API키)는 제외."""
+    if not _DATABASE_URL:
+        return {"summary": {}, "members": [], "payments": [], "teams": []}
+    with _users_db() as conn:
+        # 회원 + Redmine 연결여부
+        members = [dict(r) for r in conn.execute("""
+            SELECT u.id, u.email, u.plan, u.created_at, u.email_verified,
+                   (rc.id IS NOT NULL) AS has_connection
+            FROM vantix_users u
+            LEFT JOIN vantix_redmine_connections rc ON rc.user_id = u.id
+            WHERE u.is_active = 1
+            ORDER BY u.created_at DESC
+        """).fetchall()]
+        # 결제 이력
+        payments = [dict(r) for r in conn.execute("""
+            SELECT ph.payment_id, ph.plan, ph.amount, ph.status, ph.paid_at, u.email
+            FROM vantix_payment_history ph
+            JOIN vantix_users u ON u.id = ph.user_id
+            ORDER BY ph.paid_at DESC LIMIT 200
+        """).fetchall()]
+        # 활성 구독 (플랜별)
+        active_subs = {r["plan"]: r["c"] for r in conn.execute(
+            "SELECT plan, COUNT(*) c FROM vantix_billing_keys WHERE status='active' GROUP BY plan"
+        ).fetchall()}
+        # 플랜 분포
+        plan_dist = {r["plan"]: r["c"] for r in conn.execute(
+            "SELECT plan, COUNT(*) c FROM vantix_users WHERE is_active=1 GROUP BY plan"
+        ).fetchall()}
+        # 팀 현황
+        teams = [dict(r) for r in conn.execute("""
+            SELECT w.id AS workspace_id, ou.email AS owner_email, ou.plan AS owner_plan,
+                   (SELECT COUNT(*) FROM vantix_workspace_members wm WHERE wm.workspace_id = w.id) AS member_count,
+                   (SELECT COUNT(*) FROM vantix_invitations iv WHERE iv.workspace_id = w.id AND iv.status='pending') AS pending_count
+            FROM vantix_workspaces w
+            JOIN vantix_users ou ON ou.id = w.owner_user_id
+            ORDER BY member_count DESC
+        """).fetchall()]
+
+    # MRR = 활성 구독 × 플랜 가격
+    mrr = sum(active_subs.get(p, 0) * price for p, price in PLAN_PRICES.items())
+    summary = {
+        "total_members": len(members),
+        "plan_dist": plan_dist,
+        "active_subscriptions": sum(active_subs.values()),
+        "mrr": mrr,
+    }
+    return {"summary": summary, "members": members, "payments": payments, "teams": teams}
+
+
 @app.get("/admin", response_class=HTMLResponse)
 async def admin_page(request: Request):
     template_path = os.path.join(os.path.dirname(__file__), "templates", "admin.html")
@@ -2432,7 +2675,7 @@ async def api_auth_signup(request: Request):
             # 미인증 계정 재가입 시도 → 인증 이메일 재발송
             token = str(_uuid.uuid4()).replace("-", "")
             with _users_db() as conn:
-                conn.execute("UPDATE users SET email_verify_token=? WHERE id=?", (token, existing["id"]))
+                conn.execute("UPDATE vantix_users SET email_verify_token=? WHERE id=?", (token, existing["id"]))
             base_url = str(request.base_url).rstrip("/")
             _send_verification_email(email, token, base_url)
             return JSONResponse({"ok": True, "email_sent": True, "email": email})
@@ -2458,6 +2701,8 @@ async def api_auth_login(request: Request):
     if not user.get("email_verified"):
         raise HTTPException(status_code=403, detail="email_not_verified")
 
+    _claim_pending_invites(user["id"], user["email"])
+
     conn_info = _get_redmine_connection(user["id"])
     if conn_info:
         # Redmine 연결이 저장돼 있으면 세션 자동 발급
@@ -2469,8 +2714,9 @@ async def api_auth_login(request: Request):
         response.set_cookie("vx_user_id", str(user["id"]), httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
         return response
     else:
-        # Redmine 연결 없음 — 임시 쿠키로 user_id만 전달
+        # Redmine 연결 없음 — 자동 로그인 상태로 두되(vx_user_id), 대시보드는 연결 후 진입
         response = JSONResponse({"ok": True, "has_connection": False, "email": email})
+        response.set_cookie("vx_user_id", str(user["id"]), httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
         response.set_cookie("vx_pending_uid", str(user["id"]), httponly=True, max_age=600, samesite="lax", secure=True)
         return response
 
@@ -2493,6 +2739,8 @@ async def api_auth_verify_email(token: str, request: Request):
         response.set_cookie("vx_session", sess_token, httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
         response.set_cookie("vx_user_id", str(user["id"]), httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
     else:
+        # 자동 로그인 상태로 connect 랜딩에서 대기 (Redmine 연결은 사용자가 원할 때)
+        response.set_cookie("vx_user_id", str(user["id"]), httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
         response.set_cookie("vx_pending_uid", str(user["id"]), httponly=True, max_age=600, samesite="lax", secure=True)
     return response
 
@@ -2507,7 +2755,7 @@ async def api_auth_resend_verification(request: Request):
         return JSONResponse({"ok": True})  # 보안상 항상 ok 반환
     token = str(_uuid.uuid4()).replace("-", "")
     with _users_db() as conn:
-        conn.execute("UPDATE users SET email_verify_token=? WHERE id=?", (token, user["id"]))
+        conn.execute("UPDATE vantix_users SET email_verify_token=? WHERE id=?", (token, user["id"]))
     base_url = str(request.base_url).rstrip("/")
     _send_verification_email(email, token, base_url)
     return JSONResponse({"ok": True})
@@ -2516,6 +2764,59 @@ async def api_auth_resend_verification(request: Request):
 @app.post("/api/auth/logout")
 async def api_auth_logout(request: Request):
     """로그아웃 — 세션 + 유저 쿠키 삭제"""
+    token = request.cookies.get("vx_session")
+    if token:
+        _delete_session(token)
+    response = JSONResponse({"ok": True})
+    response.delete_cookie("vx_session")
+    response.delete_cookie("vx_user_id")
+    response.delete_cookie("vx_pending_uid")
+    return response
+
+
+@app.post("/api/auth/delete-account")
+async def api_auth_delete_account(request: Request):
+    """회원 탈퇴 (소프트 삭제). 비밀번호 재확인 후:
+    - 팀: 오너면 멤버 분리·워크스페이스 해체, 멤버면 본인만 탈퇴
+    - 구독 해지, Redmine 연결·선택 프로젝트 삭제, 개인정보 익명화
+    - 결제 이력은 법령상 보관 (vantix_payment_history 유지)"""
+    uid = _current_user_id(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    body = await request.json()
+    password = body.get("password") or ""
+
+    user = _get_user_by_id(uid)
+    if not user:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다")
+    if not _verify_password(password, user["hashed_password"]):
+        raise HTTPException(status_code=401, detail="비밀번호가 올바르지 않습니다")
+
+    # 1) 팀 처리
+    m = _get_membership(uid)
+    with _users_db() as conn:
+        if m and m["role"] == "owner":
+            ws_id = m["workspace_id"]
+            # 팀원 전원 분리 + 초대 삭제 + 워크스페이스 해체 (FK 순서: members·invitations → workspace)
+            conn.execute("DELETE FROM vantix_workspace_members WHERE workspace_id=?", (ws_id,))
+            conn.execute("DELETE FROM vantix_invitations WHERE workspace_id=?", (ws_id,))
+            conn.execute("DELETE FROM vantix_workspaces WHERE id=?", (ws_id,))
+        elif m:
+            # 멤버 — 본인만 탈퇴
+            conn.execute("DELETE FROM vantix_workspace_members WHERE user_id=?", (uid,))
+        # 2) 구독 해지
+        conn.execute("UPDATE vantix_billing_keys SET status='cancelled' WHERE user_id=? AND status='active'", (uid,))
+        # 3) Redmine 연결·선택 프로젝트 삭제 (API 키 즉시 제거)
+        conn.execute("DELETE FROM vantix_redmine_connections WHERE user_id=?", (uid,))
+        conn.execute("DELETE FROM vantix_user_projects WHERE user_id=?", (uid,))
+        # 4) 개인정보 익명화 + 비활성화 (결제이력 보존을 위해 행은 유지)
+        anon_email = f"deleted_{uid}_{int(time.time())}@deleted.local"
+        conn.execute(
+            "UPDATE vantix_users SET is_active=0, email=?, hashed_password='', email_verify_token=NULL, plan='free' WHERE id=?",
+            (anon_email, uid)
+        )
+
+    # 5) 세션·쿠키 정리
     token = request.cookies.get("vx_session")
     if token:
         _delete_session(token)
@@ -2602,6 +2903,7 @@ async def api_auth_connect_redmine(request: Request):
         raise HTTPException(status_code=400, detail=f"Redmine 연결 실패: {str(e)}")
 
     _save_redmine_connection(user_id, rm_url, rm_key)
+    _claim_pending_invites(user_id, user["email"])
 
     # 세션 발급
     token = str(_uuid.uuid4())
@@ -2622,15 +2924,325 @@ async def api_account_plan(request: Request):
     uid = _current_user_id(request)
     plan = _get_user_plan(uid)
     info = plan_info(plan)
+    role = _get_workspace_role(uid) if uid else "owner"
     return JSONResponse({
         "plan": plan,
         "label": info["label"],
         "project_limit": info["project_limit"],
+        "member_limit": info.get("member_limit", 3),
         "ai": info["ai"],
         "report": info["report"],
+        "csv": info.get("csv", False),
+        "role": role,
+        "can_edit": role in ("owner", "admin"),
         "selected_projects": _get_user_projects(uid) if uid else [],
         "is_authenticated": uid is not None,
     })
+
+
+# ==================== 결제 (포트원 V2) ====================
+
+def _charge_billing_key(billing_key: str, payment_id: str, plan: str, user_id: int, email: str) -> dict:
+    """포트원 V2 서버사이드 빌링키 결제"""
+    amount = PLAN_PRICES.get(plan, 0)
+    order_name = f"Vantix {plan.capitalize()} 월간 구독"
+    with _httpx.Client(timeout=15) as client:
+        resp = client.post(
+            f"https://api.portone.io/payments/{payment_id}/billing-key",
+            headers={"Authorization": f"PortOne {PORTONE_API_SECRET}"},
+            json={
+                "billingKey": billing_key,
+                "orderName": order_name,
+                "amount": {"total": amount},
+                "currency": "KRW",
+                "customer": {"id": f"user-{user_id}", "email": email},
+            },
+        )
+    return resp.json()
+
+
+@app.post("/api/billing/issue")
+async def api_billing_issue(request: Request, s: dict = Depends(_require_session)):
+    """프론트에서 발급받은 빌링키로 즉시 첫 결제 후 플랜 업그레이드"""
+    uid = _current_user_id(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    # 멤버는 결제 불가 — 오너만 결제 (멤버는 오너 플랜 상속)
+    if _get_workspace_role(uid) != "owner":
+        raise HTTPException(status_code=403, detail="결제는 워크스페이스 오너만 가능합니다")
+    body = await request.json()
+    billing_key = body.get("billingKey", "").strip()
+    plan = body.get("plan", "").strip().lower()
+    if not billing_key:
+        raise HTTPException(status_code=400, detail="billingKey가 없습니다")
+    if plan not in ("pro", "business"):
+        raise HTTPException(status_code=400, detail="플랜이 올바르지 않습니다")
+
+    # 유저 이메일
+    with _users_db() as conn:
+        row = conn.execute("SELECT email FROM vantix_users WHERE id=?", (uid,)).fetchone()
+    if not row:
+        raise HTTPException(status_code=404, detail="유저를 찾을 수 없습니다")
+    email = row["email"]
+
+    # 결제 실행
+    import uuid as _uuid_mod
+    payment_id = f"vantix-{plan}-{uid}-{int(time.time())}"
+    result = _charge_billing_key(billing_key, payment_id, plan, uid, email)
+    status = result.get("status", "")
+
+    if status != "PAID":
+        code = result.get("code", "UNKNOWN")
+        msg = result.get("message", "결제에 실패했습니다")
+        raise HTTPException(status_code=402, detail=f"결제 실패: {msg} ({code})")
+
+    # 빌링키 저장 + 플랜 업데이트
+    import calendar
+    now = time.time()
+    expires_at = now + 31 * 86400  # 약 1개월
+    with _users_db() as conn:
+        conn.execute(
+            "UPDATE vantix_billing_keys SET status='cancelled' WHERE user_id=? AND status='active'",
+            (uid,)
+        )
+        cur = conn.execute(
+            "INSERT INTO vantix_billing_keys (user_id, billing_key, plan, status, created_at, expires_at) VALUES (?,?,?,'active',?,?) RETURNING id",
+            (uid, _encrypt_key(billing_key), plan, now, expires_at)
+        )
+        bk_id = cur.fetchone()["id"]
+        conn.execute(
+            "INSERT INTO vantix_payment_history (user_id, payment_id, billing_key_id, plan, amount, status, paid_at) VALUES (?,?,?,?,?,?,?)",
+            (uid, payment_id, bk_id, plan, PLAN_PRICES[plan], "paid", now)
+        )
+    _set_user_plan(uid, plan)
+    return JSONResponse({"ok": True, "plan": plan, "payment_id": payment_id})
+
+
+@app.post("/api/billing/cancel")
+async def api_billing_cancel(request: Request, s: dict = Depends(_require_session)):
+    """구독 취소 — 빌링키 비활성화 후 플랜을 free로"""
+    uid = _current_user_id(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    with _users_db() as conn:
+        conn.execute(
+            "UPDATE vantix_billing_keys SET status='cancelled' WHERE user_id=? AND status='active'",
+            (uid,)
+        )
+    _set_user_plan(uid, "free")
+    return JSONResponse({"ok": True, "plan": "free"})
+
+
+@app.get("/api/billing/status")
+async def api_billing_status(request: Request, s: dict = Depends(_require_session)):
+    """현재 구독 상태"""
+    uid = _current_user_id(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    with _users_db() as conn:
+        bk = conn.execute(
+            "SELECT * FROM vantix_billing_keys WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1",
+            (uid,)
+        ).fetchone()
+        history = conn.execute(
+            "SELECT * FROM vantix_payment_history WHERE user_id=? ORDER BY paid_at DESC LIMIT 10",
+            (uid,)
+        ).fetchall()
+    plan = _get_user_plan(uid)
+    # 빌링키는 민감정보 — 프론트로 절대 노출하지 않음
+    sub = None
+    if bk:
+        sub = dict(bk)
+        sub.pop("billing_key", None)
+    return JSONResponse({
+        "plan": plan,
+        "active_subscription": sub,
+        "payment_history": [dict(h) for h in history],
+    })
+
+
+# ==================== 팀(워크스페이스) ====================
+
+@app.get("/api/team")
+async def api_team_get(request: Request):
+    """현재 유저가 속한 팀 정보. 미소속이면 자기 자신이 오너인 빈 워크스페이스 기준."""
+    uid = _current_user_id(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    role = _get_workspace_role(uid)
+    owner_id = _plan_owner_id(uid)
+    plan = _get_user_plan(uid)
+    limit = plan_member_limit(plan)
+
+    m = _get_membership(uid)
+    if m:
+        ws_id = m["workspace_id"]
+    elif role == "owner":
+        # 아직 워크스페이스 미생성 — 멤버 조회용으로만 존재 여부 확인 (생성은 초대 시점)
+        with _users_db() as conn:
+            row = conn.execute("SELECT id FROM vantix_workspaces WHERE owner_user_id=?", (uid,)).fetchone()
+        ws_id = row["id"] if row else None
+    else:
+        ws_id = None
+
+    members, invites = [], []
+    if ws_id:
+        members = _get_workspace_members(ws_id)
+        with _users_db() as conn:
+            inv_rows = conn.execute(
+                "SELECT id, email, role, created_at FROM vantix_invitations WHERE workspace_id=? AND status='pending' ORDER BY created_at",
+                (ws_id,)
+            ).fetchall()
+            invites = [dict(r) for r in inv_rows]
+    # 솔로 오너(워크스페이스 미생성)는 자기 자신만 표시
+    if not members:
+        me = _get_user_by_id(uid)
+        members = [{"user_id": uid, "role": "owner", "email": me["email"] if me else "", "created_at": 0}]
+
+    used = len(members) + len(invites)
+    return JSONResponse({
+        "role": role,
+        "is_owner": role == "owner",
+        "plan": plan,
+        "member_limit": limit,
+        "seats_used": used,
+        "seats_left": (-1 if limit == -1 else max(0, limit - used)),
+        "members": members,
+        "invitations": invites,
+        "my_user_id": uid,
+    })
+
+
+@app.post("/api/team/invite")
+async def api_team_invite(request: Request):
+    """팀원 초대 (오너만). body: {email, role}"""
+    uid = _current_user_id(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    if _get_workspace_role(uid) != "owner":
+        raise HTTPException(status_code=403, detail="팀원 초대는 오너만 가능합니다")
+
+    body = await request.json()
+    email = (body.get("email") or "").strip().lower()
+    role = (body.get("role") or "viewer").strip().lower()
+    if not email or not re.match(r"^[^@]+@[^@]+\.[^@]+$", email):
+        raise HTTPException(status_code=400, detail="유효한 이메일을 입력하세요")
+    if role not in ("admin", "viewer"):
+        raise HTTPException(status_code=400, detail="역할은 admin 또는 viewer만 가능합니다")
+
+    me = _get_user_by_id(uid)
+    if me and email == me["email"].lower():
+        raise HTTPException(status_code=400, detail="본인은 초대할 수 없습니다")
+
+    ws_id = _ensure_workspace(uid)
+
+    # 좌석 한도 검증
+    plan = _get_user_plan(uid)
+    limit = plan_member_limit(plan)
+    if limit != -1 and _count_workspace_seats(ws_id) >= limit:
+        raise HTTPException(status_code=422, detail=f"현재 플랜의 팀원 한도({limit}명)에 도달했습니다")
+
+    # 이미 멤버인지 확인
+    target = _get_user_by_email(email)
+    if target:
+        existing_m = _get_membership(target["id"])
+        if existing_m and existing_m["workspace_id"] == ws_id:
+            raise HTTPException(status_code=409, detail="이미 팀에 속한 멤버입니다")
+        if existing_m:
+            raise HTTPException(status_code=409, detail="이미 다른 팀에 소속된 유저입니다")
+
+    # 중복 초대 방지
+    with _users_db() as conn:
+        dup = conn.execute(
+            "SELECT id FROM vantix_invitations WHERE workspace_id=? AND email=? AND status='pending'",
+            (ws_id, email)
+        ).fetchone()
+        if dup:
+            raise HTTPException(status_code=409, detail="이미 초대장을 보낸 이메일입니다")
+
+    # 인증된 기존 유저면 즉시 합류, 아니면 초대장 저장
+    base_url = str(request.base_url).rstrip("/")
+    is_existing = bool(target and target.get("email_verified"))
+    if is_existing and not _get_membership(target["id"]):
+        _add_member(ws_id, target["id"], role)
+        _send_invite_email(email, me["email"], role, base_url, is_existing=True)
+        return JSONResponse({"ok": True, "joined": True})
+
+    token = str(_uuid.uuid4()).replace("-", "")
+    with _users_db() as conn:
+        conn.execute(
+            "INSERT INTO vantix_invitations (workspace_id, email, role, token, status, created_at) VALUES (?,?,?,?,'pending',?)",
+            (ws_id, email, role, token, time.time())
+        )
+    _send_invite_email(email, me["email"], role, base_url, is_existing=False)
+    return JSONResponse({"ok": True, "joined": False})
+
+
+@app.patch("/api/team/members/{member_id}")
+async def api_team_member_role(member_id: int, request: Request):
+    """멤버 역할 변경 (오너만). body: {role}"""
+    uid = _current_user_id(request)
+    if not uid or _get_workspace_role(uid) != "owner":
+        raise HTTPException(status_code=403, detail="오너만 가능합니다")
+    body = await request.json()
+    role = (body.get("role") or "").strip().lower()
+    if role not in ("admin", "viewer"):
+        raise HTTPException(status_code=400, detail="역할은 admin 또는 viewer만 가능합니다")
+    if member_id == uid:
+        raise HTTPException(status_code=400, detail="오너의 역할은 변경할 수 없습니다")
+    ws_id = _ensure_workspace(uid)
+    with _users_db() as conn:
+        conn.execute(
+            "UPDATE vantix_workspace_members SET role=? WHERE workspace_id=? AND user_id=? AND role!='owner'",
+            (role, ws_id, member_id)
+        )
+    return JSONResponse({"ok": True})
+
+
+@app.delete("/api/team/members/{member_id}")
+async def api_team_member_remove(member_id: int, request: Request):
+    """멤버 제거 (오너만)."""
+    uid = _current_user_id(request)
+    if not uid or _get_workspace_role(uid) != "owner":
+        raise HTTPException(status_code=403, detail="오너만 가능합니다")
+    if member_id == uid:
+        raise HTTPException(status_code=400, detail="오너 본인은 제거할 수 없습니다")
+    ws_id = _ensure_workspace(uid)
+    with _users_db() as conn:
+        conn.execute(
+            "DELETE FROM vantix_workspace_members WHERE workspace_id=? AND user_id=? AND role!='owner'",
+            (ws_id, member_id)
+        )
+    return JSONResponse({"ok": True})
+
+
+@app.delete("/api/team/invitations/{invite_id}")
+async def api_team_invite_revoke(invite_id: int, request: Request):
+    """대기중 초대 취소 (오너만)."""
+    uid = _current_user_id(request)
+    if not uid or _get_workspace_role(uid) != "owner":
+        raise HTTPException(status_code=403, detail="오너만 가능합니다")
+    ws_id = _ensure_workspace(uid)
+    with _users_db() as conn:
+        conn.execute(
+            "UPDATE vantix_invitations SET status='revoked' WHERE id=? AND workspace_id=?",
+            (invite_id, ws_id)
+        )
+    return JSONResponse({"ok": True})
+
+
+@app.post("/api/team/leave")
+async def api_team_leave(request: Request):
+    """팀원이 워크스페이스에서 나가기 (오너 제외)."""
+    uid = _current_user_id(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    m = _get_membership(uid)
+    if not m or m["role"] == "owner":
+        raise HTTPException(status_code=400, detail="오너는 팀을 나갈 수 없습니다")
+    with _users_db() as conn:
+        conn.execute("DELETE FROM vantix_workspace_members WHERE user_id=? AND role!='owner'", (uid,))
+    return JSONResponse({"ok": True})
 
 
 @app.post("/api/account/projects")
@@ -2803,6 +3415,8 @@ def api_get_issue(issue_id: int, request: Request):
 
 @app.put("/api/issue/{issue_id}")
 async def api_update_issue(issue_id: int, request: Request, s: dict = Depends(_require_session)):
+    if not _can_edit(_current_user_id(request)):
+        raise HTTPException(status_code=403, detail="이슈 수정 권한이 없습니다 (뷰어 권한)")
     body = await request.json()
     payload = {"issue": {}}
     if "status_id"        in body: payload["issue"]["status_id"]         = body["status_id"]
@@ -2961,6 +3575,8 @@ async def api_attachment_proxy(url: str, request: Request):
 
 @app.post("/api/action/redmine-update")
 async def api_redmine_update(payload: dict, request: Request, s: dict = Depends(_require_session)):
+    if not _can_edit(_current_user_id(request)):
+        raise HTTPException(status_code=403, detail="이슈 수정 권한이 없습니다 (뷰어 권한)")
     issue_ids = payload.get("issue_ids", [])
     field = payload.get("field", "")
     value = payload.get("value", "")
@@ -3375,8 +3991,10 @@ async def api_report_tsv(
     updated_after: str = "2026-03-01",
     sections:      str = "",
     s: dict = Depends(_require_session),
-
 ):
+    uid = _current_user_id(request)
+    if not plan_info(_get_user_plan(uid)).get("csv", False):
+        raise HTTPException(status_code=403, detail="CSV 내보내기는 Business 플랜에서 사용 가능합니다")
     from fastapi.responses import PlainTextResponse
     redmine_url = s.get("url")
     api_key     = s.get("key")
@@ -3390,7 +4008,10 @@ async def api_report_tsv(
 
 
 @app.post("/api/report/send")
-async def api_report_send(project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
+async def api_report_send(request: Request, project_id: str = "", updated_after: str = "2026-03-01", s: dict = Depends(_require_session)):
+    uid = _current_user_id(request)
+    if not plan_allows(_get_user_plan(uid), "report"):
+        raise HTTPException(status_code=403, detail="이메일 리포트는 Pro 이상 플랜에서 사용 가능합니다")
     dashboard = get_cache(project_id, updated_after, s["url"])
     if not dashboard:
         dashboard = build_dashboard_data(project_id, updated_after, redmine_url=s["url"], api_key=s["key"])
@@ -3417,6 +4038,9 @@ async def api_redmine_users(s: dict = Depends(_require_session)):
 
 @app.post("/api/report/send-html")
 async def api_report_send_html(request: Request, s: dict = Depends(_require_session)):
+    uid = _current_user_id(request)
+    if not plan_allows(_get_user_plan(uid), "report"):
+        raise HTTPException(status_code=403, detail="이메일 리포트는 Pro 이상 플랜에서 사용 가능합니다")
     body       = await request.json()
     html       = body.get("html", "")
     recipients = body.get("recipients", [])

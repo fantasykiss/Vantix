@@ -52,3 +52,12 @@ AI_MODEL = os.getenv("AI_MODEL", "claude-haiku-4-5-20251001")
 
 RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
 RESEND_FROM    = os.getenv("RESEND_FROM", "onboarding@resend.dev")
+
+PORTONE_STORE_ID   = os.getenv("PORTONE_STORE_ID", "")
+PORTONE_CHANNEL_KEY = os.getenv("PORTONE_CHANNEL_KEY", "")
+PORTONE_API_SECRET = os.getenv("PORTONE_API_SECRET", "")
+
+PLAN_PRICES = {
+    "pro":      19000,
+    "business": 49000,
+}

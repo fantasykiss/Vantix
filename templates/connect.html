@@ -118,15 +118,34 @@
           <a href="#ai" style="color:#46494d; text-decoration:none;">AI</a>
           <a href="#dashboard" style="color:#46494d; text-decoration:none;">대시보드</a>
         </nav>
-        <div style="display:flex; align-items:center; gap:14px;">
+        <div id="nav-auth-guest" style="display:flex; align-items:center; gap:14px;">
           <a href="#" onclick="openAuthModal('signup');return false;" class="nav-start" style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#fff; background:#0F766E; text-decoration:none; padding:7px 20px; display:inline-flex; align-items:center; gap:8px; border:1px solid #0F766E; transition:background .2s,border-color .2s;">회원가입 <span style="font-size:13px;">↗</span></a>
           <a href="#" onclick="openAuthModal('login');return false;" style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#46494d; text-decoration:none; padding:9px 2px; transition:color .2s;" onmouseover="this.style.color='#17181A'" onmouseout="this.style.color='#46494d'">로그인</a>
+        </div>
+        <div id="nav-auth-user" style="display:none; align-items:center; gap:14px;">
+          <span id="nav-user-email" style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.04em; color:#46494d;"></span>
+          <a href="#" onclick="navStart();return false;" class="nav-start" style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.1em; text-transform:uppercase; color:#fff; background:#0F766E; text-decoration:none; padding:7px 20px; display:inline-flex; align-items:center; gap:8px; border:1px solid #0F766E; transition:background .2s,border-color .2s;">시작하기 <span style="font-size:13px;">↗</span></a>
+          <a href="#" onclick="doConnectLogout();return false;" style="font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.12em; text-transform:uppercase; color:#46494d; text-decoration:none; padding:9px 2px;" onmouseover="this.style.color='#17181A'" onmouseout="this.style.color='#46494d'">로그아웃</a>
         </div>
         </div>
       </div>
     </header>
 
     <!-- ===================== HERO ===================== -->
+    <!-- 인증 완료/로그인 후 환영 배너 -->
+    <div id="welcome-banner" style="display:none; max-width:1320px; margin:24px auto 0; padding:0 clamp(20px,5vw,80px);">
+      <div style="background:#0F766E; color:#F5F4EF; padding:18px 24px; display:flex; align-items:center; justify-content:space-between; gap:16px; flex-wrap:wrap;">
+        <div style="display:flex; align-items:center; gap:12px;">
+          <span style="font-size:18px;">✓</span>
+          <div>
+            <div style="font-family:'Pretendard',sans-serif; font-weight:600; font-size:15px;">이메일 인증이 완료됐어요!</div>
+            <div style="font-family:'Pretendard',sans-serif; font-size:13px; opacity:.85; margin-top:2px;">Redmine을 연결하면 바로 대시보드를 시작할 수 있습니다.</div>
+          </div>
+        </div>
+        <button onclick="navStart()" style="font-family:'IBM Plex Mono',monospace; font-size:12px; font-weight:600; letter-spacing:.08em; text-transform:uppercase; color:#0F766E; background:#F5F4EF; border:none; padding:11px 22px; cursor:pointer; white-space:nowrap;">Redmine 연결하고 시작하기 ↗</button>
+      </div>
+    </div>
+
     <section id="top" style="max-width:1320px; margin:0 auto; padding:clamp(40px,7vh,90px) clamp(20px,5vw,80px) clamp(36px,5vh,64px); min-height:calc(92vh - 68px); display:flex; flex-direction:column; justify-content:space-between;">
       <div data-reveal style="display:flex; align-items:center; gap:12px; font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.2em; text-transform:uppercase; color:#46494d;">
         <span style="width:7px; height:7px; background:#0F766E; border-radius:50%; display:block;"></span>
@@ -378,11 +397,11 @@
             </div>
             <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px; font-size:15px; line-height:1.5; color:#3a3d41;">
               <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> 프로젝트 1개</li>
+              <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> 팀원 3명 (오너 포함)</li>
               <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> 실시간 리스크 대시보드</li>
               <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> 리스크 스코어</li>
               <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> 이슈 매트릭스</li>
               <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> AI 분석</li>
-              <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> 주간 리포트</li>
             </ul>
             <a href="#" onclick="openConnectModal();return false;" class="plan-cta-outline" style="margin-top:auto; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#17181A; text-decoration:none; padding:15px 24px; border:1px solid rgba(23,24,26,.28); text-align:center; transition:background .2s,border-color .2s;">무료로 시작</a>
           </div>
@@ -403,11 +422,10 @@
             <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px; font-size:15px; line-height:1.5; color:#D4D7DA;">
               <li style="display:flex; gap:12px;"><span style="color:#2DD4BF;">✓</span> Free의 모든 기능</li>
               <li style="display:flex; gap:12px;"><span style="color:#2DD4BF;">✓</span> 프로젝트 5개</li>
+              <li style="display:flex; gap:12px;"><span style="color:#2DD4BF;">✓</span> 팀원 15명 (오너 포함)</li>
+              <li style="display:flex; gap:12px;"><span style="color:#2DD4BF;">✓</span> 이메일 리포트 자동 발송</li>
             </ul>
-            <span class="coming-soon-wrap" style="margin-top:auto;">
-              <a href="#" onclick="return false;" class="plan-cta-teal" style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#15171A; background:#2DD4BF; text-decoration:none; padding:15px 24px; text-align:center; display:block; opacity:.45; cursor:not-allowed;">Pro 시작하기</a>
-              <span class="cs-tip">무료 플랜으로 먼저 시작해보세요</span>
-            </span>
+            <a href="#" onclick="openConnectModal();return false;" class="plan-cta-teal" style="margin-top:auto; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#15171A; background:#2DD4BF; text-decoration:none; padding:15px 24px; text-align:center; display:block;">Pro 시작하기</a>
           </div>
 
           <!-- BUSINESS -->
@@ -423,12 +441,10 @@
             <ul style="list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:14px; font-size:15px; line-height:1.5; color:#3a3d41;">
               <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> Pro의 모든 기능</li>
               <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> 프로젝트 무제한</li>
-              <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> Slack 연동</li>
+              <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> 팀원 무제한</li>
+              <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> CSV 내보내기</li>
             </ul>
-            <span class="coming-soon-wrap" style="margin-top:auto;">
-              <a href="#" onclick="return false;" class="plan-cta-outline" style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#17181A; text-decoration:none; padding:15px 24px; border:1px solid rgba(23,24,26,.28); text-align:center; display:block; opacity:.45; cursor:not-allowed;">문의하기</a>
-              <span class="cs-tip">준비 중이에요</span>
-            </span>
+            <a href="#" onclick="openConnectModal();return false;" class="plan-cta-outline" style="margin-top:auto; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#17181A; text-decoration:none; padding:15px 24px; border:1px solid rgba(23,24,26,.28); text-align:center; display:block;">비즈니스 시작하기</a>
           </div>
 
         </div>
@@ -961,15 +977,54 @@ async function resendVerification() {
   if (msg) { msg.style.display = 'block'; setTimeout(function(){ msg.style.display='none'; }, 3000); }
 }
 
-// ?verified=1 → 인증 완료, Step 2(Redmine 연결)로 바로 열기
+// 로그인 상태 (auth/me 결과)
+var _isLoggedIn = false;
+var _hasConnection = false;
+
+// 시작하기 / 환영배너 CTA → 미연결이면 Redmine 연결, 연결됐으면 대시보드
+function navStart() {
+  if (_hasConnection) { window.location.href = '/'; return; }
+  // Redmine 연결 단계(Step 2) 바로 오픈
+  document.getElementById('auth-step1').style.display = 'none';
+  document.getElementById('auth-step-verify').style.display = 'none';
+  document.getElementById('auth-step2').style.display = 'block';
+  document.getElementById('cm-error').style.display = 'none';
+  document.getElementById('connect-modal').classList.add('open');
+  setTimeout(function(){ var u=document.getElementById('cm-url'); if(u) u.focus(); }, 100);
+}
+
+async function doConnectLogout() {
+  try { await fetch('/api/auth/logout', { method: 'POST' }); } catch(e) {}
+  window.location.href = '/connect';
+}
+
+// 페이지 로드 시 로그인 상태 확인 → 헤더/배너 전환 (Redmine 연결은 강제하지 않음)
 (function() {
-  if (new URLSearchParams(window.location.search).get('verified') === '1') {
-    window.addEventListener('load', function() {
-      document.getElementById('auth-step1').style.display = 'none';
-      document.getElementById('auth-step2').style.display = 'block';
-      document.getElementById('connect-modal').classList.add('open');
-    });
-  }
+  window.addEventListener('load', function() {
+    var isVerified = new URLSearchParams(window.location.search).get('verified') === '1';
+    fetch('/api/auth/me', { credentials: 'same-origin' })
+      .then(function(r) { return r.ok ? r.json() : null; })
+      .then(function(me) {
+        if (!me) return;  // 비로그인 → 기존 게스트 UI 유지
+        _isLoggedIn = true;
+        _hasConnection = !!me.has_connection;
+        // 헤더 전환
+        var guest = document.getElementById('nav-auth-guest');
+        var userBox = document.getElementById('nav-auth-user');
+        if (guest) guest.style.display = 'none';
+        if (userBox) { userBox.style.display = 'flex'; }
+        var emailEl = document.getElementById('nav-user-email');
+        if (emailEl) emailEl.textContent = me.email || '';
+        // 연결됨 → 대시보드로 안내, 미연결 → 환영 배너로 연결 유도
+        if (_hasConnection) {
+          window.location.href = '/';
+        } else {
+          var banner = document.getElementById('welcome-banner');
+          if (banner) banner.style.display = 'block';
+        }
+      })
+      .catch(function() {});
+  });
 })();
 
 function switchTab(mode) {
@@ -992,6 +1047,8 @@ function _hasPendingUid() {
 }
 
 function openAuthModal(mode) {
+  // 이미 로그인된 상태 → 모달 대신 시작하기(연결/대시보드)로
+  if (_isLoggedIn) { navStart(); return; }
   // 이미 인증 완료 후 Redmine 연결만 남은 경우 → Step 2 바로 오픈
   if (_hasPendingUid()) {
     document.getElementById('auth-step1').style.display = 'none';

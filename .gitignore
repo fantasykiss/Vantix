@@ -7,3 +7,9 @@ main_backup_*.py
 아트작업/
 risk_history.json
 sessions.json
+
+# 회원 DB는 PostgreSQL(DATABASE_URL)에 저장 — 로컬 SQLite 파일/백업은 git 제외
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
