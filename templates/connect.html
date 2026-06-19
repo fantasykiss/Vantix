@@ -1151,7 +1151,13 @@ async function submitAuth() {
       return;
     }
 
-    // 로그인 후 Redmine 미연결 → Step 2
+    // 로그인 후 Redmine 미연결 → 랜딩에 머무름 (회원가입 인증완료 흐름과 통일)
+    // 리로드하면 load 시점에 /api/auth/me 확인 → 환영 배너로 연결 유도
+    if (_authMode === 'login') {
+      window.location.reload();
+      return;
+    }
+    // (예외 경로) 그 외 미연결 → Step 2 직접 노출
     document.getElementById('auth-step1').style.display = 'none';
     document.getElementById('auth-step2').style.display = 'block';
     document.getElementById('cm-error').style.display = 'none';
