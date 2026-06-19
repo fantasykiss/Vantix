@@ -6158,7 +6158,7 @@ async function startPayment() {
       issueId: 'issue-' + Date.now(),
       issueName: 'Vantix 구독 결제 수단 등록',
       easyPay: { easyPayProvider: 'KAKAOPAY' },
-      windowType: { pc: 'POPUP', mobile: 'REDIRECT' },
+      windowType: { pc: 'POPUP', mobile: 'REDIRECTION' },
     });
 
     if (response.code) {
