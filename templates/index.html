@@ -6065,7 +6065,7 @@ function submitFeedback() {
       <!-- pro card -->
       <div id="upgrade-card-pro" onclick="selectUpgradePlan('pro')" style="border:2px solid var(--ghost-2);padding:16px;cursor:pointer;transition:border-color .15s;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <div style="font-size:12px;font-weight:700;color:#0D9488;letter-spacing:.08em;">PRO</div>
+          <div class="plan-label" style="font-size:12px;font-weight:700;color:#0D9488;letter-spacing:.08em;">PRO</div>
           <div style="font-size:14px;font-weight:700;color:var(--text);">₩19,000 <span style="font-size:10px;font-weight:400;color:var(--text-dim);">/ 월</span></div>
         </div>
         <div style="font-size:11px;color:var(--text-mid);line-height:1.6;">프로젝트 5개 모니터링 · AI 분석 · 이메일 리포트</div>
@@ -6073,7 +6073,7 @@ function submitFeedback() {
       <!-- business card -->
       <div id="upgrade-card-business" onclick="selectUpgradePlan('business')" style="border:2px solid var(--ghost-2);padding:16px;cursor:pointer;transition:border-color .15s;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
-          <div style="font-size:12px;font-weight:700;color:#7C3AED;letter-spacing:.08em;">BUSINESS</div>
+          <div class="plan-label" style="font-size:12px;font-weight:700;color:#7C3AED;letter-spacing:.08em;">BUSINESS</div>
           <div style="font-size:14px;font-weight:700;color:var(--text);">₩49,000 <span style="font-size:10px;font-weight:400;color:var(--text-dim);">/ 월</span></div>
         </div>
         <div style="font-size:11px;color:var(--text-mid);line-height:1.6;">프로젝트 무제한 · AI 분석 · 이메일 리포트 · 우선 지원</div>
@@ -6107,10 +6107,34 @@ function openUpgradeModal() {
   });
 }
 
+var _PLAN_RANK = { free: 0, pro: 1, business: 2 };
+
 function _renderUpgradeModal() {
   _upgradePlan = null;
   var cancelRow = document.getElementById('upgrade-cancel-row');
   if (cancelRow) cancelRow.style.display = _upgradeCurrentPlan !== 'free' ? 'block' : 'none';
+  // 현재 플랜 이하 카드는 잠금(업그레이드만 허용) + '현재 플랜' 표시
+  ['pro', 'business'].forEach(function(p) {
+    var card = document.getElementById('upgrade-card-' + p);
+    if (!card) return;
+    var locked = _PLAN_RANK[p] <= (_PLAN_RANK[_upgradeCurrentPlan] || 0);
+    card.style.opacity = locked ? '.45' : '1';
+    card.style.pointerEvents = locked ? 'none' : 'auto';
+    card.style.cursor = locked ? 'not-allowed' : 'pointer';
+    var label = card.querySelector('.plan-label');
+    var tag = card.querySelector('.cur-plan-tag');
+    if (p === _upgradeCurrentPlan) {
+      if (!tag && label) {
+        tag = document.createElement('span');
+        tag.className = 'cur-plan-tag';
+        tag.style.cssText = 'font-size:9px;font-weight:400;color:var(--text-dim);margin-left:8px;';
+        tag.textContent = '· 현재 플랜';
+        label.appendChild(tag);
+      }
+    } else if (tag) {
+      tag.remove();
+    }
+  });
   _setUpgradeCardActive(null);
   var btn = document.getElementById('upgrade-pay-btn');
   btn.textContent = '플랜을 선택하세요';
@@ -6125,6 +6149,8 @@ function closeUpgradeModal(e) {
 }
 
 function selectUpgradePlan(plan) {
+  // 현재 플랜 이하 선택 차단(이중 방어 — 카드도 pointer-events:none)
+  if (_PLAN_RANK[plan] <= (_PLAN_RANK[_upgradeCurrentPlan] || 0)) return;
   _upgradePlan = plan;
   _setUpgradeCardActive(plan);
   var btn = document.getElementById('upgrade-pay-btn');

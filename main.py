@@ -326,6 +326,7 @@ _warm_session_cache()
 # ==================== 유저 DB (SQLite) ====================
 from app.constants import (
     DEFAULT_PLAN, plan_info, plan_allows, plan_project_limit, plan_member_limit,
+    PLAN_ORDER,
 )
 from config import RESEND_API_KEY, RESEND_FROM, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_API_SECRET, PLAN_PRICES
 import resend as _resend
@@ -2987,6 +2988,15 @@ async def api_billing_issue(request: Request, s: dict = Depends(_require_session
         raise HTTPException(status_code=400, detail="billingKey가 없습니다")
     if plan not in ("pro", "business"):
         raise HTTPException(status_code=400, detail="플랜이 올바르지 않습니다")
+
+    # 중복 결제 방지 — 현재 플랜보다 상위로의 업그레이드만 허용 (같거나 하위는 거부)
+    current_plan = _get_user_plan(uid)
+    try:
+        cur_rank = PLAN_ORDER.index(current_plan)
+    except ValueError:
+        cur_rank = 0
+    if PLAN_ORDER.index(plan) <= cur_rank:
+        raise HTTPException(status_code=409, detail=f"이미 {plan_info(current_plan)['label']} 플랜을 이용 중입니다")
 
     # 유저 이메일
     with _users_db() as conn:
