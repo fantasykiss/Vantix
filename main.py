@@ -3334,7 +3334,7 @@ async def terms_page():
 @app.get("/connect", response_class=HTMLResponse)
 async def connect_page(request: Request):
     token = request.cookies.get("vx_session")
-    if _get_session(token or ""):
+    if _get_session(token or "") and _get_session_user_id(token or ""):
         return RedirectResponse(url="/")
     template_path = os.path.join(os.path.dirname(__file__), "templates", "connect.html")
     with open(template_path, "r", encoding="utf-8") as f:
