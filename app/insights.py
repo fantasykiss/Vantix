@@ -73,7 +73,7 @@ def rule_version_overrun(dashboard: dict) -> list[Insight]:
             results.append(Insight(
                 rule="VERSION_OVERRUN", level="critical",
                 title="버전 일정 초과",
-                body=f"<strong>{v.get('name','?')} 마감 {due}</strong>인데 종속 이슈 완료일이 <strong>{max_due}</strong> — 버전 일정 초과 확실.",
+                body=f"<strong>{v.get('name','?')}</strong> 마감({due}) 대비 이슈 완료 예정일이 <strong>{max_due}</strong>까지 밀려 있습니다. 일정 초과가 이미 확정된 상태로, 마감 기준 재조정 또는 스코프 축소가 필요합니다.",
                 target=f"{v.get('name','?')}",
             ))
     return results
@@ -99,8 +99,8 @@ def rule_test_buffer(dashboard: dict) -> list[Insight]:
         if 0 < buffer < 3:
             results.append(Insight(
                 rule="TEST_BUFFER", level="warning",
-                title="테스트 여유 부족",
-                body=f"<strong>{v.get('name','?')} 마감 {due}</strong>, 마지막 이슈 완료 <strong>{last_dev}</strong> — 테스트 여유 <strong>{buffer}일</strong>. 일정 조정 권고.",
+                title="QA 버퍼 부족",
+                body=f"<strong>{v.get('name','?')}</strong> 개발 완료({last_dev}) 후 마감({due})까지 QA 버퍼가 <strong>{buffer}일</strong>뿐입니다. 예기치 않은 결함 발견 시 릴리즈 지연이 불가피하며, 일정 조정 또는 사전 QA 착수를 권고합니다.",
                 target=f"{v.get('name','?')}",
             ))
     return results
@@ -123,10 +123,12 @@ def rule_assignee_delay_pattern(dashboard: dict) -> list[Insight]:
             dept = dept_name(uname)
             level = "critical" if ratio >= 0.7 else "warning"
             title = "담당자 지연 위험" if level == "critical" else "담당자 지연 패턴"
-            body  = (
-                f"<strong>{name}</strong> 오픈 이슈 {total}건 중 <strong>{len(overdue)}건 초과</strong> ({round(ratio*100)}%) — "
-                + ("즉각적인 업무 재배분 필요." if level == "critical" else "지속적 지연 패턴. 업무량 점검 필요.")
-            )
+            if level == "critical":
+                body = (f"<strong>{name}</strong>의 지연율이 <strong>{round(ratio*100)}%</strong>로 임계치를 크게 초과했습니다. "
+                        f"오픈 이슈 {total}건 중 {len(overdue)}건이 기한을 넘긴 상태로, 연관 마일스톤에 연쇄 영향이 예상됩니다.")
+            else:
+                body = (f"<strong>{name}</strong>의 업무 패턴에서 반복적 지연 신호가 감지됩니다. "
+                        f"오픈 이슈 {total}건 중 {round(ratio*100)}%({len(overdue)}건)가 기한 초과 상태로, 업무량 또는 블로커 점검이 필요합니다.")
             results.append(Insight(
                 rule="ASSIGNEE_DELAY_PATTERN", level=level,
                 title=title, body=body,
@@ -157,9 +159,9 @@ def rule_dept_bottleneck(dashboard: dict) -> list[Insight]:
             results.append(Insight(
                 rule="DEPT_BOTTLENECK", level="warning",
                 title="부서 병목",
-                body=f"<strong>{dept}팀</strong> 오픈 이슈 <strong>{cnt}건</strong>" +
-                     (f" vs {compare}팀 <strong>{compare_cnt}건</strong>" if compare else "") +
-                     " — 업무 쏠림 감지. 분산 검토 필요.",
+                body=f"<strong>{dept}팀</strong>에 오픈 이슈 <strong>{cnt}건</strong>이 집중되어 있습니다" +
+                     (f" (비교: {compare}팀 {compare_cnt}건)" if compare else "") +
+                     ". 팀 간 업무 불균형이 지속될 경우 해당 팀의 처리 지연이 전체 납기에 영향을 줄 수 있습니다.",
                 target=f"{dept}팀",
             ))
     return results
@@ -185,7 +187,7 @@ def rule_high_risk_version(dashboard: dict) -> list[Insight]:
             results.append(Insight(
                 rule="HIGH_RISK_VERSION", level="info",
                 title="고위험 버전",
-                body=f"<strong>{v.get('name','?')}</strong> 오픈 이슈 <strong>{total - closed}건</strong>, 마감까지 <strong>{days_left}일</strong> — 현재 완료율 <strong>{pct}%</strong>.",
+                body=f"마감 <strong>{days_left}일</strong> 전, <strong>{v.get('name','?')}</strong> 완료율이 <strong>{pct}%</strong>에 불과합니다. 잔여 이슈 {total - closed}건을 기간 내 처리하려면 현재보다 빠른 처리 속도가 필요하며, 지금 개입하지 않으면 지연이 확정될 수 있습니다.",
                 target=f"{v.get('name','?')}",
             ))
     return results
@@ -207,7 +209,7 @@ def rule_stale_issue(dashboard: dict) -> list[Insight]:
             results.append(Insight(
                 rule="STALE_ISSUE", level="warning",
                 title="이슈 방치",
-                body=f"<strong>#{i['id']} {i.get('subject','')[:30]}</strong> — <strong>{stale_days}일째</strong> 상태 변경 없음. 진행 여부 확인 필요.",
+                body=f"<strong>#{i['id']} {i.get('subject','')[:30]}</strong>이(가) <strong>{stale_days}일</strong>째 상태 변화 없이 정체되어 있습니다. 블로커 존재 또는 담당자 인지 부재 가능성이 있으며, 즉각 확인이 필요합니다.",
                 target=f"#{i['id']} · {name}" if name else f"#{i['id']}",
             ))
     # 최대 3개만
@@ -244,7 +246,7 @@ def rule_unassigned_urgent(dashboard: dict) -> list[Insight]:
     return [Insight(
         rule="UNASSIGNED_URGENT", level="critical",
         title="미배정 긴급 이슈",
-        body=f"담당자 미배정 이슈 <strong>{len(urgent)}건</strong>, 최단 마감까지 <strong>{days_left}일</strong> — 즉시 담당자 배정 필요.",
+        body=f"마감 <strong>{days_left}일</strong> 이내인 이슈 <strong>{len(urgent)}건</strong>에 담당자가 없습니다. 배정 없이는 아무도 책임지지 않는 구간이 생기며, 마감 누락 리스크가 매우 높은 상태입니다.",
         target=f"{len(urgent)}건",
     )]
 
@@ -264,7 +266,7 @@ def rule_mass_overdue(dashboard: dict) -> list[Insight]:
     return [Insight(
         rule="MASS_OVERDUE", level="critical",
         title="프로젝트 전반 일정 초과",
-        body=f"오픈 이슈 <strong>{total}건 중 {len(overdue)}건 ({round(ratio*100)}%)이 마감 초과</strong> — 프로젝트 일정 전면 재검토 필요.",
+        body=f"오픈 이슈의 <strong>{round(ratio*100)}%({len(overdue)}/{total}건)</strong>가 기한을 초과했습니다. 단순 지연이 아닌 프로젝트 일정 체계 자체의 문제가 감지되며, 전면적인 재조정이 필요합니다.",
         target=f"초과 {len(overdue)}/{total}건",
     )]
 
@@ -284,7 +286,7 @@ def rule_deadline_cluster(dashboard: dict) -> list[Insight]:
             results.append(Insight(
                 rule="DEADLINE_CLUSTER", level="critical",
                 title="마감일 집중",
-                body=f"<strong>{due_date}</strong>에 마감 이슈 <strong>{cnt}건</strong> 집중 (D-{days_left}) — 당일 리뷰 병목 및 QA 불가 가능성.",
+                body=f"<strong>{due_date}(D-{days_left})</strong>에 마감 이슈 <strong>{cnt}건</strong>이 집중되어 있습니다. 당일 리뷰·QA 처리 용량을 초과할 가능성이 높으며, 사전 분산 처리 또는 마감일 조정을 권고합니다.",
                 target=f"{due_date}",
             ))
     return results[:2]
@@ -311,7 +313,7 @@ def rule_long_pending(dashboard: dict) -> list[Insight]:
     return [Insight(
         rule="LONG_PENDING", level="info",
         title="장기 보류",
-        body=f"보류 상태 이슈 <strong>{len(pending)}건</strong> 평균 <strong>{avg_days}일째</strong> 미해결 — 의사결정 또는 취소 처리 필요.",
+        body=f"보류 이슈 <strong>{len(pending)}건</strong>이 평균 <strong>{avg_days}일</strong>째 방치되어 있습니다. 장기 보류는 백로그를 왜곡하고 실제 진행률 파악을 어렵게 만듭니다. 재검토 후 진행·취소 결정이 필요합니다.",
         target=f"보류 {len(pending)}건",
     )]
 
@@ -359,9 +361,7 @@ def rule_resolution_velocity(dashboard: dict) -> list[Insight]:
     return [Insight(
         rule="RESOLUTION_VELOCITY", level=level,
         title="처리 속도 저하",
-        body=f"완료 이슈 평균 처리 <strong>{avg_resolve}일</strong> 대비 "
-             f"현재 오픈 이슈 평균 나이 <strong>{avg_age}일</strong> ({ratio}배) — "
-             f"이슈가 쌓이는 속도가 해결보다 빠릅니다.",
+        body=f"이슈 해결 속도(평균 <strong>{avg_resolve}일</strong>)보다 오픈 이슈 체류 기간(평균 <strong>{avg_age}일</strong>, {ratio}배)이 현저히 깁니다. 처리 용량 부족 또는 블로커 증가로 인해 백로그가 지속적으로 누적되고 있음을 나타냅니다.",
         target=f"평균 {avg_age}일",
     )]
 
@@ -379,8 +379,8 @@ def rule_no_due_date(dashboard: dict) -> list[Insight]:
     return [Insight(
         rule="NO_DUE_DATE", level="info",
         title="마감일 미설정 과다",
-        body=f"오픈 이슈 <strong>{len(open_iss)}건 중 {len(no_due)}건 ({round(ratio*100)}%)</strong>에 "
-             f"마감일 없음 — 일정 관리 사각지대. 일괄 설정 권고.",
+        body=f"오픈 이슈 <strong>{round(ratio*100)}%({len(no_due)}건)</strong>에 마감일이 설정되어 있지 않습니다. "
+             f"기한 없는 이슈는 우선순위 판단을 어렵게 하고, 리스크 탐지 정확도를 낮춥니다. 일괄 설정을 권고합니다.",
         target=f"{len(no_due)}건 미설정",
     )]
 
@@ -410,8 +410,8 @@ def rule_aged_issues(dashboard: dict) -> list[Insight]:
     return [Insight(
         rule="AGED_ISSUES", level=level,
         title="고령 이슈 누적",
-        body=f"오픈 이슈 <strong>{len(open_iss)}건 중 {len(aged)}건 ({round(ratio*100)}%)</strong>이 "
-             f"30일 이상 경과 — 평균 <strong>{avg_age}일</strong>. 장기 미처리 이슈 집중 검토 필요.",
+        body=f"오픈 이슈 중 <strong>{round(ratio*100)}%({len(aged)}건)</strong>이 30일 이상 체류 중이며, 평균 체류 기간은 <strong>{avg_age}일</strong>입니다. "
+             f"장기 이슈 비중이 높을수록 실질적인 프로젝트 진행률이 과소평가되는 경향이 있습니다.",
         target=f"{len(aged)}건 · 평균 {avg_age}일",
     )]
 
@@ -431,8 +431,8 @@ def rule_bug_concentration(dashboard: dict) -> list[Insight]:
     return [Insight(
         rule="BUG_CONCENTRATION", level="warning",
         title="버그 이슈 집중",
-        body=f"오픈 이슈 <strong>{len(open_iss)}건 중 {len(bugs)}건 ({ratio}%)이 버그</strong> — "
-             f"신규 기능보다 품질 안정화 우선 검토 필요.",
+        body=f"전체 오픈 이슈의 <strong>{ratio}%({len(bugs)}건)</strong>가 버그 유형입니다. "
+             f"이 비율은 기능 개발보다 품질 부채 해소에 더 많은 리소스가 요구되는 상태임을 나타내며, 릴리즈 품질에 직접 영향을 줄 수 있습니다.",
         target=f"버그 {len(bugs)}건",
     )]
 
@@ -457,8 +457,8 @@ def rule_deadline_assignee_skew(dashboard: dict) -> list[Insight]:
         results.append(Insight(
             rule="DEADLINE_ASSIGNEE_SKEW", level="warning",
             title="마감 임박 이슈 편중",
-            body=f"<strong>{name}</strong>에게 7일 내 마감 이슈 <strong>{len(issues)}건</strong> 집중 — "
-                 f"최단 마감 <strong>D-{min_days}</strong>. 분산 배분 검토 권고.",
+            body=f"<strong>{name}</strong>에게 7일 이내 마감 이슈 <strong>{len(issues)}건</strong>이 집중되어 있습니다 (최단 D-{min_days}). "
+                 f"단기간 과부하가 집중되면 품질 저하 또는 마감 누락 리스크가 높아집니다.",
             target=name + (f" · {dept}" if dept else ""),
         ))
     results.sort(key=lambda x: -len(skew.get(
@@ -487,8 +487,8 @@ def rule_risk_trend(dashboard: dict) -> list[Insight]:
     return [Insight(
         rule="RISK_TREND_UP", level="warning",
         title="리스크 연속 상승",
-        body=f"최근 <strong>{streak}주 연속</strong> 리스크 점수 상승 — "
-             f"<strong>{scores[-streak]}→{scores[-1]}</strong> (+{delta}점). 추세 반전 조치 필요.",
+        body=f"리스크 점수가 <strong>{streak}주 연속</strong> 상승하며 <strong>{scores[-streak]} → {scores[-1]}</strong>(+{delta}점)을 기록했습니다. "
+             f"연속 상승 추세는 구조적 문제가 해결되지 않고 있음을 시사하며, 조기 개입이 효과적입니다.",
         target=f"{streak}주 연속 상승",
     )]
 
@@ -511,8 +511,8 @@ def rule_overdue_trend(dashboard: dict) -> list[Insight]:
     return [Insight(
         rule="OVERDUE_TREND", level="warning",
         title="초과 이슈 증가 추세",
-        body=f"최근 평균({round(avg_overdue, 1)}건) 대비 초과 이슈 "
-             f"<strong>+{round(delta)}건 (+{pct}%)</strong> 증가 — 지속적 일정 지연 신호.",
+        body=f"초과 이슈가 최근 평균({round(avg_overdue, 1)}건) 대비 <strong>+{round(delta)}건(+{pct}%)</strong> 증가했습니다. "
+             f"단발성 급증이 아닌 구조적 지연 신호일 수 있으며, 원인 분석이 필요합니다.",
         target=f"초과 {int(current)}건",
     )]
 
@@ -554,8 +554,8 @@ def rule_version_delay_forecast(dashboard: dict) -> list[Insight]:
             results.append(Insight(
                 rule="VERSION_DELAY_FORECAST", level="warning" if delay < 14 else "critical",
                 title="버전 지연 예측",
-                body=f"<strong>{v.get('name', '?')}</strong> 현재 처리 속도 기준 예상 완료 "
-                     f"<strong>{predicted}</strong> — 마감일 대비 <strong>D+{delay}</strong> 지연 예측.",
+                body=f"현재 이슈 처리 속도가 유지될 경우 <strong>{v.get('name', '?')}</strong>의 완료 예상일은 <strong>{predicted}</strong>입니다. "
+                     f"마감 대비 <strong>D+{delay}</strong> 지연이 예측되며, 지금 개입하지 않으면 지연이 확정됩니다.",
                 target=v.get("name", "?"),
             ))
     return results
@@ -576,8 +576,8 @@ def rule_overdue_spike(dashboard: dict) -> list[Insight]:
     return [Insight(
         rule="OVERDUE_SPIKE", level="critical",
         title="초과 이슈 주간 급증",
-        body=f"전주 대비 초과 이슈 <strong>+{delta}건{pct_str}</strong> 급증 "
-             f"({prev_overdue}건 → {now_overdue}건) — 이번 주 집중 점검 필요.",
+        body=f"초과 이슈가 전주({prev_overdue}건) 대비 <strong>+{delta}건{pct_str}</strong>으로 급증했습니다({now_overdue}건). "
+             f"단기간의 급격한 증가는 외부 블로커 또는 팀 가용 인력 변화의 신호일 수 있습니다.",
         target=f"+{delta}건",
     )]
 
@@ -611,9 +611,8 @@ def rule_burnout_risk(dashboard: dict) -> list[Insight]:
         results.append(Insight(
             rule="BURNOUT_RISK", level=level,
             title="담당자 번아웃 위험",
-            body=f"<strong>{name}</strong> 오픈 이슈 <strong>{open_cnt}건</strong> "
-                 f"(팀 평균 {round(avg_open, 1)}건의 <strong>{round(load_ratio, 1)}배</strong>), "
-                 f"초과율 <strong>{round(overdue_ratio * 100)}%</strong> — 즉각적인 업무 재배분 검토 필요.",
+            body=f"<strong>{name}</strong>의 업무 부하가 팀 평균의 <strong>{round(load_ratio, 1)}배</strong>이며, 초과율이 <strong>{round(overdue_ratio * 100)}%</strong>에 달합니다. "
+                 f"과부하와 높은 지연율이 동시에 나타날 경우 처리 속도 저하와 품질 문제로 이어질 수 있습니다.",
             target=f"{name}" + (f" · {dept}" if dept else ""),
         ))
 
@@ -676,7 +675,7 @@ def run_all_insights(dashboard: dict) -> list[Insight]:
             results.insert(0, Insight(
                 rule="RISK_CRITICAL_FALLBACK", level="critical",
                 title="리스크 Critical 감지",
-                body=f"<strong>{top.get('name','?')}</strong> 리스크 점수 <strong>{round(top.get('risk_score', 0), 1)}</strong> — 초과·임박 이슈 집중. 즉각 점검 필요.",
+                body=f"<strong>{top.get('name','?')}</strong>의 리스크 점수가 <strong>{round(top.get('risk_score', 0), 1)}</strong>으로 Critical 수준에 도달했습니다. 초과·임박 이슈의 복합적 누적이 감지되며, 즉각적인 개입이 필요합니다.",
                 target=top.get("name", "?"),
             ))
 

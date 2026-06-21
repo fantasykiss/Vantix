@@ -452,6 +452,7 @@ def _init_users_db():
             ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS plan TEXT DEFAULT '{DEFAULT_PLAN}';
             ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0;
             ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS email_verify_token TEXT;
+            ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS projects_changed_at DOUBLE PRECISION DEFAULT NULL;
         """)
 
 _init_users_db()
@@ -658,6 +659,25 @@ def _plan_owner_id(user_id: int | None) -> int | None:
         return None
     m = _get_membership(user_id)
     return m["owner_user_id"] if m else user_id
+
+_PROJECT_CHANGE_COOLDOWN = 7 * 24 * 3600  # 7일(초)
+
+def _get_projects_changed_at(user_id: int | None) -> float | None:
+    if not user_id:
+        return None
+    with _users_db() as conn:
+        row = conn.execute("SELECT projects_changed_at FROM vantix_users WHERE id=?", (user_id,)).fetchone()
+    return row["projects_changed_at"] if row else None
+
+def _projects_cooldown_days_left(user_id: int | None) -> int:
+    """남은 쿨다운 일수. 0이면 변경 가능."""
+    ts = _get_projects_changed_at(user_id)
+    if not ts:
+        return 0
+    import time
+    elapsed = time.time() - ts
+    remaining = _PROJECT_CHANGE_COOLDOWN - elapsed
+    return max(0, int(remaining / 86400) + (1 if remaining % 86400 > 0 else 0))
 
 def _get_workspace_members(workspace_id: int) -> list[dict]:
     """워크스페이스 멤버 목록 (이메일·역할 포함)."""
@@ -2938,6 +2958,7 @@ async def api_account_plan(request: Request):
         "can_edit": role in ("owner", "admin"),
         "selected_projects": _get_user_projects(uid) if uid else [],
         "is_authenticated": uid is not None,
+        "projects_changed_at": _get_projects_changed_at(uid),
     })
 
 
@@ -3280,10 +3301,19 @@ async def api_account_set_projects(request: Request):
     projects = body.get("projects") or []
     if not isinstance(projects, list):
         raise HTTPException(status_code=400, detail="projects는 배열이어야 합니다")
+    # 최초 선택은 쿨다운 적용 안 함
+    existing = _get_user_projects(uid)
+    if existing:
+        days_left = _projects_cooldown_days_left(uid)
+        if days_left > 0:
+            raise HTTPException(status_code=429, detail={"error": "cooldown", "days_left": days_left})
     try:
         saved = _set_user_projects(uid, projects)
     except ValueError as e:
         raise HTTPException(status_code=422, detail=str(e))
+    import time
+    with _users_db() as conn:
+        conn.execute("UPDATE vantix_users SET projects_changed_at=? WHERE id=?", (time.time(), uid))
     return JSONResponse({"ok": True, "selected_projects": saved})
 
 
