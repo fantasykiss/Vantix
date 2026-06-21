@@ -3356,6 +3356,26 @@ async def api_connect_demo(request: Request):
     response.set_cookie("vx_session", token, httponly=True, max_age=DEMO_SESSION_TTL, samesite="lax", secure=True)
     return response
 
+def _validate_redmine_url(url: str) -> str | None:
+    """URL scheme(http/https만), 사설 IP 대역 차단. 문제 있으면 에러 문자열 반환."""
+    import ipaddress as _ipaddress
+    try:
+        parsed = urllib.parse.urlparse(url)
+    except Exception:
+        return "유효하지 않은 URL입니다"
+    if parsed.scheme not in ("http", "https"):
+        return "http 또는 https URL만 허용됩니다"
+    hostname = parsed.hostname or ""
+    if not hostname:
+        return "유효하지 않은 URL입니다"
+    try:
+        ip = _ipaddress.ip_address(hostname)
+        if ip.is_private or ip.is_loopback or ip.is_link_local or ip.is_reserved:
+            return "허용되지 않는 주소입니다"
+    except ValueError:
+        pass
+    return None
+
 @app.post("/api/connect")
 async def api_connect(request: Request):
     """베타 온보딩: Redmine URL + API Key 검증 후 세션 발급"""
@@ -3367,14 +3387,18 @@ async def api_connect(request: Request):
     if not rm_url or not rm_key:
         raise HTTPException(status_code=400, detail="url과 api_key 필수")
 
+    url_err = _validate_redmine_url(rm_url)
+    if url_err:
+        raise HTTPException(status_code=400, detail=url_err)
+
     # Redmine 연결 검증
     try:
         test_url = rm_url + "/users/current.json"
         req = urllib.request.Request(test_url, headers={"X-Redmine-API-Key": rm_key})
         with urllib.request.urlopen(req, timeout=30, context=SSL_CONTEXT) as resp:
             user_data = json.loads(resp.read().decode())
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Redmine 연결 실패: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Redmine 연결에 실패했습니다. URL과 API 키를 확인해주세요.")
 
     token = str(_uuid.uuid4())
     _save_session(token, rm_url, rm_key, time.time())
@@ -3406,13 +3430,16 @@ async def api_update_connection(request: Request):
         rm_key = existing.get("key", "")
     if not rm_url or not rm_key:
         raise HTTPException(status_code=400, detail="url과 api_key 필수")
+    url_err = _validate_redmine_url(rm_url)
+    if url_err:
+        raise HTTPException(status_code=400, detail=url_err)
     try:
         test_url = rm_url + "/users/current.json"
         req = urllib.request.Request(test_url, headers={"X-Redmine-API-Key": rm_key})
         with urllib.request.urlopen(req, timeout=30, context=SSL_CONTEXT) as resp:
             user_data = json.loads(resp.read().decode())
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=f"Redmine 연결 실패: {str(e)}")
+    except Exception:
+        raise HTTPException(status_code=400, detail="Redmine 연결에 실패했습니다. URL과 API 키를 확인해주세요.")
     _save_session(token, rm_url, rm_key, time.time())
     return JSONResponse({"ok": True, "user": user_data.get("user", {}).get("login", "")})
 
