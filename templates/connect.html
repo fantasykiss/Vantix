@@ -945,7 +945,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
     <!-- ── Step 2: Redmine 연결 ── -->
     <div id="auth-step2" style="display:none;">
-      <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#0F766E; margin-bottom:12px;">Step 2 / 2 — Connect Redmine</div>
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#0F766E; margin-bottom:12px;">Step 2 / 3 — Connect Redmine</div>
       <h2 style="margin:0 0 8px; font-family:'Archivo',sans-serif; font-weight:700; font-size:clamp(22px,3vw,28px); letter-spacing:-.025em; color:#17181A;">Redmine 연결</h2>
       <p style="margin:0 0 28px; font-size:14px; line-height:1.6; color:#6A6E73;">Redmine 서버 주소와 API 키를 입력하세요.</p>
 
@@ -970,6 +970,18 @@ document.addEventListener('DOMContentLoaded', function() {
 
         <button onclick="goBackToStep1()" style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; background:none; border:none; cursor:pointer; color:#8a8d91; padding:0; text-align:left;">← 이전으로</button>
       </div>
+    </div>
+
+    <!-- ── Step 3: 프로젝트 선택 ── -->
+    <div id="auth-step3" style="display:none;">
+      <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.2em; text-transform:uppercase; color:#0F766E; margin-bottom:12px;">Step 3 / 3 — Select Projects</div>
+      <h2 style="margin:0 0 6px; font-family:'Archivo',sans-serif; font-weight:700; font-size:clamp(20px,3vw,26px); letter-spacing:-.025em; color:#17181A;">모니터링할 프로젝트 선택</h2>
+      <p id="step3-desc" style="margin:0 0 20px; font-size:13px; line-height:1.6; color:#6A6E73;"></p>
+
+      <div id="step3-project-list" style="display:flex; flex-direction:column; gap:6px; max-height:280px; overflow-y:auto; margin-bottom:16px;"></div>
+      <div id="step3-error" style="display:none; font-size:12px; color:#C0392B; margin-bottom:12px;"></div>
+
+      <button id="step3-btn" onclick="submitProjectSelect()" style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.1em; text-transform:uppercase; color:#fff; background:#0F766E; border:none; padding:16px 24px; cursor:pointer; width:100%; opacity:.4; pointer-events:none;">선택하기 ↗</button>
     </div>
   </div>
 </div>
@@ -1001,6 +1013,106 @@ document.addEventListener('DOMContentLoaded', function() {
 <script>
 var _authMode = 'signup'; // 'signup' | 'login'
 var _pendingEmail = '';
+var _step3PlanLimit = 1;
+var _step3Selected = [];
+
+async function showStep3() {
+  document.getElementById('auth-step2').style.display = 'none';
+  document.getElementById('auth-step3').style.display = 'block';
+
+  var planRes = await fetch('/api/account/plan');
+  var planData = planRes.ok ? await planRes.json() : {};
+  _step3PlanLimit = planData.project_limit || 1;
+  var limitLabel = _step3PlanLimit === -1 ? '무제한' : _step3PlanLimit + '개';
+  document.getElementById('step3-desc').textContent =
+    '현재 플랜(' + (planData.label || 'Free') + ')에서 최대 ' + limitLabel + ' 선택할 수 있습니다.';
+
+  var listEl = document.getElementById('step3-project-list');
+  listEl.innerHTML = '<div style="font-size:12px;color:#8a8d91;padding:8px 0;">프로젝트 불러오는 중...</div>';
+
+  var res = await fetch('/api/projects');
+  var projects = res.ok ? await res.json() : [];
+  if (!Array.isArray(projects)) projects = [];
+  _step3Selected = [];
+  listEl.innerHTML = '';
+
+  projects.forEach(function(p) {
+    var pid = String(p.identifier || p.id || '');
+    var row = document.createElement('label');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(23,24,26,.14);cursor:pointer;font-family:\'IBM Plex Mono\',monospace;font-size:12px;color:#17181A;transition:background .15s;';
+    row.onmouseover = function(){ row.style.background='rgba(15,118,110,.05)'; };
+    row.onmouseout  = function(){ row.style.background=''; };
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = pid;
+    cb.dataset.name = p.name;
+    cb.style.accentColor = '#0F766E';
+    cb.onchange = function() { _onStep3Check(cb, p, projects.length); };
+    row.appendChild(cb);
+    var span = document.createElement('span');
+    span.textContent = p.name;
+    row.appendChild(span);
+    listEl.appendChild(row);
+  });
+  _updateStep3Btn();
+}
+
+function _onStep3Check(cb, p, total) {
+  if (cb.checked) {
+    if (_step3PlanLimit !== -1 && _step3Selected.length >= _step3PlanLimit) {
+      cb.checked = false;
+      var errEl = document.getElementById('step3-error');
+      errEl.textContent = '최대 ' + _step3PlanLimit + '개까지 선택할 수 있습니다.';
+      errEl.style.display = 'block';
+      return;
+    }
+    _step3Selected.push({ project_id: String(p.id), project_name: p.name });
+  } else {
+    _step3Selected = _step3Selected.filter(function(x){ return x.project_id !== String(p.id); });
+  }
+  document.getElementById('step3-error').style.display = 'none';
+  _updateStep3Btn();
+}
+
+function _updateStep3Btn() {
+  var btn = document.getElementById('step3-btn');
+  if (_step3Selected.length > 0) {
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+    btn.textContent = _step3Selected.length + '개 선택 완료 — 시작하기 ↗';
+  } else {
+    btn.style.opacity = '.4';
+    btn.style.pointerEvents = 'none';
+    btn.textContent = '선택하기 ↗';
+  }
+}
+
+async function submitProjectSelect() {
+  var btn = document.getElementById('step3-btn');
+  btn.style.opacity = '.6';
+  btn.style.pointerEvents = 'none';
+  btn.textContent = '저장 중...';
+  try {
+    var res = await fetch('/api/account/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projects: _step3Selected })
+    });
+    if (res.ok) {
+      window.location.href = '/';
+    } else {
+      var d = await res.json();
+      document.getElementById('step3-error').textContent = d.detail || '저장에 실패했습니다.';
+      document.getElementById('step3-error').style.display = 'block';
+      btn.style.opacity = '1';
+      btn.style.pointerEvents = 'auto';
+      btn.textContent = _step3Selected.length + '개 선택 완료 — 시작하기 ↗';
+    }
+  } catch(e) {
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+  }
+}
 
 function showVerifyScreenForLogin() {
   var email = document.getElementById('auth-email').value.trim().toLowerCase();
@@ -1289,7 +1401,7 @@ async function submitConnect() {
       btnText.textContent = '연결됨 ✓';
       btn.style.background = '#059669';
       lb.querySelector('.ov-bar').style.cssText += '; width:100%; animation:none; transition:width .2s;';
-      setTimeout(() => { window.location.href = '/'; }, 600);
+      setTimeout(() => { showStep3(); }, 600);
     } else {
       throw new Error(data.detail || '연결에 실패했습니다.');
     }

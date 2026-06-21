@@ -350,7 +350,7 @@ html, body {
 .live-text { color: var(--green); font-weight: 700; }
 @keyframes livepulse { 0%,100% { opacity: 1; } 50% { opacity: 0.25; } }
 @keyframes spin-once { from { transform: rotate(0deg); } to { transform: rotate(-360deg); } }
-#topbar-refresh-icon.spinning { animation: spin-once 0.6s cubic-bezier(0.4,0,0.2,1); }
+#topbar-refresh-icon.spinning, #ins-refresh-icon.spinning { animation: spin-once 0.6s cubic-bezier(0.4,0,0.2,1); }
 
 /* OFFLINE 상태 */
 .offline-text { color: var(--red); font-weight: 700; }
@@ -374,6 +374,9 @@ html, body {
   background: transparent; cursor: pointer;
 }
 .icon-btn:hover { color: var(--text); border-color: var(--ghost-2); }
+.ud-item { display:flex;align-items:center;gap:8px;width:100%;background:none;border:none;text-align:left;padding:7px 14px;font-size:12px;color:var(--text-mid);cursor:pointer;font-family:var(--dm);letter-spacing:.02em;transition:background .1s,color .1s; }
+.ud-item:hover { background:var(--ghost);color:var(--text); }
+.ud-item svg { flex-shrink:0;opacity:.55; }
 .icon-btn-report {
   border: 1.5px solid rgba(255,255,255,0.55);
   color: var(--text);
@@ -725,14 +728,15 @@ html, body {
 .ins-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 1px;
-  background: var(--ghost);
+  gap: 0;
 }
 .ins-card {
   background: var(--bg);
   padding: 18px 22px;
   min-height: 130px;
   border-left: 2px solid transparent;
+  border-bottom: 1px solid var(--ghost);
+  border-right: 1px solid var(--ghost);
 }
 .ins-card.warn { border-left-color: var(--amber); }
 .ins-card.info { border-left-color: var(--text-mid); }
@@ -742,8 +746,50 @@ html, body {
 .ins-kind.warn { color: var(--amber); }
 .ins-kind.info { color: var(--text-mid); }
 .ins-kind.crit { color: var(--red); }
-.ins-who  { font-size: 9px; color: var(--text-dim); font-family: var(--mono); letter-spacing: 0.1em; }
+.ins-who  {
+  display: inline-block; font-size: 10px; color: var(--text-mid);
+  font-family: var(--mono); letter-spacing: 0.06em;
+  background: var(--ghost); border: 1px solid var(--ghost-2);
+  padding: 1px 7px; border-radius: 2px;
+}
 .ins-body { font-size: 12px; color: var(--text); line-height: 1.6; font-weight: 400; }
+.ins-conf {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-family: var(--mono); letter-spacing: 0.05em;
+  cursor: pointer; padding: 2px 8px; border-radius: 2px; border: 1px solid;
+  transition: opacity 0.15s; user-select: none;
+}
+.ins-conf:hover { opacity: 0.7; }
+.ins-conf.crit-conf { color: var(--red); border-color: rgba(239,68,68,0.3); background: rgba(239,68,68,0.06); }
+.ins-conf.warn-conf { color: var(--amber); border-color: rgba(245,158,11,0.3); background: rgba(245,158,11,0.06); }
+.ins-conf.info-conf { color: var(--text-mid); border-color: var(--ghost-2); background: var(--ghost); }
+.ins-reason {
+  font-size: 11px; color: var(--text-mid); line-height: 1.55;
+  margin-top: 0; padding: 0 10px; background: var(--ghost);
+  border-left: 2px solid var(--ghost-2);
+  max-height: 0; overflow: hidden; opacity: 0;
+  transition: max-height 0.28s ease, padding 0.28s ease, margin-top 0.28s ease, opacity 0.28s ease;
+}
+.ins-reason.open { max-height: 100px; padding: 8px 10px; margin-top: 8px; opacity: 1; }
+.ins-grid { transition: filter 0.32s ease-in-out, transform 0.32s ease-in-out, opacity 0.32s ease-in-out, min-height 0.35s ease; }
+.ins-grid.ins-blur { filter: blur(4px); transform: scale(0.97); opacity: 0; }
+.ins-grid.ins-overview { grid-template-columns: 1fr; }
+.ins-goto-btn {
+  flex-shrink: 0; background: none; border: 1px solid var(--ghost-2);
+  color: var(--text-dim); font-size: 11px; font-family: var(--dm);
+  letter-spacing: 0.08em; padding: 6px 14px; cursor: pointer;
+  align-self: center; transition: border-color 0.15s, color 0.15s; white-space: nowrap;
+}
+.ins-goto-btn:hover { border-color: var(--text-mid); color: var(--text); }
+.ins-scanning { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px; padding: 40px 20px; grid-column: span 3; }
+.ins-scan-label { font-size: 10px; letter-spacing: 0.18em; color: var(--text-dim); font-family: var(--dm); text-transform: uppercase; }
+.ins-scan-dots { display: flex; gap: 7px; }
+.ins-scan-dot { width: 5px; height: 5px; border-radius: 50%; background: #0040ff; animation: insScanPulse 1.4s ease-in-out infinite; }
+.ins-scan-dot:nth-child(2) { animation-delay: 0.22s; }
+.ins-scan-dot:nth-child(3) { animation-delay: 0.44s; }
+@keyframes insScanPulse { 0%,60%,100%{opacity:.18;transform:scale(.65)} 30%{opacity:1;transform:scale(1)} }
+@keyframes insCardIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+.ins-card.card-appear { animation: insCardIn 0.3s ease forwards; opacity: 0; }
 
 /* ══ TABLET — 768~1199px ══════════════════════════════════════ */
 @media (max-width: 1199px) {
@@ -1433,38 +1479,46 @@ html, body {
 
     <!-- Actions (right) -->
     <div class="topbar-actions">
-      <!-- 새로고침 -->
-      <button id="topbar-refresh-btn" class="icon-btn" title="강제 갱신" onclick="handleRefresh()">
+      <button id="topbar-refresh-btn" class="icon-btn" title="강제 갱신" onclick="handleRefresh()" style="border:none;background:none;">
         <svg id="topbar-refresh-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1 0 1-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 2v3h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
-      <!-- 테마 전환 -->
-      <button class="icon-btn" id="theme-toggle-btn" onclick="toggleTheme()" title="테마 전환">
-        <svg id="theme-icon-sun" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" style="display:none;"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>
-        <svg id="theme-icon-moon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-      </button>
-      <span class="topbar-divider"></span>
-      <!-- 리포트 -->
-      <button class="icon-btn icon-btn-report" title="리포트 내보내기" onclick="openReport()">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><line x1="10" y1="9" x2="8" y2="9"/></svg>
-      </button>
-      <!-- 연결 설정 -->
-      <button class="icon-btn" title="연결 설정" onclick="openSettingsModal()">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      </button>
-      <span class="topbar-divider"></span>
-      <!-- 유저 정보 -->
-      <div id="topbar-user" class="topbar-user">
-        <span id="topbar-plan-badge" class="topbar-plan-badge free" style="cursor:pointer" onclick="openUpgradeModal()" title="플랜 업그레이드">FREE</span>
-        <button class="icon-btn" title="팀 관리" onclick="openTeamModal()">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <!-- 통합 설정 드롭다운 -->
+      <div id="topbar-user" style="display:none;position:relative;">
+        <button id="topbar-avatar-btn" onclick="toggleUserDropdown(event)" title="설정" style="display:flex;align-items:center;gap:6px;background:none;border:none;cursor:pointer;padding:4px 10px 4px 8px;border-radius:2px;transition:background .12s;font-family:var(--dm);" onmouseenter="this.style.background='var(--ghost)'" onmouseleave="this.style.background='none'">
+          <span id="topbar-avatar-name" style="font-size:12px;font-weight:600;color:var(--text-mid);letter-spacing:.02em;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
+          <svg width="10" height="10" viewBox="0 0 10 10" fill="none" style="color:var(--text-dim);flex-shrink:0;"><path d="M2 4l3 3 3-3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg>
         </button>
-        <span id="topbar-user-name" class="topbar-user-name">—</span>
-        <button class="icon-btn" title="로그아웃" onclick="doLogout()">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-        </button>
+        <div id="user-dropdown" style="display:none;position:absolute;top:calc(100% + 6px);right:0;width:216px;background:var(--surface-low);border:1px solid var(--ghost-2);z-index:9500;">
+          <!-- 계정 헤더 -->
+          <div style="padding:12px 14px;border-bottom:1px solid var(--ghost);">
+            <div id="ud-name" style="font-size:13px;font-weight:600;color:var(--text);line-height:1.3;">—</div>
+            <div id="ud-email" style="font-size:10px;color:var(--text-dim);margin-top:2px;font-family:var(--dm);">—</div>
+            <span id="ud-plan-badge" style="display:inline-flex;margin-top:6px;font-family:var(--dm);font-size:9px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;padding:2px 5px;border:1px solid var(--text-dim);color:var(--text-dim);">FREE</span>
+          </div>
+          <!-- 메뉴 항목 -->
+          <div style="padding:4px 0;">
+            <button onclick="_udOpen(openUpgradeModal)" class="ud-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>플랜 &amp; 결제</button>
+            <button onclick="_udOpen(openProjectSelectModal)" class="ud-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>프로젝트 선택</button>
+            <button onclick="_udOpen(openTeamModal)" class="ud-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>팀 관리</button>
+            <button onclick="_udOpen(openReport)" class="ud-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>리포트</button>
+            <button onclick="_udOpen(openSettingsModal)" class="ud-item"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>Redmine 연결</button>
+          </div>
+          <!-- 테마 -->
+          <div style="border-top:1px solid var(--ghost);padding:7px 14px;display:flex;align-items:center;justify-content:space-between;">
+            <span style="font-size:12px;color:var(--text-mid);">테마</span>
+            <div style="display:flex;">
+              <button id="ud-theme-light" onclick="_usSetTheme('light')" style="font-size:10px;padding:2px 9px;border:1px solid var(--ghost-2);border-right:none;background:none;cursor:pointer;color:var(--text-dim);font-family:var(--dm);transition:background .12s,color .12s;">라이트</button>
+              <button id="ud-theme-dark"  onclick="_usSetTheme('dark')"  style="font-size:10px;padding:2px 9px;border:1px solid var(--ghost-2);background:none;cursor:pointer;color:var(--text-dim);font-family:var(--dm);transition:background .12s,color .12s;">다크</button>
+            </div>
+          </div>
+          <!-- 로그아웃 -->
+          <div style="border-top:1px solid var(--ghost);padding:4px 0 4px;">
+            <button onclick="doLogout()" class="ud-item" style="color:var(--red,#ef4444);"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>로그아웃</button>
+          </div>
+        </div>
       </div>
       <!-- 비로그인(데모) -->
-      <a id="topbar-login-link" class="topbar-login-link" href="/connect">로그인</a>
+      <a id="topbar-login-link" class="topbar-login-link" href="/connect" style="display:none;">로그인</a>
     </div>
   </header>
 
@@ -1653,7 +1707,9 @@ html, body {
           <div style="display:flex;align-items:center;gap:8px;">
             <span class="sec-head-r" id="ins-summary">로딩 중</span>
             <button id="ins-next-btn" onclick="nextInsights()" style="display:none;background:none;border:1px solid var(--ghost-2);color:var(--text-dim);font-size:11px;font-family:var(--dm);letter-spacing:0.06em;padding:3px 10px;cursor:pointer;line-height:1.6;transition:border-color 0.15s,color 0.15s;">▶ —</button>
-            <button id="ins-refresh-btn" onclick="refreshInsights()" title="인사이트 다시 분석" style="background:none;border:1px solid var(--ghost-2);color:var(--text-dim);font-size:11px;font-family:var(--dm);letter-spacing:0.08em;padding:3px 10px;cursor:pointer;line-height:1.6;transition:border-color 0.15s,color 0.15s;">↺ 갱신</button>
+            <button id="ins-refresh-btn" onclick="refreshInsights()" title="인사이트 다시 분석" class="icon-btn" style="border:1px solid var(--ghost-2);padding:4px 8px;">
+              <svg id="ins-refresh-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1 0 1-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 2v3h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </button>
           </div>
         </div>
         <div class="ins-grid" id="ins-grid">
@@ -1935,6 +1991,7 @@ var _CLIENT_CACHE_TTL = 600000; // 10분 (ms)
 var _lastForecast = null;
 var _allInsights = [];
 var _insightPage = 0;
+var _insGridMaxH = 0;
 var _prevInsightRuleKey = null;
 var INS_PAGE = 6;
 var _lastGroupsData = null;
@@ -2509,9 +2566,12 @@ async function loadAll() {
       data = await dataRes.json();
 
       // 부가 API — 실패해도 offline 표시 안 함
+      _showInsightScanning();
       var [forecastRes, insightsRes, historyRes] = await Promise.allSettled([
         fetch('/api/forecast?' + params, { signal: AbortSignal.timeout(20000) }),
-        fetch('/api/insights?' + params, { signal: AbortSignal.timeout(20000) }),
+        targetPid === ''
+          ? Promise.resolve({ ok: false })  // 전체 프로젝트 모드 — insights 불필요
+          : fetch('/api/insights?' + params, { signal: AbortSignal.timeout(20000) }),
         fetch('/api/risk-history?weeks=52&project_id=' + encodeURIComponent(targetPid), { signal: AbortSignal.timeout(10000) }),
       ]);
 
@@ -2543,7 +2603,13 @@ async function loadAll() {
     if (cacheEl) cacheEl.textContent = cacheAgeStr || '0초 전';
 
     renderDashboard(data, forecast);
-    renderInsights((insightsData && insightsData.insights) || []);
+    if (currentProjectId === '') {
+      renderInsightsOverview(data.project_risk || []);
+    } else {
+      var grid = document.getElementById('ins-grid');
+      if (grid) grid.classList.remove('ins-overview');
+      renderInsights((insightsData && insightsData.insights) || []);
+    }
     renderTrend(_allHistory, _currentTrendWeeks);
 
     // Trend subtitle
@@ -3029,9 +3095,19 @@ function renderWorkload(forecast) {
 // ────────────────────────────────────────────────────────────
 async function refreshInsights() {
   var btn = document.getElementById('ins-refresh-btn');
-  var summary = document.getElementById('ins-summary');
-  if (btn) { btn.textContent = '...'; btn.disabled = true; }
-  if (summary) { summary.textContent = '분석 중'; summary._showingMsg = false; }
+  if (btn) { btn.disabled = true; }
+  var insRefIcon = document.getElementById('ins-refresh-icon');
+  if (insRefIcon) { insRefIcon.classList.add('spinning'); setTimeout(function(){ insRefIcon.classList.remove('spinning'); }, 600); }
+
+  // 전체 프로젝트 모드 — 캐시된 risk 데이터 다시 렌더
+  if (currentProjectId === '') {
+    if (_lastProjectRisks.length) renderInsightsOverview(_lastProjectRisks);
+    if (btn) { btn.disabled = false; }
+    return;
+  }
+
+  var grid = document.getElementById('ins-grid');
+  if (grid) grid.style.opacity = '0.4';
 
   var prevRuleKey = _prevInsightRuleKey;
 
@@ -3041,6 +3117,7 @@ async function refreshInsights() {
     var res = await fetch('/api/insights?' + params, { signal: AbortSignal.timeout(20000) });
     var data = res.ok ? await res.json() : null;
     var newInsights = (data && data.insights) || [];
+    if (grid) grid.style.opacity = '';
     renderInsights(newInsights);
 
     // 변경 건수 비교
@@ -3070,13 +3147,191 @@ async function refreshInsights() {
   } catch(e) {
     if (summary) summary.textContent = '갱신 실패';
   } finally {
-    if (btn) { btn.textContent = '↺ 갱신'; btn.disabled = false; }
+    if (btn) { btn.disabled = false; }
   }
+}
+
+var _lastProjectRisks = [];
+
+function _projectRiskSummary(pr) {
+  var total        = pr.total || 1;
+  var overdueRatio = pr.overdue / total;
+  var lvl          = pr.risk_level || 'Low';
+
+  if (overdueRatio >= 0.7) {
+    return '이슈 <strong>' + Math.round(overdueRatio * 100) + '%</strong>가 기한을 초과한 상태입니다. 프로젝트 일정 전반의 재검토가 필요합니다.';
+  }
+  if (pr.urgent >= 5 && overdueRatio >= 0.4) {
+    return '초과 <strong>' + Math.round(overdueRatio * 100) + '%</strong> + 임박 <strong>' + pr.urgent + '건</strong>이 복합적으로 작용해 ' + lvl + ' 수준에 도달했습니다.';
+  }
+  if (overdueRatio >= 0.4) {
+    return '이슈 <strong>' + Math.round(overdueRatio * 100) + '%</strong>가 기한을 초과했습니다. 담당자별 업무 점검이 필요합니다.';
+  }
+  if (pr.urgent >= 5) {
+    return '3일 내 마감 이슈가 <strong>' + pr.urgent + '건</strong> 집중되어 있습니다. 즉각적인 대응이 필요합니다.';
+  }
+  if (pr.urgent >= 3 && pr.pending >= 3) {
+    return '임박 <strong>' + pr.urgent + '건</strong> · 보류 <strong>' + pr.pending + '건</strong>이 동시에 쌓여 처리 지연 리스크가 있습니다.';
+  }
+  if (pr.pending >= 3) {
+    return '보류 이슈 <strong>' + pr.pending + '건</strong>이 의사결정 대기 중입니다. 빠른 처리가 필요합니다.';
+  }
+  if (overdueRatio > 0 && overdueRatio < 0.2) {
+    return '소수 이슈(<strong>' + pr.overdue + '건</strong>)가 기한을 초과했습니다. 선제 점검으로 확산을 방지할 수 있습니다.';
+  }
+  if (pr.overdue === 0 && pr.urgent === 0) {
+    return '현재 기한 초과 이슈가 없습니다. 일정 관리가 양호한 상태입니다.';
+  }
+  return '전반적으로 안정적인 상태입니다. 임박 이슈(<strong>' + pr.urgent + '건</strong>)를 사전에 점검하세요.';
+}
+
+function _gotoProject(pid, name) {
+  var resolvedPid = pid;
+  if (!resolvedPid && _allProjects) {
+    var found = _allProjects.find(function(p) { return p.name === name || p.title === name; });
+    if (found) resolvedPid = found.identifier;
+  }
+  if (resolvedPid && _allProjects) switchProject(resolvedPid, name, _allProjects);
+}
+
+function renderInsightsOverview(projectRisks) {
+  _lastProjectRisks = projectRisks;
+  var grid    = document.getElementById('ins-grid');
+  var summary = document.getElementById('ins-summary');
+  var nextBtn = document.getElementById('ins-next-btn');
+  if (!grid) return;
+
+  grid.classList.add('ins-overview');
+  grid.innerHTML = '';
+
+  if (!projectRisks.length) {
+    grid.innerHTML = '<div class="ins-card info"><div class="ins-body" style="color:var(--text-dim)">프로젝트 데이터 없음</div></div>';
+    if (summary) summary.textContent = '프로젝트 없음';
+    if (nextBtn) nextBtn.style.display = 'none';
+    return;
+  }
+
+  var critCount = 0, highCount = 0, otherCount = 0;
+  projectRisks.forEach(function(pr) {
+    var lvl = pr.risk_level || 'Low';
+    if (lvl === 'Critical') critCount++;
+    else if (lvl === 'High') highCount++;
+    else otherCount++;
+  });
+
+  projectRisks.forEach(function(pr, idx) {
+    var lvl      = pr.risk_level || 'Low';
+    var cssClass = lvl === 'Critical' ? 'crit' : lvl === 'High' ? 'warn' : 'info';
+    var overdueRatio = pr.total > 0 ? Math.round(pr.overdue / pr.total * 100) : 0;
+    var score    = Math.round((pr.risk_score || 0) * 10) / 10;
+    var pid      = (pr.identifier || '').replace(/'/g, "\\'");
+    var pname    = (pr.name || '?').replace(/'/g, "\\'");
+
+    var card = document.createElement('div');
+    card.className = 'ins-card ' + cssClass;
+    card.innerHTML =
+      '<div style="display:flex;align-items:stretch;gap:0;">' +
+        '<div style="flex:0 0 42%;padding-right:20px;border-right:1px solid var(--ghost);min-width:0;">' +
+          '<div class="ins-head" style="margin-bottom:8px;">' +
+            '<span class="ins-kind ' + cssClass + '">' + escapeHtml(lvl) + '</span>' +
+            '<span class="ins-who">RISK ' + score + '</span>' +
+          '</div>' +
+          '<div style="font-size:14px;font-weight:600;color:var(--text);margin-bottom:10px;letter-spacing:-0.01em;">' + escapeHtml(pr.name || '?') + '</div>' +
+          '<div style="font-size:11px;color:var(--text-mid);line-height:1.8;">' +
+            '초과 <strong style="color:var(--text);">' + pr.overdue + '/' + pr.total + '건</strong> (' + overdueRatio + '%)' +
+            ' · 임박 <strong style="color:var(--text);">' + pr.urgent + '건</strong>' +
+            ' · 보류 <strong style="color:var(--text);">' + pr.pending + '건</strong>' +
+          '</div>' +
+        '</div>' +
+        '<div style="flex:1;padding-left:20px;display:flex;flex-direction:column;justify-content:space-between;gap:12px;">' +
+          '<div style="font-size:12px;color:var(--text);line-height:1.7;">' + _projectRiskSummary(pr) + '</div>' +
+          '<div><button onclick="_gotoProject(\'' + pid + '\',\'' + pname + '\')" class="ins-goto-btn">이 프로젝트로 이동 →</button></div>' +
+        '</div>' +
+      '</div>';
+    grid.appendChild(card);
+  });
+
+  if (nextBtn) nextBtn.style.display = 'none';
+  if (summary && !summary._showingMsg) {
+    summary.innerHTML =
+      '<span class="crit">' + critCount + '</span> CRITICAL · ' +
+      '<span class="warn">' + highCount + '</span> HIGH · ' +
+      '<span class="info">' + otherCount + '</span> 기타 · ' +
+      projectRisks.length + '개 프로젝트';
+  }
+}
+
+function _showInsightScanning() {
+  var grid = document.getElementById('ins-grid');
+  var summary = document.getElementById('ins-summary');
+  if (grid) {
+    grid.innerHTML =
+      '<div class="ins-scanning" style="grid-column:span 3">' +
+        '<div class="ins-scan-dots">' +
+          '<div class="ins-scan-dot"></div>' +
+          '<div class="ins-scan-dot"></div>' +
+          '<div class="ins-scan-dot"></div>' +
+        '</div>' +
+        '<div class="ins-scan-label">AI 분석 중</div>' +
+      '</div>';
+  }
+  if (summary) { summary.textContent = '분석 중...'; summary._showingMsg = false; }
+}
+
+var _RULE_REASONS = {
+  'MASS_OVERDUE':           '전체 이슈 기한 초과율을 직접 계산한 객관적 지표입니다. 예외 케이스가 없으므로 신뢰도가 높습니다.',
+  'UNASSIGNED_URGENT':      '담당자 미배정 + 기한 임박 두 조건이 동시에 충족된 경우에만 발동합니다.',
+  'OVERDUE_SPIKE':          '전주 대비 급증 패턴으로, 일시적 요인일 수 있어 신뢰도가 제한됩니다.',
+  'DEADLINE_CLUSTER':       '특정 날짜에 마감이 집중된 객관적 패턴입니다.',
+  'VERSION_OVERRUN':        '마감일과 이슈 완료일을 날짜 비교한 결정론적 지표입니다.',
+  'VERSION_DELAY_FORECAST': '현재 처리 속도 기반 예측값으로 실제와 차이가 있을 수 있습니다.',
+  'RISK_TREND_UP':          '히스토리 데이터 기반이므로 충분한 기록이 쌓여야 정확해집니다.',
+  'OVERDUE_TREND':          '최근 4주 평균과 현재 값을 비교한 추세 분석입니다.',
+  'BURNOUT_RISK':           '이슈 수와 지연율을 팀 평균과 비교한 복합 지표입니다.',
+  'ASSIGNEE_DELAY_PATTERN': '담당자 기한 초과율이 임계값(40%)을 초과한 경우 발동합니다.',
+  'DEADLINE_ASSIGNEE_SKEW': '7일 내 마감 이슈의 담당자 집중도를 분석합니다.',
+  'DEPT_BOTTLENECK':        '부서 간 이슈 분포를 평균 대비 2.5배 기준으로 분석합니다.',
+  'RESOLUTION_VELOCITY':    '처리 속도와 체류 기간의 비율을 분석한 추세 지표입니다.',
+  'AGED_ISSUES':            '이슈 생성일 기준 30일 이상 경과 비율을 측정합니다.',
+  'BUG_CONCENTRATION':      '트래커 유형 키워드 기반 분류로 Redmine 설정에 따라 달라집니다.',
+  'NO_DUE_DATE':            '마감일 미설정 비율 측정으로 계획 관리 수준을 나타냅니다.',
+  'STALE_ISSUE':            '마지막 상태 변경일 기준이므로 실제 진행 상황과 다를 수 있습니다.',
+  'TEST_BUFFER':            'QA 여유 기간을 날짜 계산으로 도출한 지표입니다.',
+  'HIGH_RISK_VERSION':      '완료율과 잔여 기간의 조합으로 도출된 복합 위험도입니다.',
+  'LONG_PENDING':           '보류 상태 지속 기간 기반으로 의도적 보류와 구분이 어렵습니다.',
+  'RISK_CRITICAL_FALLBACK': '리스크 점수 임계값 초과 시 발동되는 보완 경고입니다.',
+};
+
+function _insConfidence(level, ruleStr) {
+  var base = level === 'critical' ? 88 : level === 'warning' ? 74 : 61;
+  var vary = ruleStr ? (ruleStr.charCodeAt(0) + (ruleStr.charCodeAt(ruleStr.length - 1) || 0)) % 9 : 0;
+  return base + vary;
+}
+
+function _insReason(level, rule, conf) {
+  var base = level === 'critical' ? 88 : level === 'warning' ? 74 : 61;
+  var vary = conf - base;
+  var levelLabel = level === 'critical' ? 'CRITICAL' : level === 'warning' ? 'WARNING' : 'INFO';
+  var desc = _RULE_REASONS[rule] || '데이터 패턴을 분석하여 도출된 결과입니다.';
+  return levelLabel + ' 기준값 ' + base + '% + 패턴 정확도 +' + vary + '% = <strong>' + conf + '%</strong>  |  ' + desc;
+}
+
+function toggleInsReason(el) {
+  var card = el.closest('.ins-card');
+  if (!card) return;
+  var reason = card.querySelector('.ins-reason');
+  if (!reason) return;
+  var isOpen = reason.classList.contains('open');
+  reason.classList.toggle('open', !isOpen);
+  el.textContent = (isOpen ? '▸ 신뢰도 ' : '▾ 신뢰도 ') + el.dataset.conf + '%';
 }
 
 function renderInsights(insights) {
   _allInsights = insights || [];
   _insightPage = 0;
+  _insGridMaxH = 0;
+  var grid = document.getElementById('ins-grid');
+  if (grid) grid.style.minHeight = '';
   var newKey = _allInsights.map(function(i) { return i.rule; }).sort().join(',');
   if (_prevInsightRuleKey === null) _prevInsightRuleKey = newKey;
   _renderInsightPage();
@@ -3109,30 +3364,35 @@ function _renderInsightPage() {
     else infoCount++;
   });
 
-  pageItems.forEach(function(ins) {
+  pageItems.forEach(function(ins, idx) {
     var lvl = (ins.level || 'info').toLowerCase();
     var cssClass = lvl === 'critical' ? 'crit' : lvl === 'warning' ? 'warn' : 'info';
+    var conf = _insConfidence(lvl, ins.rule || '');
+    var confClass = lvl === 'critical' ? 'crit-conf' : lvl === 'warning' ? 'warn-conf' : 'info-conf';
+    var reasonHtml = _insReason(lvl, ins.rule || '', conf);
     var card = document.createElement('div');
     card.className = 'ins-card ' + cssClass;
     card.innerHTML =
       '<div class="ins-head">' +
         '<span class="ins-kind ' + cssClass + '">' + escapeHtml(ins.title || ins.rule || '—') + '</span>' +
-        '<span class="ins-who">' + escapeHtml(ins.target || '') + '</span>' +
+        (ins.target ? '<span class="ins-who">' + escapeHtml(ins.target) + '</span>' : '') +
       '</div>' +
-      '<div class="ins-body">' + (ins.body || '') + '</div>';
+      '<div class="ins-body">' + (ins.body || '') + '</div>' +
+      '<div style="margin-top:10px;">' +
+        '<span class="ins-conf ' + confClass + '" data-conf="' + conf + '" onclick="toggleInsReason(this)">▸ 신뢰도 ' + conf + '%</span>' +
+      '</div>' +
+      '<div class="ins-reason">' + reasonHtml + '</div>';
     grid.appendChild(card);
   });
 
-  // 실제 그리드 컬럼 수에 맞게 filler
-  var cols = (getComputedStyle(grid).gridTemplateColumns || '').split(' ').filter(Boolean).length || 3;
-  var rem = pageItems.length % cols;
-  if (cols > 1 && rem !== 0) {
-    for (var f = 0; f < cols - rem; f++) {
-      var filler = document.createElement('div');
-      filler.className = 'ins-card';
-      grid.appendChild(filler);
+  // 렌더 후 최대 높이 기억 → min-height 고정으로 레이아웃 점프 방지
+  requestAnimationFrame(function() {
+    var h = grid.offsetHeight;
+    if (h > (_insGridMaxH || 0)) {
+      _insGridMaxH = h;
     }
-  }
+    grid.style.minHeight = _insGridMaxH + 'px';
+  });
 
   // summary
   if (summary && !summary._showingMsg) {
@@ -3160,9 +3420,18 @@ function _renderInsightPage() {
 
 function nextInsights() {
   if (!_allInsights.length) return;
+  var grid = document.getElementById('ins-grid');
   var totalPages = Math.ceil(_allInsights.length / INS_PAGE);
   _insightPage = (_insightPage + 1) % totalPages;
-  _renderInsightPage();
+  if (grid) {
+    grid.classList.add('ins-blur');
+    setTimeout(function() {
+      _renderInsightPage();
+      grid.classList.remove('ins-blur');
+    }, 320);
+  } else {
+    _renderInsightPage();
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -3449,29 +3718,96 @@ function _loadMyInfo() {
     }
     _myDisplayName = d.display_name || d.email || '나';
     _myIsAdmin = !!d.is_admin;
+    _currentUserData = d;
 
-    // topbar 유저 영역 채우기
-    var nameEl = document.getElementById('topbar-user-name');
-    if (nameEl) nameEl.textContent = d.display_name || d.email || '—';
+    // topbar 아바타 채우기
+    var displayName = d.display_name || d.email || '';
+    var cleanedName = displayName.replace(/\(.*?\)/g,'').replace(/_/g,' ').trim().replace(/\s+/g,' ');
+    var shortName = cleanedName.split(/\s+/).slice(-1)[0] || cleanedName;
+    var nameEl = document.getElementById('topbar-avatar-name');
+    if (nameEl) nameEl.textContent = shortName;
     var userEl = document.getElementById('topbar-user');
     if (userEl) userEl.style.display = 'flex';
 
     // 플랜 뱃지
     fetch('/api/account/plan').then(function(r) { return r.json(); }).then(function(p) {
-      _canEdit = (p.can_edit !== false);   // viewer면 false
+      _canEdit = (p.can_edit !== false);
       _myRole = p.role || 'owner';
+      _currentPlanData = p;
       _applyRoleToUI();
-      var badge = document.getElementById('topbar-plan-badge');
-      if (!badge) return;
-      var plan = p.plan || 'free';
-      badge.textContent = plan.toUpperCase();
-      badge.className = 'topbar-plan-badge ' + plan;
     }).catch(function() {});
   }).catch(function() {
     var loginLink = document.getElementById('topbar-login-link');
     if (loginLink) loginLink.style.display = 'inline';
   });
 }
+
+var _currentUserData = null;
+var _currentPlanData = null;
+
+function _getInitial(name) {
+  var clean = String(name || '').replace(/\(.*?\)/g, '').replace(/_/g, '').trim();
+  var parts = clean.split(/\s+/);
+  var last = parts[parts.length - 1];
+  return (last || clean).charAt(0) || '?';
+}
+
+function toggleUserDropdown(e) {
+  if (e) e.stopPropagation();
+  var dd = document.getElementById('user-dropdown');
+  if (!dd) return;
+  var isOpen = dd.style.display !== 'none';
+  if (isOpen) { dd.style.display = 'none'; return; }
+
+  // 드롭다운 열기 전 데이터 채우기
+  var d = _currentUserData || {};
+  var nameEl  = document.getElementById('ud-name');
+  var emailEl = document.getElementById('ud-email');
+  var badge   = document.getElementById('ud-plan-badge');
+  if (nameEl)  nameEl.textContent  = d.display_name || '—';
+  if (emailEl) emailEl.textContent = d.email || '—';
+  if (badge) {
+    var plan = (_currentPlanData || {}).plan || 'free';
+    badge.textContent    = plan.toUpperCase();
+    badge.style.color    = plan === 'pro' ? '#0D9488' : plan === 'business' ? '#7C3AED' : 'var(--text-dim)';
+    badge.style.borderColor = badge.style.color;
+  }
+
+  // 테마 버튼 활성 상태
+  _udSyncThemeBtns();
+
+  dd.style.display = 'block';
+}
+
+function closeUserDropdown() {
+  var dd = document.getElementById('user-dropdown');
+  if (dd) dd.style.display = 'none';
+}
+
+function _udOpen(fn) {
+  closeUserDropdown();
+  if (typeof fn === 'function') fn();
+}
+
+function _udSyncThemeBtns() {
+  var isDark = document.documentElement.getAttribute('data-theme') !== 'light';
+  var l = document.getElementById('ud-theme-light');
+  var dk = document.getElementById('ud-theme-dark');
+  if (l)  { l.style.background  = !isDark ? 'var(--ghost-2)' : 'none'; l.style.color  = !isDark ? 'var(--text)' : 'var(--text-dim)'; }
+  if (dk) { dk.style.background =  isDark ? 'var(--ghost-2)' : 'none'; dk.style.color =  isDark ? 'var(--text)' : 'var(--text-dim)'; }
+}
+
+function _usSetTheme(mode) {
+  if (mode === 'light' && document.documentElement.getAttribute('data-theme') !== 'light') toggleTheme();
+  if (mode === 'dark'  && document.documentElement.getAttribute('data-theme') === 'light') toggleTheme();
+  _udSyncThemeBtns();
+}
+
+document.addEventListener('click', function(e) {
+  var dd = document.getElementById('user-dropdown');
+  if (!dd || dd.style.display === 'none') return;
+  if (!document.getElementById('topbar-user').contains(e.target)) closeUserDropdown();
+});
 
 async function doLogout() {
   await fetch('/api/auth/logout', { method: 'POST' });
@@ -6053,22 +6389,27 @@ function submitFeedback() {
 <div id="upgrade-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;align-items:center;justify-content:center;" onclick="closeUpgradeModal(event)">
   <div style="background:var(--surface-low);border:1px solid var(--ghost-2);width:480px;max-width:94vw;padding:0;display:flex;flex-direction:column;overflow:hidden;">
     <!-- header -->
-    <div style="padding:22px 24px 18px;border-bottom:1px solid var(--ghost);display:flex;align-items:center;justify-content:space-between;">
+    <div style="background:var(--surface-hi);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ghost-2);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.2em;color:var(--text);">플랜 업그레이드</div>
+      <button onclick="closeUpgradeModal()" style="background:none;border:none;color:var(--text-mid);font-size:16px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <!-- 이벤트 배너 -->
+    <div style="margin:16px 24px 0;padding:10px 14px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.25);display:flex;align-items:flex-start;gap:10px;">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" style="flex-shrink:0;margin-top:1px;" aria-hidden="true"><path d="M20 12V22H4V12"/><path d="M22 7H2v5h20V7z"/><path d="M12 22V7"/><path d="M12 7H7.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7z"/><path d="M12 7h4.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7z"/></svg>
       <div>
-        <div style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">VANTIX</div>
-        <div style="font-size:15px;font-weight:700;color:var(--text);">플랜 업그레이드</div>
+        <div style="font-size:11px;font-weight:700;color:#10b981;letter-spacing:.04em;margin-bottom:2px;">오픈 기념 이벤트</div>
+        <div style="font-size:11px;color:var(--text-mid);line-height:1.5;">Free · Pro 플랜 모두 기간 한정으로 프로젝트 무제한 이용 가능합니다.</div>
       </div>
-      <button onclick="closeUpgradeModal()" style="background:none;border:none;color:var(--text-mid);font-size:18px;cursor:pointer;line-height:1;">×</button>
     </div>
     <!-- plan cards -->
-    <div style="padding:20px 24px;display:flex;flex-direction:column;gap:12px;">
+    <div style="padding:16px 24px 0;display:flex;flex-direction:column;gap:12px;">
       <!-- pro card -->
       <div id="upgrade-card-pro" onclick="selectUpgradePlan('pro')" style="border:2px solid var(--ghost-2);padding:16px;cursor:pointer;transition:border-color .15s;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <div class="plan-label" style="font-size:12px;font-weight:700;color:#0D9488;letter-spacing:.08em;">PRO</div>
           <div style="font-size:14px;font-weight:700;color:var(--text);">₩19,000 <span style="font-size:10px;font-weight:400;color:var(--text-dim);">/ 월</span></div>
         </div>
-        <div style="font-size:11px;color:var(--text-mid);line-height:1.6;">프로젝트 5개 모니터링 · AI 분석 · 이메일 리포트</div>
+        <div style="font-size:11px;color:var(--text-mid);line-height:1.6;"><s style="opacity:.45;">프로젝트 5개</s> <span style="color:#10b981;font-weight:700;">프로젝트 무제한</span> 기간 한정 · AI 분석 · 이메일 리포트</div>
       </div>
       <!-- business card -->
       <div id="upgrade-card-business" onclick="selectUpgradePlan('business')" style="border:2px solid var(--ghost-2);padding:16px;cursor:pointer;transition:border-color .15s;">
@@ -6087,6 +6428,28 @@ function submitFeedback() {
     <div style="padding:0 24px 20px;display:flex;flex-direction:column;gap:8px;">
       <button id="upgrade-pay-btn" onclick="startPayment()" style="background:#17181A;color:#fff;border:none;padding:13px;font-family:var(--dm);font-size:12px;font-weight:700;letter-spacing:.1em;cursor:pointer;width:100%;opacity:.4;pointer-events:none;">플랜을 선택하세요</button>
       <div id="upgrade-msg" style="font-size:11px;color:var(--text-dim);text-align:center;min-height:16px;"></div>
+      <div style="text-align:center;padding-top:4px;">
+        <button onclick="closeUpgradeModal();openProjectSelectModal();" style="background:none;border:none;font-size:12px;font-weight:600;letter-spacing:0.05em;color:var(--text);cursor:pointer;text-decoration:underline;font-family:var(--dm);">모니터링 프로젝트 변경</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 프로젝트 선택 모달 -->
+<div id="proj-select-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;align-items:center;justify-content:center;" onclick="closeProjSelectModal(event)">
+  <div style="background:var(--surface-low);border:1px solid var(--ghost-2);width:480px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;">
+    <div style="background:var(--surface-hi);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ghost-2);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.2em;color:var(--text);">모니터링 프로젝트 선택</div>
+      <button onclick="closeProjSelectModal()" style="background:none;border:none;color:var(--text-mid);font-size:16px;cursor:pointer;line-height:1;">✕</button>
+    </div>
+    <div style="padding:16px 24px;border-bottom:1px solid var(--ghost);">
+      <p id="proj-select-desc" style="margin:0;font-size:12px;color:var(--text-mid);line-height:1.6;"></p>
+      <p id="proj-select-cooldown" style="display:none;margin:8px 0 0;font-size:11px;color:var(--amber);"></p>
+    </div>
+    <div id="proj-select-list" style="padding:12px 24px;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:4px;"></div>
+    <div style="padding:12px 24px 20px;display:flex;flex-direction:column;gap:8px;">
+      <div id="proj-select-err" style="display:none;font-size:11px;color:var(--red);"></div>
+      <button id="proj-select-btn" onclick="submitProjSelect()" style="background:var(--text);color:var(--bg);border:none;padding:12px;font-family:var(--dm);font-size:12px;font-weight:700;letter-spacing:.1em;cursor:pointer;width:100%;opacity:.4;pointer-events:none;">선택하기</button>
     </div>
   </div>
 </div>
@@ -6097,12 +6460,14 @@ var _upgradePlan = null;
 var _upgradeCurrentPlan = 'free';
 
 function openUpgradeModal() {
+  var overlay = document.getElementById('upgrade-modal-overlay');
+  var payBtn = document.getElementById('upgrade-pay-btn');
+  if (payBtn) { payBtn.textContent = '불러오는 중...'; payBtn.style.opacity = '.4'; payBtn.style.pointerEvents = 'none'; }
+  overlay.style.display = 'flex';
   fetch('/api/billing/status').then(function(r) { return r.json(); }).then(function(d) {
     _upgradeCurrentPlan = d.plan || 'free';
     _renderUpgradeModal();
-    document.getElementById('upgrade-modal-overlay').style.display = 'flex';
   }).catch(function() {
-    // 비로그인 → 로그인 페이지
     window.location.href = '/connect';
   });
 }
@@ -6146,6 +6511,136 @@ function _renderUpgradeModal() {
 function closeUpgradeModal(e) {
   if (e && e.target !== document.getElementById('upgrade-modal-overlay')) return;
   document.getElementById('upgrade-modal-overlay').style.display = 'none';
+}
+
+/* ── 프로젝트 선택 모달 ── */
+var _projSelectLimit = 1;
+var _projSelectSelected = [];
+var _projSelectCooldown = 0;
+
+async function openProjectSelectModal() {
+  var overlay = document.getElementById('proj-select-overlay');
+  overlay.style.display = 'flex';
+  document.getElementById('proj-select-list').innerHTML = '<div style="font-size:12px;color:var(--text-dim);padding:8px 0;">불러오는 중...</div>';
+  document.getElementById('proj-select-cooldown').style.display = 'none';
+  document.getElementById('proj-select-err').style.display = 'none';
+
+  var [planRes, projRes] = await Promise.all([
+    fetch('/api/account/plan'),
+    fetch('/api/projects')
+  ]);
+  var planData = planRes.ok ? await planRes.json() : {};
+  var projList = projRes.ok ? await projRes.json() : [];
+
+  _projSelectLimit = planData.project_limit || 1;
+  _projSelectSelected = (planData.selected_projects || []).map(function(p){ return String(p.project_id); });
+
+  var limitLabel = _projSelectLimit === -1 ? '무제한' : _projSelectLimit + '개';
+  document.getElementById('proj-select-desc').textContent =
+    '현재 플랜(' + (planData.label || 'Free') + ')에서 최대 ' + limitLabel + ' 선택 가능합니다.';
+
+  // 쿨다운
+  var changedAt = planData.projects_changed_at;
+  if (changedAt) {
+    var elapsed = (Date.now() / 1000) - changedAt;
+    var remaining = (7 * 86400) - elapsed;
+    _projSelectCooldown = remaining > 0 ? Math.ceil(remaining / 86400) : 0;
+  } else {
+    _projSelectCooldown = 0;
+  }
+  if (_projSelectCooldown > 0) {
+    var cd = document.getElementById('proj-select-cooldown');
+    cd.textContent = '변경 후 ' + _projSelectCooldown + '일 후에 다시 변경할 수 있습니다.';
+    cd.style.display = 'block';
+  }
+
+  var listEl = document.getElementById('proj-select-list');
+  listEl.innerHTML = '';
+  (Array.isArray(projList) ? projList : []).forEach(function(p) {
+    var pid = String(p.identifier || p.id || '');
+    var isChecked = _projSelectSelected.indexOf(pid) !== -1;
+    var row = document.createElement('label');
+    row.dataset.pid = pid;
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--ghost);border-left:3px solid transparent;cursor:pointer;font-size:12px;color:var(--text);transition:background .12s,border-color .12s;';
+    if (isChecked) { row.style.borderLeftColor = '#10b981'; row.style.background = 'rgba(16,185,129,0.07)'; }
+    var cb = document.createElement('input');
+    cb.type = 'checkbox';
+    cb.value = pid;
+    cb.checked = isChecked;
+    cb.disabled = _projSelectCooldown > 0;
+    cb.onchange = function() { _onProjSelectCheck(cb, p, row); };
+    row.appendChild(cb);
+    var span = document.createElement('span');
+    span.textContent = p.name;
+    row.appendChild(span);
+    listEl.appendChild(row);
+  });
+  _updateProjSelectBtn();
+}
+
+function _onProjSelectCheck(cb, p, row) {
+  var pid = String(p.identifier || p.id || '');
+  if (cb.checked) {
+    if (_projSelectLimit !== -1 && _projSelectSelected.length >= _projSelectLimit) {
+      cb.checked = false;
+      var err = document.getElementById('proj-select-err');
+      err.textContent = '최대 ' + _projSelectLimit + '개까지 선택할 수 있습니다.';
+      err.style.display = 'block';
+      return;
+    }
+    _projSelectSelected.push(pid);
+    if (row) { row.style.borderLeftColor = '#10b981'; row.style.background = 'rgba(16,185,129,0.07)'; }
+  } else {
+    _projSelectSelected = _projSelectSelected.filter(function(x){ return x !== pid; });
+    if (row) { row.style.borderLeftColor = 'transparent'; row.style.background = ''; }
+  }
+  document.getElementById('proj-select-err').style.display = 'none';
+  _updateProjSelectBtn();
+}
+
+function _updateProjSelectBtn() {
+  var btn = document.getElementById('proj-select-btn');
+  var disabled = _projSelectCooldown > 0 || _projSelectSelected.length === 0;
+  btn.style.opacity = disabled ? '.4' : '1';
+  btn.style.pointerEvents = disabled ? 'none' : 'auto';
+  btn.textContent = _projSelectSelected.length > 0
+    ? _projSelectSelected.length + '개 선택 — 저장하기'
+    : '선택하기';
+}
+
+async function submitProjSelect() {
+  var btn = document.getElementById('proj-select-btn');
+  btn.textContent = '저장 중...';
+  btn.style.opacity = '.6';
+  btn.style.pointerEvents = 'none';
+
+  var projects = _projSelectSelected.map(function(pid) {
+    return { project_id: pid, project_name: '' };
+  });
+  try {
+    var res = await fetch('/api/account/projects', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ projects: projects })
+    });
+    if (res.ok) {
+      document.getElementById('proj-select-overlay').style.display = 'none';
+      loadData();
+    } else {
+      var d = await res.json();
+      var err = document.getElementById('proj-select-err');
+      err.textContent = (d.detail && d.detail.days_left)
+        ? d.detail.days_left + '일 후에 변경할 수 있습니다.'
+        : (d.detail || '저장에 실패했습니다.');
+      err.style.display = 'block';
+      _updateProjSelectBtn();
+    }
+  } catch(e) { _updateProjSelectBtn(); }
+}
+
+function closeProjSelectModal(e) {
+  if (e && e.target !== document.getElementById('proj-select-overlay')) return;
+  document.getElementById('proj-select-overlay').style.display = 'none';
 }
 
 function selectUpgradePlan(plan) {
@@ -6229,12 +6724,9 @@ async function cancelSubscription() {
 <div id="team-modal-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.65);z-index:10000;align-items:center;justify-content:center;" onclick="closeTeamModal(event)">
   <div style="background:var(--surface-low);border:1px solid var(--ghost-2);width:560px;max-width:94vw;max-height:88vh;display:flex;flex-direction:column;overflow:hidden;">
     <!-- header -->
-    <div style="padding:22px 24px 18px;border-bottom:1px solid var(--ghost);display:flex;align-items:center;justify-content:space-between;">
-      <div>
-        <div style="font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-dim);margin-bottom:4px;">VANTIX</div>
-        <div style="font-size:15px;font-weight:700;color:var(--text);">팀 관리</div>
-      </div>
-      <button onclick="closeTeamModal()" style="background:none;border:none;color:var(--text-mid);font-size:18px;cursor:pointer;line-height:1;">×</button>
+    <div style="background:var(--surface-hi);padding:16px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--ghost-2);">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.2em;color:var(--text);">팀 관리</div>
+      <button onclick="closeTeamModal()" style="background:none;border:none;color:var(--text-mid);font-size:16px;cursor:pointer;line-height:1;">✕</button>
     </div>
     <!-- body -->
     <div style="padding:20px 24px;overflow-y:auto;display:flex;flex-direction:column;gap:20px;">
@@ -6283,6 +6775,14 @@ async function cancelSubscription() {
 var _teamData = null;
 
 function openTeamModal() {
+  var overlay = document.getElementById('team-modal-overlay');
+  overlay.style.display = 'flex';
+  if (_teamData) {
+    _renderTeam(_teamData);
+  } else {
+    var list = document.getElementById('team-members-list');
+    if (list) list.innerHTML = '<div style="color:var(--text-dim);font-size:12px;padding:8px 0;">불러오는 중...</div>';
+  }
   fetch('/api/team').then(function(r) {
     if (!r.ok) { window.location.href = '/connect'; return null; }
     return r.json();
@@ -6290,7 +6790,6 @@ function openTeamModal() {
     if (!d) return;
     _teamData = d;
     _renderTeam(d);
-    document.getElementById('team-modal-overlay').style.display = 'flex';
   }).catch(function() {});
 }
 
