@@ -425,7 +425,9 @@
               <li style="display:flex; gap:12px;"><span style="color:#2DD4BF;">✓</span> <span><s style="opacity:.4;">프로젝트 5개</s>&nbsp; 프로젝트 무제한 <span style="font-size:11px; color:#2DD4BF; font-weight:600;">(베타 이벤트)</span></span></li>
               <li style="display:flex; gap:12px;"><span style="color:#2DD4BF;">✓</span> 팀원 20명 (오너 포함)</li>
             </ul>
-            <a href="#" onclick="openConnectModal();return false;" class="plan-cta-teal" style="margin-top:auto; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#15171A; background:#2DD4BF; text-decoration:none; padding:15px 24px; text-align:center; display:block;">Pro 시작하기</a>
+            <div id="plan-cta-pro" style="margin-top:auto;">
+              <a href="#" onclick="handlePlanCta('pro');return false;" class="plan-cta-teal" style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#15171A; background:#2DD4BF; text-decoration:none; padding:15px 24px; text-align:center; display:block;">Pro 시작하기</a>
+            </div>
           </div>
 
           <!-- BUSINESS -->
@@ -444,7 +446,9 @@
               <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> 팀원 무제한</li>
               <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> <span>Slack 알림 연동 <span style="font-size:11px; color:#0F766E; font-weight:600;">(준비 중)</span></span></li>
             </ul>
-            <a href="#" onclick="openConnectModal();return false;" class="plan-cta-outline" style="margin-top:auto; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#17181A; text-decoration:none; padding:15px 24px; border:1px solid rgba(23,24,26,.28); text-align:center; display:block;">비즈니스 시작하기</a>
+            <div id="plan-cta-biz" style="margin-top:auto;">
+              <a href="#" onclick="handlePlanCta('business');return false;" class="plan-cta-outline" style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#17181A; text-decoration:none; padding:15px 24px; border:1px solid rgba(23,24,26,.28); text-align:center; display:block;">비즈니스 시작하기</a>
+            </div>
           </div>
 
         </div>
@@ -459,31 +463,71 @@
           <h2 style="margin:0; font-family:'Archivo',sans-serif; font-weight:700; font-size:clamp(24px,3.4vw,34px); letter-spacing:-.025em; color:#17181A;">자주 묻는 질문</h2>
         </div>
         <div class="faq-list">
+
+          <div class="faq-sec-head"><span class="faq-sec-title">이용 안내 · 보안</span><span class="faq-sec-line"></span></div>
           <details class="faq-item">
-            <summary>Free 플랜으로 어디까지 쓸 수 있나요?<span class="faq-icon"></span></summary>
-            <p class="faq-a">Free 플랜으로도 실시간 리스크 대시보드, 리스크 스코어, 이슈 매트릭스, AI 분석 등 핵심 기능을 모두 사용할 수 있습니다. 프로젝트 1개·팀원 3명까지 지원하며, 더 많은 프로젝트나 팀원이 필요할 때 Pro 또는 Business로 업그레이드하면 됩니다.</p>
+            <summary>Redmine은 어떻게 연결하나요?<svg class="faq-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+            <p class="faq-a">가입 후 연결 페이지에서 Redmine 서버 URL과 API 키를 입력하면 됩니다. API 키는 Redmine 로그인 후 <b>우측 상단 내 계정 → API 액세스 키</b> 탭에서 확인하거나 발급할 수 있습니다. 키가 보이지 않으면 Redmine 관리자에게 API 접근 권한을 요청하세요.</p>
           </details>
           <details class="faq-item">
-            <summary>결제와 정기결제는 어떻게 이루어지나요?<span class="faq-icon"></span></summary>
-            <p class="faq-a">유료 요금제는 월 단위 정기결제로 운영됩니다. 최초 결제일을 기준으로 매월 같은 날 등록하신 결제수단으로 자동 청구되며, 해지하기 전까지 매월 갱신됩니다. 결제는 안전한 결제대행사(PG)를 통해 처리되고, 카드 정보는 저장되지 않습니다.</p>
+            <summary>대시보드 데이터는 얼마나 자주 업데이트되나요?<svg class="faq-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+            <p class="faq-a">데이터는 5분 캐시로 유지되며, 백그라운드에서 30분마다 자동 갱신됩니다. 즉시 최신 데이터가 필요한 경우 대시보드 상단의 새로고침 버튼을 클릭하면 됩니다.</p>
           </details>
           <details class="faq-item">
-            <summary>구독은 어떻게 해지하나요?<span class="faq-icon"></span></summary>
-            <p class="faq-a">서비스 내 설정에서 언제든지 구독을 해지할 수 있습니다. 해지 시 다음 결제일부터 자동결제가 중단되며, 이미 결제하신 기간 동안은 유료 기능을 계속 이용하실 수 있습니다.</p>
+            <summary>팀원은 어떻게 추가하나요?<svg class="faq-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+            <p class="faq-a">모든 플랜에서 팀원 초대 기능을 사용할 수 있습니다. Free는 오너 포함 최대 3명(2명 초대), Pro는 10명, Business는 무제한입니다. 대시보드 상단 팀 관리 메뉴에서 팀원 이메일을 입력하고 역할(관리자/뷰어)을 지정해 초대장을 보내면 됩니다. 초대받은 팀원은 본인의 Redmine API 키로 개별 연결합니다.</p>
           </details>
           <details class="faq-item">
-            <summary>환불 정책은 어떻게 되나요?<span class="faq-icon"></span></summary>
-            <p class="faq-a">결제일로부터 7일 이내에는 이용 여부와 관계없이 전액 환불해 드립니다. 7일이 경과한 경우 잔여기간에 대한 환불은 제공되지 않습니다. 회사의 귀책 사유로 서비스를 이용하지 못한 경우에는 관련 법령에 따라 전액 환불합니다. 자세한 내용은 <a href="/terms">이용약관</a> 제7조를 확인하세요.</p>
+            <summary>내 Redmine 데이터는 안전한가요?<svg class="faq-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+            <p class="faq-a">Vantix는 이용자가 직접 운영하는 Redmine에 연결됩니다. Redmine에서 조회한 이슈 데이터는 회사 서버에 영구 저장되지 않으며, 연결에 필요한 서버 URL·API 키는 암호화되어 안전하게 보관되고 회원 탈퇴 시 즉시 파기됩니다. 또한 내부 네트워크 접근 및 허가되지 않은 외부 요청은 서버 레벨에서 차단됩니다.</p>
           </details>
-          <details class="faq-item">
-            <summary>플랜을 변경할 수 있나요?<span class="faq-icon"></span></summary>
-            <p class="faq-a">언제든 상위 플랜으로 업그레이드할 수 있으며, 업그레이드 즉시 상위 기능이 적용됩니다.</p>
-          </details>
-          <details class="faq-item">
-            <summary>내 Redmine 데이터는 안전한가요?<span class="faq-icon"></span></summary>
-            <p class="faq-a">Vantix는 이용자가 직접 운영하는 Redmine에 연결됩니다. Redmine에서 조회한 이슈 데이터는 회사 서버에 영구 저장되지 않으며, 연결에 필요한 서버 URL·API 키는 암호화되어 안전하게 보관되고 회원 탈퇴 시 즉시 파기됩니다.</p>
-          </details>
+
+          <div class="faq-sec-head"><span class="faq-sec-title">결제·요금제</span><span class="faq-sec-line"></span></div>
+          <div class="faq-billing-trigger" id="faq-billing-btn" onclick="toggleFaqBilling()">
+            <div class="faq-bt-left">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#6A6E73" stroke-width="1.5" aria-hidden="true"><rect x="1" y="3" width="14" height="10" rx="2"/><path d="M1 7h14"/></svg>
+              <span class="faq-bt-label">결제 관련 질문</span>
+              <span class="faq-bt-badge">6개</span>
+            </div>
+            <svg id="faq-billing-chev" style="flex-shrink:0;width:18px;height:18px;transition:transform .22s;color:#6A6E73;" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg>
+          </div>
+          <div class="faq-billing-body" id="faq-billing-body">
+            <details class="faq-item">
+              <summary>Free 플랜으로 어디까지 쓸 수 있나요?<svg class="faq-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+              <p class="faq-a">Free 플랜으로도 실시간 리스크 대시보드, 리스크 스코어, 이슈 매트릭스, AI 분석 등 핵심 기능을 모두 사용할 수 있습니다. 프로젝트 1개·팀원 3명까지 지원하며, 더 많은 프로젝트나 팀원이 필요할 때 Pro 또는 Business로 업그레이드하면 됩니다.</p>
+            </details>
+            <details class="faq-item">
+              <summary>결제와 정기결제는 어떻게 이루어지나요?<svg class="faq-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+              <p class="faq-a">유료 요금제는 월 단위 정기결제로 운영됩니다. 최초 결제일을 기준으로 매월 같은 날 등록하신 결제수단으로 자동 청구되며, 해지하기 전까지 매월 갱신됩니다. 결제는 안전한 결제대행사(PG)를 통해 처리되고, 카드 정보는 저장되지 않습니다.</p>
+            </details>
+            <details class="faq-item">
+              <summary>구독은 어떻게 해지하나요?<svg class="faq-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+              <p class="faq-a">서비스 내 설정에서 언제든지 구독을 해지할 수 있습니다. 해지 시 다음 결제일부터 자동결제가 중단되며, 이미 결제하신 기간 동안은 유료 기능을 계속 이용하실 수 있습니다.</p>
+            </details>
+            <details class="faq-item">
+              <summary>환불 정책은 어떻게 되나요?<svg class="faq-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+              <p class="faq-a">결제일로부터 7일 이내에는 이용 여부와 관계없이 전액 환불해 드립니다. 7일이 경과한 경우 잔여기간에 대한 환불은 제공되지 않습니다. 회사의 귀책 사유로 서비스를 이용하지 못한 경우에는 관련 법령에 따라 전액 환불합니다. 자세한 내용은 <a href="/terms">이용약관</a> 제7조를 확인하세요.</p>
+            </details>
+            <details class="faq-item">
+              <summary>플랜을 변경할 수 있나요?<svg class="faq-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+              <p class="faq-a">언제든 상위 플랜으로 업그레이드할 수 있으며, 업그레이드 즉시 상위 기능이 적용됩니다. 단, 연결된 Redmine 프로젝트는 변경 후 7일간 재변경이 제한됩니다.</p>
+            </details>
+            <details class="faq-item">
+              <summary>결제에 실패하면 어떻게 되나요?<svg class="faq-chev" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" aria-hidden="true"><path d="M4 6l4 4 4-4"/></svg></summary>
+              <p class="faq-a">정기결제 실패 시 즉시 플랜이 변경되지 않습니다. <b>3일간 유예기간</b>이 적용되며, 1일·3일 후 총 2회 자동 재시도가 이루어집니다. 각 단계마다 이메일로 안내가 발송되며, 유예기간 내 결제가 완료되면 구독이 정상 유지됩니다. 3회 모두 실패한 경우에만 Free 플랜으로 변경됩니다.</p>
+            </details>
+          </div>
+
         </div>
+        <script>
+        function toggleFaqBilling(){
+          var body=document.getElementById('faq-billing-body');
+          var chev=document.getElementById('faq-billing-chev');
+          var open=body.classList.contains('open');
+          body.classList.toggle('open',!open);
+          chev.style.transform=open?'':'rotate(180deg)';
+        }
+        </script>
       </div>
     </section>
 
@@ -988,19 +1032,35 @@ document.addEventListener('DOMContentLoaded', function() {
 
 <style>
 @keyframes spin { to { transform: rotate(360deg); } }
-/* ── 요금제 FAQ 아코디언 ── */
-.faq-list { max-width:760px; margin:0 auto; border-top:1px solid rgba(23,24,26,.1); }
+/* ── FAQ ── */
+.faq-list { max-width:760px; margin:0 auto; }
+.faq-sec-head { display:flex; align-items:center; gap:16px; padding:36px 0 14px; }
+.faq-sec-head:first-child { padding-top:0; }
+.faq-sec-title { font-family:'IBM Plex Mono',monospace; font-size:11px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:#6A6E73; white-space:nowrap; }
+.faq-sec-line { flex:1; height:1px; background:rgba(23,24,26,.1); }
 .faq-item { border-bottom:1px solid rgba(23,24,26,.1); }
-.faq-item summary { list-style:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:20px; padding:22px 6px; font-family:'Pretendard',sans-serif; font-size:16px; font-weight:600; color:#17181A; transition:color .2s; }
+.faq-item:first-of-type { border-top:1px solid rgba(23,24,26,.1); }
+.faq-item summary { list-style:none; cursor:pointer; display:flex; justify-content:space-between; align-items:center; gap:20px; padding:20px 0; font-family:'Pretendard',sans-serif; font-size:15px; font-weight:600; color:#17181A; transition:color .2s; }
 .faq-item summary::-webkit-details-marker { display:none; }
 .faq-item summary:hover { color:#0F766E; }
-.faq-item .faq-icon { flex-shrink:0; width:18px; height:18px; position:relative; }
-.faq-item .faq-icon::before, .faq-item .faq-icon::after { content:''; position:absolute; background:#0F766E; }
-.faq-item .faq-icon::before { top:8px; left:0; width:18px; height:2px; }
-.faq-item .faq-icon::after { top:0; left:8px; width:2px; height:18px; transition:transform .25s ease; }
-.faq-item[open] .faq-icon::after { transform:rotate(90deg); }
-.faq-item .faq-a { padding:0 6px 24px; margin:0; max-width:660px; font-family:'Pretendard',sans-serif; font-size:14px; line-height:1.75; color:#5C6066; }
-.faq-item .faq-a a { color:#0F766E; text-decoration:underline; }
+.faq-chev { flex-shrink:0; width:18px; height:18px; transition:transform .22s ease; color:#6A6E73; }
+.faq-item[open] .faq-chev { transform:rotate(180deg); }
+.faq-item summary:hover .faq-chev { color:#0F766E; }
+.faq-a { padding:0 0 20px; margin:0; max-width:640px; font-family:'Pretendard',sans-serif; font-size:14px; line-height:1.8; color:#5C6066; }
+.faq-a a { color:#0F766E; text-decoration:underline; }
+/* ── 결제 그룹 ── */
+.faq-billing-trigger { border:1px solid rgba(23,24,26,.12); border-radius:6px; padding:14px 18px; cursor:pointer; display:flex; align-items:center; justify-content:space-between; gap:12px; transition:background .15s; margin:4px 0; }
+.faq-billing-trigger:hover { background:rgba(23,24,26,.03); }
+.faq-bt-left { display:flex; align-items:center; gap:10px; }
+.faq-bt-label { font-family:'Pretendard',sans-serif; font-size:15px; font-weight:600; color:#17181A; }
+.faq-bt-badge { font-family:'IBM Plex Mono',monospace; font-size:10px; color:#6A6E73; background:rgba(23,24,26,.06); padding:2px 8px; border-radius:999px; }
+.faq-billing-body { border:1px solid rgba(23,24,26,.12); border-top:none; border-radius:0 0 6px 6px; background:rgba(23,24,26,.018); display:none; margin-bottom:4px; }
+.faq-billing-body.open { display:block; }
+.faq-billing-body .faq-item { border-bottom:1px solid rgba(23,24,26,.07); }
+.faq-billing-body .faq-item:last-child { border-bottom:none; }
+.faq-billing-body .faq-item:first-of-type { border-top:none; }
+.faq-billing-body .faq-item summary { padding:18px 18px; font-size:14px; }
+.faq-billing-body .faq-a { padding:0 18px 18px; font-size:13px; }
 #connect-modal.open { display:flex !important; }
 #page-loading-bar { display:none; position:fixed; top:0; left:0; right:0; height:2px; z-index:99999; pointer-events:none; background:transparent; }
 #page-loading-bar.show { display:block; }
@@ -1170,6 +1230,8 @@ async function doConnectLogout() {
         if (!me) return;  // 비로그인 → 기존 게스트 UI 유지
         _isLoggedIn = true;
         _hasConnection = !!me.has_connection;
+        window._isLoggedIn = true;
+        window._currentUserEmail = me.email || '';
         // 헤더 전환
         var guest = document.getElementById('nav-auth-guest');
         var userBox = document.getElementById('nav-auth-user');
@@ -1183,6 +1245,12 @@ async function doConnectLogout() {
         } else {
           var banner = document.getElementById('welcome-banner');
           if (banner) banner.style.display = 'block';
+          // 로그인 후 결제 모달 pending 처리
+          var pp = sessionStorage.getItem('vx_pending_plan');
+          if (pp) {
+            sessionStorage.removeItem('vx_pending_plan');
+            setTimeout(function() { if (window.openPaymentModal) window.openPaymentModal(pp); }, 500);
+          }
         }
       })
       .catch(function() {});
@@ -1415,6 +1483,255 @@ async function submitConnect() {
     lb.classList.remove('show');
   }
 }
+</script>
+
+<!-- ── 플로팅 문의 위젯 ── -->
+<style>
+#vx-fab-wrap{position:fixed;bottom:28px;right:28px;z-index:9999;display:flex;flex-direction:column;align-items:flex-end;gap:12px;}
+#vx-fab{display:inline-flex;align-items:center;gap:0;background:#0F766E;color:#fff;border:none;border-radius:999px;height:50px;padding:0 18px 0 16px;cursor:pointer;font-family:'IBM Plex Mono',monospace;font-size:12px;font-weight:500;letter-spacing:.06em;transition:background .2s,padding .2s;white-space:nowrap;overflow:hidden;}
+#vx-fab:hover{background:#0d6560;}
+#vx-fab-text{max-width:0;overflow:hidden;transition:max-width .25s ease,margin-left .25s ease;margin-left:0;}
+#vx-fab:hover #vx-fab-text,#vx-fab.open #vx-fab-text{max-width:80px;margin-left:8px;}
+#vx-popup{display:none;width:300px;background:#fff;border:1px solid rgba(23,24,26,.12);box-shadow:0 8px 24px rgba(0,0,0,.1);padding:20px;}
+#vx-popup h4{margin:0 0 14px;font-family:'IBM Plex Mono',monospace;font-size:11px;letter-spacing:.15em;text-transform:uppercase;color:#0F766E;}
+#vx-popup input,#vx-popup textarea{width:100%;box-sizing:border-box;background:#F5F4EF;border:1px solid rgba(23,24,26,.12);font-family:'IBM Plex Mono',monospace;font-size:12px;color:#17181A;padding:9px 11px;margin-bottom:8px;outline:none;resize:none;}
+#vx-popup input:focus,#vx-popup textarea:focus{border-color:#0F766E;}
+#vx-popup textarea{height:90px;}
+#vx-send-btn{width:100%;background:#17181A;color:#fff;border:none;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.08em;padding:11px;cursor:pointer;transition:background .15s;}
+#vx-send-btn:hover{background:#0F766E;}
+#vx-msg{font-family:'IBM Plex Mono',monospace;font-size:11px;min-height:14px;margin-top:6px;}
+</style>
+<div id="vx-fab-wrap">
+  <div id="vx-popup">
+    <h4>문의하기</h4>
+    <input id="vx-name" type="text" placeholder="이름 (선택)">
+    <input id="vx-email" type="email" placeholder="답변받을 이메일 *">
+    <textarea id="vx-content" placeholder="문의 내용을 입력해주세요 *"></textarea>
+    <button id="vx-send-btn" onclick="vxSend()">보내기 ↗</button>
+    <div id="vx-msg"></div>
+  </div>
+  <button id="vx-fab" onclick="vxToggle()">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+    <span id="vx-fab-text">문의하기</span>
+  </button>
+</div>
+<script>
+function vxToggle(){
+  var p=document.getElementById('vx-popup');
+  var b=document.getElementById('vx-fab');
+  var open=p.style.display==='block';
+  p.style.display=open?'none':'block';
+  b.classList.toggle('open',!open);
+}
+async function vxSend(){
+  var email=document.getElementById('vx-email').value.trim();
+  var content=document.getElementById('vx-content').value.trim();
+  var msg=document.getElementById('vx-msg');
+  var btn=document.getElementById('vx-send-btn');
+  if(!email||!content){msg.style.color='#dc2626';msg.textContent='이메일과 내용을 입력해주세요';return;}
+  btn.textContent='전송 중...';btn.style.opacity='.6';btn.style.pointerEvents='none';
+  try{
+    var res=await fetch('/api/support',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:document.getElementById('vx-name').value.trim(),email:email,message:content})});
+    if(!res.ok)throw new Error((await res.json()).detail||'오류');
+    msg.style.color='#0F766E';msg.textContent='✓ 문의가 접수되었습니다. 빠르게 답변드릴게요!';
+    document.getElementById('vx-name').value='';
+    document.getElementById('vx-email').value='';
+    document.getElementById('vx-content').value='';
+    btn.textContent='보내기 ↗';btn.style.opacity='1';btn.style.pointerEvents='auto';
+    setTimeout(function(){msg.textContent='';document.getElementById('vx-popup').style.display='none';document.getElementById('vx-fab').classList.remove('open');},2500);
+  }catch(e){
+    msg.style.color='#dc2626';msg.textContent=e.message||'오류가 발생했습니다';
+    btn.textContent='보내기 ↗';btn.style.opacity='1';btn.style.pointerEvents='auto';
+  }
+}
+</script>
+
+<!-- ============================================================
+     결제 모달 (PortOne V2 + 카카오페이)
+     ============================================================ -->
+<div id="pay-modal" style="display:none; position:fixed; inset:0; z-index:10000; background:rgba(23,24,26,.65); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#F5F4EF; width:100%; max-width:420px; padding:40px 36px; position:relative;">
+    <button onclick="closePaymentModal()" style="position:absolute; top:16px; right:16px; background:none; border:none; cursor:pointer; padding:4px; color:#6A6E73; font-size:20px; line-height:1;">✕</button>
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.18em; text-transform:uppercase; color:#0F766E; margin-bottom:10px;">구독 시작</div>
+    <h2 style="margin:0 0 6px; font-family:'Archivo',sans-serif; font-weight:700; font-size:26px; letter-spacing:-.025em; color:#17181A;">Vantix <span id="pay-modal-plan"></span></h2>
+    <div style="font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:700; color:#17181A; margin-bottom:6px;"><span id="pay-modal-price"></span><span style="font-size:13px; font-weight:400; color:#6A6E73;">/월</span></div>
+    <p style="margin:0 0 28px; font-size:13px; color:#6A6E73; line-height:1.6;">카카오페이 간편결제로 빌링키를 등록하고 즉시 첫 결제가 진행됩니다. 매월 자동 갱신되며 언제든 해지 가능합니다.</p>
+    <button id="pay-kakaopay-btn" onclick="startKakaoPay()" style="width:100%; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#15171A; background:#FFE812; border:none; padding:16px 24px; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:10px; transition:opacity .2s;">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3C6.48 3 2 6.69 2 11.25c0 2.88 1.74 5.42 4.38 6.97L5.5 21l4.13-2.17c.77.14 1.57.22 2.37.22 5.52 0 10-3.69 10-8.25S17.52 3 12 3z" fill="#3B1E08"/></svg>
+      카카오페이로 결제 ↗
+    </button>
+    <div id="pay-modal-error" style="display:none; margin-top:14px; font-size:13px; color:#DC2626; font-family:'IBM Plex Mono',monospace;"></div>
+  </div>
+</div>
+
+<script type="module">
+var _payPlan = '';
+var _currentPlan = 'free';
+var _currentUserEmail = '';
+var _pendingPlan = '';
+
+window._payPlan = _payPlan;
+window._currentPlan = _currentPlan;
+window._currentUserEmail = _currentUserEmail;
+window._pendingPlan = _pendingPlan;
+
+window.openPaymentModal = function(plan) {
+  var names = { pro: 'Pro', business: 'Business' };
+  var prices = { pro: '₩19,000', business: '₩49,000' };
+  window._payPlan = plan;
+  document.getElementById('pay-modal-plan').textContent = names[plan] || plan;
+  document.getElementById('pay-modal-price').textContent = prices[plan] || '';
+  document.getElementById('pay-modal-error').style.display = 'none';
+  var btn = document.getElementById('pay-kakaopay-btn');
+  btn.textContent = '';
+  var svg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3C6.48 3 2 6.69 2 11.25c0 2.88 1.74 5.42 4.38 6.97L5.5 21l4.13-2.17c.77.14 1.57.22 2.37.22 5.52 0 10-3.69 10-8.25S17.52 3 12 3z" fill="#3B1E08"/></svg>';
+  btn.innerHTML = svg + ' 카카오페이로 결제 ↗';
+  btn.style.opacity = '1';
+  btn.style.pointerEvents = 'auto';
+  document.getElementById('pay-modal').style.display = 'flex';
+};
+
+window.closePaymentModal = function() {
+  document.getElementById('pay-modal').style.display = 'none';
+};
+
+window.handlePlanCta = function(plan) {
+  if (!window._isLoggedIn) {
+    window._pendingPlan = plan;
+    sessionStorage.setItem('vx_pending_plan', plan);
+    window.openAuthModal('login');
+    return;
+  }
+  window.openPaymentModal(plan);
+};
+
+window.startKakaoPay = async function() {
+  var btn = document.getElementById('pay-kakaopay-btn');
+  var errEl = document.getElementById('pay-modal-error');
+  btn.innerHTML = '처리 중...';
+  btn.style.opacity = '.6';
+  btn.style.pointerEvents = 'none';
+  errEl.style.display = 'none';
+
+  try {
+    var PortOne = await import('https://cdn.portone.io/v2/browser-sdk.esm.js');
+    var plan = window._payPlan;
+    var planLabel = plan === 'pro' ? 'Pro' : 'Business';
+    var issueId = 'vantix-bk-' + plan + '-' + Date.now();
+
+    var response = await PortOne.requestIssueBillingKey({
+      storeId: '__PORTONE_STORE_ID__',
+      channelKey: '__PORTONE_CHANNEL_KEY__',
+      billingKeyMethod: 'EASY_PAY',
+      easyPay: { easyPayProvider: 'KAKAOPAY' },
+      customer: { email: window._currentUserEmail },
+      issueId: issueId,
+      issueName: 'Vantix ' + planLabel + ' 월간 구독',
+      redirectUrl: window.location.href,
+    });
+
+    if (response && response.code) {
+      throw new Error(response.message || '결제가 취소되었습니다');
+    }
+    if (!response || !response.billingKey) {
+      throw new Error('빌링키 발급에 실패했습니다');
+    }
+
+    var res = await fetch('/api/billing/issue', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ billingKey: response.billingKey, plan: plan }),
+    });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '결제에 실패했습니다');
+
+    window.closePaymentModal();
+    window._currentPlan = plan;
+    window.updatePlanButtons(plan);
+
+  } catch(e) {
+    errEl.textContent = e.message || '결제에 실패했습니다. 다시 시도해주세요.';
+    errEl.style.display = 'block';
+    var svg = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3C6.48 3 2 6.69 2 11.25c0 2.88 1.74 5.42 4.38 6.97L5.5 21l4.13-2.17c.77.14 1.57.22 2.37.22 5.52 0 10-3.69 10-8.25S17.52 3 12 3z" fill="#3B1E08"/></svg>';
+    btn.innerHTML = svg + ' 카카오페이로 결제 ↗';
+    btn.style.opacity = '1';
+    btn.style.pointerEvents = 'auto';
+  }
+};
+
+window.cancelSubscription = async function() {
+  if (!confirm('구독을 취소하시겠습니까?\nFree 플랜으로 변경되며 다음 결제일부터 청구가 중단됩니다.')) return;
+  try {
+    var res = await fetch('/api/billing/cancel', { method: 'POST' });
+    if (!res.ok) throw new Error((await res.json()).detail || '취소 실패');
+    window._currentPlan = 'free';
+    window.updatePlanButtons('free');
+    alert('구독이 취소되었습니다. Free 플랜으로 변경되었습니다.');
+  } catch(e) {
+    alert('오류: ' + (e.message || '취소에 실패했습니다.'));
+  }
+};
+
+window.requestRefund = async function() {
+  if (!confirm('최근 결제를 환불 요청하시겠습니까?\n환불 처리 후 Free 플랜으로 변경됩니다.')) return;
+  try {
+    var res = await fetch('/api/billing/refund', { method: 'POST' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '환불 실패');
+    window._currentPlan = 'free';
+    window.updatePlanButtons('free');
+    alert('환불이 처리되었습니다. Free 플랜으로 변경되었습니다.');
+  } catch(e) {
+    alert('오류: ' + (e.message || '환불에 실패했습니다.'));
+  }
+};
+
+window.updatePlanButtons = function(plan) {
+  var proCta = document.getElementById('plan-cta-pro');
+  var bizCta = document.getElementById('plan-cta-biz');
+  if (!proCta || !bizCta) return;
+
+  var S_TEAL = 'font-family:\'IBM Plex Mono\',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#15171A;background:#2DD4BF;text-decoration:none;padding:15px 24px;text-align:center;display:block;';
+  var S_OUTLINE = 'font-family:\'IBM Plex Mono\',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#17181A;text-decoration:none;padding:15px 24px;border:1px solid rgba(23,24,26,.28);text-align:center;display:block;';
+  var S_DANGER_DARK = 'font-family:\'IBM Plex Mono\',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#fca5a5;background:transparent;text-decoration:none;padding:15px 24px;border:1px solid #ef4444;text-align:center;display:block;cursor:pointer;border-radius:0;width:100%;box-sizing:border-box;';
+  var S_DANGER_LIGHT = 'font-family:\'IBM Plex Mono\',monospace;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:#DC2626;background:transparent;text-decoration:none;padding:15px 24px;border:1px solid #DC2626;text-align:center;display:block;cursor:pointer;border-radius:0;width:100%;box-sizing:border-box;';
+  var S_REFUND = 'display:block;text-align:center;font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#6A6E73;margin-top:10px;text-decoration:underline;cursor:pointer;background:none;border:none;width:100%;padding:0;';
+
+  if (plan === 'free') {
+    proCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'pro\');return false;" class="plan-cta-teal" style="' + S_TEAL + '">Pro 시작하기</a>';
+    bizCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'business\');return false;" class="plan-cta-outline" style="' + S_OUTLINE + '">비즈니스 시작하기</a>';
+  } else if (plan === 'pro') {
+    proCta.innerHTML = '<button onclick="cancelSubscription()" style="' + S_DANGER_DARK + '">구독 취소</button><button onclick="requestRefund()" style="' + S_REFUND.replace('color:#6A6E73','color:#A9ADB2') + '">결제 환불 요청</button>';
+    bizCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'business\');return false;" class="plan-cta-outline" style="' + S_OUTLINE + '">비즈니스로 업그레이드</a>';
+  } else if (plan === 'business') {
+    proCta.innerHTML = '<div style="font-family:\'IBM Plex Mono\',monospace;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#A9ADB2;padding:15px 24px;text-align:center;border:1px solid rgba(255,255,255,.15);">Business 플랜 이용 중</div>';
+    bizCta.innerHTML = '<button onclick="cancelSubscription()" style="' + S_DANGER_LIGHT + '">구독 취소</button><button onclick="requestRefund()" style="' + S_REFUND + '">결제 환불 요청</button>';
+  }
+};
+
+/* 페이지 로드 시 플랜 상태 조회 */
+window.addEventListener('load', async function() {
+  try {
+    var res = await fetch('/api/billing/status');
+    if (!res.ok) return;
+    var data = await res.json();
+    var plan = data.plan || 'free';
+    if (plan !== 'free') {
+      window._currentPlan = plan;
+      window.updatePlanButtons(plan);
+    }
+  } catch(e) {}
+});
+
+/* 로그인 성공 후 pendingPlan 처리 — submitAuth 완료 이벤트 수신 */
+window.addEventListener('vx:login-success', function(e) {
+  window._currentUserEmail = (e.detail && e.detail.email) || '';
+  if (window._pendingPlan) {
+    var p = window._pendingPlan;
+    window._pendingPlan = '';
+    setTimeout(function() { window.openPaymentModal(p); }, 300);
+  }
+});
 </script>
 </body>
 </html>

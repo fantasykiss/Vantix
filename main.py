@@ -319,6 +319,13 @@ def _require_session(request: Request) -> dict:
         raise HTTPException(status_code=401, detail="session_expired")
     return s
 
+def _require_login(request: Request) -> int:
+    """vx_user_id 쿠키 또는 Redmine 세션 중 하나만 있으면 통과. 결제/구독 API용."""
+    uid = _current_user_id(request)
+    if not uid:
+        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
+    return uid
+
 _init_session_table()
 _init_analytics_tables()
 _warm_session_cache()
@@ -328,7 +335,7 @@ from app.constants import (
     DEFAULT_PLAN, plan_info, plan_allows, plan_project_limit, plan_member_limit,
     PLAN_ORDER,
 )
-from config import RESEND_API_KEY, RESEND_FROM, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_API_SECRET, PLAN_PRICES
+from config import RESEND_API_KEY, RESEND_FROM, SUPPORT_EMAIL, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_API_SECRET, PLAN_PRICES
 import resend as _resend
 _resend.api_key = RESEND_API_KEY
 import httpx as _httpx
@@ -453,6 +460,10 @@ def _init_users_db():
             ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS email_verified INTEGER DEFAULT 0;
             ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS email_verify_token TEXT;
             ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS projects_changed_at DOUBLE PRECISION DEFAULT NULL;
+            ALTER TABLE vantix_users ADD COLUMN IF NOT EXISTS pending_plan TEXT DEFAULT NULL;
+            ALTER TABLE vantix_billing_keys ADD COLUMN IF NOT EXISTS retry_count INTEGER DEFAULT 0;
+            ALTER TABLE vantix_billing_keys ADD COLUMN IF NOT EXISTS next_retry_at DOUBLE PRECISION DEFAULT NULL;
+            ALTER TABLE vantix_billing_keys ADD COLUMN IF NOT EXISTS grace_until DOUBLE PRECISION DEFAULT NULL;
         """)
 
 _init_users_db()
@@ -522,6 +533,54 @@ def _send_invite_email(email: str, inviter_email: str, role: str, base_url: str,
         })
     except Exception as e:
         print(f"[resend] 초대 이메일 발송 실패: {e}")
+
+def _send_billing_email(email: str, kind: str, plan: str):
+    """자동 갱신 결제 관련 이메일 발송. kind: 'fail1' | 'fail2' | 'downgraded'"""
+    plan_label = {"pro": "Pro", "business": "Business"}.get(plan, plan.capitalize())
+    subjects = {
+        "fail1":      f"[Vantix] {plan_label} 구독 결제에 실패했습니다",
+        "fail2":      f"[Vantix] 결제 재시도 실패 — 내일 Free로 변경됩니다",
+        "downgraded": f"[Vantix] 플랜이 Free로 변경되었습니다",
+    }
+    bodies = {
+        "fail1": f"""
+<div style="font-family:'IBM Plex Mono',monospace;max-width:520px;margin:0 auto;padding:40px 32px;background:#F5F4EF;border:1px solid rgba(23,24,26,.1);">
+  <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#DC2626;margin-bottom:16px;">VANTIX — 결제 실패</div>
+  <h2 style="font-family:sans-serif;font-weight:700;font-size:22px;color:#17181A;margin:0 0 12px;">{plan_label} 구독 결제 실패</h2>
+  <p style="font-size:14px;line-height:1.7;color:#46494d;margin:0 0 12px;">정기결제 처리 중 오류가 발생했습니다. 등록하신 카드 정보를 확인해주세요.</p>
+  <p style="font-size:14px;line-height:1.7;color:#46494d;margin:0 0 28px;"><b>3일간 유예기간</b>이 적용되며, 이 기간 동안 결제 재시도가 이루어집니다. 유예기간 내 결제가 완료되면 구독이 정상 유지됩니다.</p>
+  <a href="https://vantix.app/connect" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#0F766E;text-decoration:none;padding:14px 28px;">결제 수단 변경하기 ↗</a>
+  <p style="margin:24px 0 0;font-size:11px;color:#8a8d91;">문의: support@vantix.app</p>
+</div>""",
+        "fail2": f"""
+<div style="font-family:'IBM Plex Mono',monospace;max-width:520px;margin:0 auto;padding:40px 32px;background:#F5F4EF;border:1px solid rgba(23,24,26,.1);">
+  <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#DC2626;margin-bottom:16px;">VANTIX — 결제 재시도 실패</div>
+  <h2 style="font-family:sans-serif;font-weight:700;font-size:22px;color:#17181A;margin:0 0 12px;">결제 재시도에 실패했습니다</h2>
+  <p style="font-size:14px;line-height:1.7;color:#46494d;margin:0 0 12px;">{plan_label} 구독 결제 재시도에 실패했습니다. <b>내일까지 결제가 완료되지 않으면 Free 플랜으로 자동 변경됩니다.</b></p>
+  <p style="font-size:14px;line-height:1.7;color:#46494d;margin:0 0 28px;">지금 바로 결제 수단을 변경하여 서비스를 유지하세요.</p>
+  <a href="https://vantix.app/connect" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#DC2626;text-decoration:none;padding:14px 28px;">지금 결제 수단 변경하기 ↗</a>
+  <p style="margin:24px 0 0;font-size:11px;color:#8a8d91;">문의: support@vantix.app</p>
+</div>""",
+        "downgraded": f"""
+<div style="font-family:'IBM Plex Mono',monospace;max-width:520px;margin:0 auto;padding:40px 32px;background:#F5F4EF;border:1px solid rgba(23,24,26,.1);">
+  <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#6A6E73;margin-bottom:16px;">VANTIX — 플랜 변경</div>
+  <h2 style="font-family:sans-serif;font-weight:700;font-size:22px;color:#17181A;margin:0 0 12px;">Free 플랜으로 변경되었습니다</h2>
+  <p style="font-size:14px;line-height:1.7;color:#46494d;margin:0 0 12px;">{plan_label} 구독 결제가 최종 실패하여 Free 플랜으로 변경되었습니다.</p>
+  <p style="font-size:14px;line-height:1.7;color:#46494d;margin:0 0 28px;">언제든지 재구독하여 유료 기능을 다시 이용하실 수 있습니다.</p>
+  <a href="https://vantix.app/connect" style="display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:13px;letter-spacing:.1em;text-transform:uppercase;color:#fff;background:#0F766E;text-decoration:none;padding:14px 28px;">다시 구독하기 ↗</a>
+  <p style="margin:24px 0 0;font-size:11px;color:#8a8d91;">문의: support@vantix.app</p>
+</div>""",
+    }
+    try:
+        _resend.Emails.send({
+            "from": f"Vantix <{RESEND_FROM}>",
+            "to": [email],
+            "subject": subjects[kind],
+            "html": bodies[kind],
+        })
+    except Exception as e:
+        print(f"[resend] 결제 이메일 발송 실패({kind}): {e}")
+
 
 def _get_user_by_email(email: str) -> dict | None:
     with _users_db() as conn:
@@ -1162,6 +1221,99 @@ def _job_risk_snapshot():
 
 from config import DEFAULT_PROJECT_ID, DEFAULT_UPDATED_AFTER
 
+def _job_billing_renewal():
+    """매일 새벽 2시 — 만료/재시도 대상 구독 자동 갱신. 실패 시 3일 유예 + 2회 재시도."""
+    if not _DATABASE_URL:
+        return
+    now = time.time()
+    try:
+        with _users_db() as conn:
+            rows = conn.execute("""
+                SELECT bk.id, bk.user_id, bk.billing_key, bk.plan,
+                       bk.retry_count, bk.grace_until,
+                       u.email
+                FROM vantix_billing_keys bk
+                JOIN vantix_users u ON u.id = bk.user_id AND u.is_active = 1
+                WHERE bk.status = 'active'
+                  AND (
+                    (bk.retry_count = 0 AND bk.expires_at <= ?)
+                    OR (bk.retry_count > 0 AND bk.next_retry_at IS NOT NULL AND bk.next_retry_at <= ?)
+                  )
+            """, (now, now)).fetchall()
+    except Exception as e:
+        print(f"[billing renewal] DB 조회 실패: {e}")
+        return
+
+    for row in rows:
+        bk_id     = row["id"]
+        uid       = row["user_id"]
+        bk_enc    = row["billing_key"]
+        plan      = row["plan"]
+        retry     = row["retry_count"] or 0
+        email     = row["email"]
+
+        billing_key = _decrypt_key(bk_enc)
+        payment_id  = f"vantix-renew-{plan}-{uid}-{int(now)}-r{retry}"
+
+        print(f"[billing renewal] uid={uid} plan={plan} retry={retry}")
+        result      = _charge_billing_key(billing_key, payment_id, plan, uid, email)
+        http_status = result.get("_http_status", 0)
+        payment     = result.get("payment") or {}
+        paid        = http_status == 200 and bool(payment) and payment.get("status", "PAID") == "PAID"
+
+        if paid:
+            new_expires = now + 31 * 86400
+            with _users_db() as conn:
+                conn.execute("""
+                    UPDATE vantix_billing_keys
+                    SET expires_at=?, retry_count=0, next_retry_at=NULL, grace_until=NULL
+                    WHERE id=?
+                """, (new_expires, bk_id))
+                conn.execute("""
+                    INSERT INTO vantix_payment_history
+                      (user_id, payment_id, billing_key_id, plan, amount, status, paid_at)
+                    VALUES (?,?,?,?,?,?,?)
+                """, (uid, payment_id, bk_id, plan, PLAN_PRICES[plan], "paid", now))
+                # pending_plan 있으면 이 갱신 시점에 적용
+                prow = conn.execute("SELECT pending_plan FROM vantix_users WHERE id=?", (uid,)).fetchone()
+                if prow and prow["pending_plan"]:
+                    _set_user_plan(uid, prow["pending_plan"])
+                    conn.execute("UPDATE vantix_users SET pending_plan=NULL WHERE id=?", (uid,))
+            print(f"[billing renewal] 갱신 성공 uid={uid}")
+        else:
+            if retry == 0:
+                # 1차 실패 — 유예기간 3일, 내일 재시도
+                with _users_db() as conn:
+                    conn.execute("""
+                        UPDATE vantix_billing_keys
+                        SET retry_count=1, next_retry_at=?, grace_until=?
+                        WHERE id=?
+                    """, (now + 86400, now + 3 * 86400, bk_id))
+                _send_billing_email(email, "fail1", plan)
+                print(f"[billing renewal] 1차 실패 uid={uid}, 유예 3일")
+            elif retry == 1:
+                # 2차 실패 — 모레(day 3) 마지막 재시도
+                with _users_db() as conn:
+                    conn.execute("""
+                        UPDATE vantix_billing_keys
+                        SET retry_count=2, next_retry_at=?
+                        WHERE id=?
+                    """, (now + 2 * 86400, bk_id))
+                _send_billing_email(email, "fail2", plan)
+                print(f"[billing renewal] 2차 실패 uid={uid}, 마지막 재시도 예정")
+            else:
+                # 3차 실패 — 최종 다운그레이드
+                with _users_db() as conn:
+                    conn.execute("""
+                        UPDATE vantix_billing_keys
+                        SET status='failed', retry_count=3, next_retry_at=NULL
+                        WHERE id=?
+                    """, (bk_id,))
+                _set_user_plan(uid, "free")
+                _send_billing_email(email, "downgraded", plan)
+                print(f"[billing renewal] 최종 실패 → free uid={uid}")
+
+
 def _job_cleanup_callouts():
     if not _DATABASE_URL:
         return
@@ -1188,6 +1340,9 @@ _scheduler.add_job(_job_send_monitor_alerts, CronTrigger(
 _scheduler.add_job(_job_cleanup_callouts, CronTrigger(
     hour=3, minute=0, timezone="Asia/Seoul"
 ), id="callout_cleanup")
+_scheduler.add_job(_job_billing_renewal, CronTrigger(
+    hour=2, minute=0, timezone="Asia/Seoul"
+), id="billing_renewal")
 save_risk_snapshot()  # 서버 시작 시 즉시 1회 실행
 _scheduler.start()
 print(f"  스케줄러 시작!")
@@ -2959,7 +3114,43 @@ async def api_account_plan(request: Request):
         "selected_projects": _get_user_projects(uid) if uid else [],
         "is_authenticated": uid is not None,
         "projects_changed_at": _get_projects_changed_at(uid),
+        "email": (_get_user_by_id(uid) or {}).get("email", "") if uid else "",
     })
+
+
+# ==================== 문의하기 ====================
+
+@app.post("/api/support")
+async def api_support(request: Request):
+    body = await request.json()
+    name    = str(body.get("name", "")).strip()[:100]
+    email   = str(body.get("email", "")).strip()[:200]
+    message = str(body.get("message", "")).strip()[:2000]
+    if not email or not message:
+        raise HTTPException(status_code=400, detail="이메일과 내용을 입력해주세요")
+    uid = _current_user_id(request)
+    plan = _get_user_plan(uid) if uid else "비로그인"
+    try:
+        _resend.Emails.send({
+            "from": f"Vantix <{RESEND_FROM}>",
+            "to": [SUPPORT_EMAIL],
+            "reply_to": [email],
+            "subject": f"[Vantix 문의] {name or email}",
+            "html": f"""
+<div style="font-family:'IBM Plex Mono',monospace;max-width:520px;margin:0 auto;padding:40px 32px;background:#F5F4EF;border:1px solid rgba(23,24,26,.1);">
+  <div style="font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:#0F766E;margin-bottom:16px;">VANTIX — 문의</div>
+  <table style="width:100%;font-size:13px;margin-bottom:24px;border-collapse:collapse;">
+    <tr><td style="padding:6px 0;color:#6A6E73;width:80px;">이름</td><td style="padding:6px 0;">{name or "미입력"}</td></tr>
+    <tr><td style="padding:6px 0;color:#6A6E73;">이메일</td><td style="padding:6px 0;"><a href="mailto:{email}" style="color:#0F766E;">{email}</a></td></tr>
+    <tr><td style="padding:6px 0;color:#6A6E73;">플랜</td><td style="padding:6px 0;">{plan}</td></tr>
+  </table>
+  <div style="background:#fff;border:1px solid rgba(23,24,26,.1);padding:16px 20px;font-size:14px;line-height:1.8;color:#17181A;white-space:pre-wrap;">{message}</div>
+</div>""",
+        })
+    except Exception as e:
+        print(f"[support] 메일 발송 실패: {e}")
+        raise HTTPException(status_code=500, detail="메일 발송에 실패했습니다")
+    return JSONResponse({"ok": True})
 
 
 # ==================== 결제 (포트원 V2) ====================
@@ -2994,11 +3185,8 @@ def _charge_billing_key(billing_key: str, payment_id: str, plan: str, user_id: i
 
 
 @app.post("/api/billing/issue")
-async def api_billing_issue(request: Request, s: dict = Depends(_require_session)):
+async def api_billing_issue(request: Request, uid: int = Depends(_require_login)):
     """프론트에서 발급받은 빌링키로 즉시 첫 결제 후 플랜 업그레이드"""
-    uid = _current_user_id(request)
-    if not uid:
-        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
     # 멤버는 결제 불가 — 오너만 결제 (멤버는 오너 플랜 상속)
     if _get_workspace_role(uid) != "owner":
         raise HTTPException(status_code=403, detail="결제는 워크스페이스 오너만 가능합니다")
@@ -3064,11 +3252,8 @@ async def api_billing_issue(request: Request, s: dict = Depends(_require_session
 
 
 @app.post("/api/billing/cancel")
-async def api_billing_cancel(request: Request, s: dict = Depends(_require_session)):
+async def api_billing_cancel(request: Request, uid: int = Depends(_require_login)):
     """구독 취소 — 빌링키 비활성화 후 플랜을 free로"""
-    uid = _current_user_id(request)
-    if not uid:
-        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
     with _users_db() as conn:
         conn.execute(
             "UPDATE vantix_billing_keys SET status='cancelled' WHERE user_id=? AND status='active'",
@@ -3078,12 +3263,53 @@ async def api_billing_cancel(request: Request, s: dict = Depends(_require_sessio
     return JSONResponse({"ok": True, "plan": "free"})
 
 
+@app.post("/api/billing/refund")
+async def api_billing_refund(request: Request, uid: int = Depends(_require_login)):
+    """최근 결제 환불 + 구독 취소 — PortOne V2 결제 취소 API 호출"""
+
+    with _users_db() as conn:
+        ph = conn.execute(
+            "SELECT * FROM vantix_payment_history WHERE user_id=? AND status='paid' ORDER BY paid_at DESC LIMIT 1",
+            (uid,)
+        ).fetchone()
+
+    if not ph:
+        raise HTTPException(status_code=404, detail="환불할 결제 내역이 없습니다")
+
+    payment_id = ph["payment_id"]
+
+    with _httpx.Client(timeout=15) as client:
+        resp = client.post(
+            f"https://api.portone.io/payments/{payment_id}/cancel",
+            headers={"Authorization": f"PortOne {PORTONE_API_SECRET}"},
+            json={"reason": "고객 요청"},
+        )
+
+    if resp.status_code not in (200, 201):
+        try:
+            msg = resp.json().get("message", "환불 처리에 실패했습니다")
+        except Exception:
+            msg = "환불 처리에 실패했습니다"
+        print(f"[refund] failed status={resp.status_code} body={resp.text[:300]}")
+        raise HTTPException(status_code=502, detail=f"환불 실패: {msg}")
+
+    with _users_db() as conn:
+        conn.execute(
+            "UPDATE vantix_payment_history SET status='refunded' WHERE payment_id=?",
+            (payment_id,)
+        )
+        conn.execute(
+            "UPDATE vantix_billing_keys SET status='cancelled' WHERE user_id=? AND status='active'",
+            (uid,)
+        )
+    _set_user_plan(uid, "free")
+    print(f"[refund] 환불 완료 uid={uid} payment_id={payment_id}")
+    return JSONResponse({"ok": True, "plan": "free", "refunded_payment_id": payment_id})
+
+
 @app.get("/api/billing/status")
-async def api_billing_status(request: Request, s: dict = Depends(_require_session)):
+async def api_billing_status(request: Request, uid: int = Depends(_require_login)):
     """현재 구독 상태"""
-    uid = _current_user_id(request)
-    if not uid:
-        raise HTTPException(status_code=401, detail="로그인이 필요합니다")
     with _users_db() as conn:
         bk = conn.execute(
             "SELECT * FROM vantix_billing_keys WHERE user_id=? AND status='active' ORDER BY created_at DESC LIMIT 1",
@@ -3342,6 +3568,8 @@ async def connect_page(request: Request):
     # DEMO_URL/DEMO_KEY 환경변수가 있으면 "Try Vantix" 버튼 활성화
     demo_flag = "true" if (DEMO_URL and DEMO_KEY) else "false"
     html = html.replace("__DEMO_AVAILABLE__", demo_flag)
+    html = html.replace("__PORTONE_STORE_ID__", PORTONE_STORE_ID)
+    html = html.replace("__PORTONE_CHANNEL_KEY__", PORTONE_CHANNEL_KEY)
     return HTMLResponse(content=html)
 
 @app.post("/api/connect/demo")
