@@ -1661,11 +1661,12 @@ window.startKakaoPay = async function() {
 
 window.cancelSubscription = async function() {
   if (!confirm('구독을 취소하시겠습니까?\nFree 플랜으로 변경되며 다음 결제일부터 청구가 중단됩니다.\n이미 결제된 금액을 환불받으시려면 취소 후 \'결제 환불 요청\'을 이용하세요.')) return;
+  var cancelledPlan = window._currentPlan;
   try {
     var res = await fetch('/api/billing/cancel', { method: 'POST' });
     if (!res.ok) throw new Error((await res.json()).detail || '취소 실패');
     window._currentPlan = 'free';
-    window.updatePlanButtons('free', true);
+    window.updatePlanButtons('free', cancelledPlan);
     alert('구독이 취소되었습니다. Free 플랜으로 변경되었습니다.');
   } catch(e) {
     alert('오류: ' + (e.message || '취소에 실패했습니다.'));
@@ -1699,9 +1700,10 @@ window.updatePlanButtons = function(plan, showRefund) {
   var S_REFUND_DARK = S_REFUND.replace('color:#6A6E73','color:#A9ADB2');
 
   if (plan === 'free') {
-    var refundHtml = showRefund ? '<button onclick="requestRefund()" style="' + S_REFUND + '">결제 환불 요청</button>' : '';
-    proCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'pro\');return false;" class="plan-cta-teal" style="' + S_TEAL + '">Pro 시작하기</a>' + refundHtml;
-    bizCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'business\');return false;" class="plan-cta-outline" style="' + S_OUTLINE + '">비즈니스 시작하기</a>';
+    var proRefund = showRefund === 'pro' ? '<button onclick="requestRefund()" style="' + S_REFUND + '">결제 환불 요청</button>' : '';
+    var bizRefund = showRefund === 'business' ? '<button onclick="requestRefund()" style="' + S_REFUND + '">결제 환불 요청</button>' : '';
+    proCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'pro\');return false;" class="plan-cta-teal" style="' + S_TEAL + '">Pro 시작하기</a>' + proRefund;
+    bizCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'business\');return false;" class="plan-cta-outline" style="' + S_OUTLINE + '">비즈니스 시작하기</a>' + bizRefund;
   } else if (plan === 'pro') {
     proCta.innerHTML = '<button onclick="cancelSubscription()" style="' + S_DANGER_DARK + '">구독 취소</button><button onclick="requestRefund()" style="' + S_REFUND.replace('color:#6A6E73','color:#A9ADB2') + '">결제 환불 요청</button>';
     bizCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'business\');return false;" class="plan-cta-outline" style="' + S_OUTLINE + '">비즈니스로 업그레이드</a>';
