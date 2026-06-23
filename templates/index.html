@@ -6423,9 +6423,22 @@ function submitFeedback() {
       <div id="upgrade-cancel-row" style="display:none;text-align:center;padding-top:4px;">
         <button onclick="cancelSubscription()" style="background:none;border:none;font-size:11px;color:var(--text-dim);cursor:pointer;text-decoration:underline;">구독 취소 (Free로 다운그레이드)</button>
       </div>
+      <!-- refund (shown when recent paid payment exists) -->
+      <div id="upgrade-refund-row" style="display:none;text-align:center;padding-top:2px;">
+        <button onclick="requestRefundFromModal()" style="background:none;border:none;font-size:11px;color:#ef4444;cursor:pointer;text-decoration:underline;">결제 환불 요청</button>
+      </div>
+    </div>
+    <!-- 결제 수단 선택 -->
+    <div style="padding:12px 24px 0;">
+      <div style="font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-dim);margin-bottom:8px;">결제 수단</div>
+      <div style="display:flex;gap:8px;">
+        <button id="pay-method-kakao" onclick="selectPayMethod('kakao')" style="flex:1;padding:9px 4px;border:1.5px solid var(--ghost-2);background:var(--surface-low);color:var(--text-mid);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--dm);">카카오페이</button>
+        <button id="pay-method-card" onclick="selectPayMethod('card')" style="flex:1;padding:9px 4px;border:1.5px solid var(--ghost-2);background:var(--surface-low);color:var(--text-mid);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--dm);">카드</button>
+        <button id="pay-method-tosspay" onclick="selectPayMethod('tosspay')" style="flex:1;padding:9px 4px;border:1.5px solid var(--ghost-2);background:var(--surface-low);color:var(--text-mid);font-size:11px;font-weight:600;cursor:pointer;transition:all .15s;font-family:var(--dm);">토스페이</button>
+      </div>
     </div>
     <!-- footer / action -->
-    <div style="padding:0 24px 20px;display:flex;flex-direction:column;gap:8px;">
+    <div style="padding:12px 24px 20px;display:flex;flex-direction:column;gap:8px;">
       <button id="upgrade-pay-btn" onclick="startPayment()" style="background:#17181A;color:#fff;border:none;padding:13px;font-family:var(--dm);font-size:12px;font-weight:700;letter-spacing:.1em;cursor:pointer;width:100%;opacity:.4;pointer-events:none;">플랜을 선택하세요</button>
       <div id="upgrade-msg" style="font-size:11px;color:var(--text-dim);text-align:center;min-height:16px;"></div>
       <div style="text-align:center;padding-top:4px;">
@@ -6457,7 +6470,9 @@ function submitFeedback() {
 <script>
 /* ── 업그레이드 모달 ── */
 var _upgradePlan = null;
+var _payMethod = null;
 var _upgradeCurrentPlan = 'free';
+var _upgradeUserId = '';
 
 function openUpgradeModal() {
   var overlay = document.getElementById('upgrade-modal-overlay');
@@ -6466,7 +6481,8 @@ function openUpgradeModal() {
   overlay.style.display = 'flex';
   fetch('/api/billing/status').then(function(r) { return r.json(); }).then(function(d) {
     _upgradeCurrentPlan = d.plan || 'free';
-    _renderUpgradeModal();
+    _upgradeUserId = d.user_id || '';
+    _renderUpgradeModal(d);
   }).catch(function() {
     window.location.href = '/connect';
   });
@@ -6474,7 +6490,7 @@ function openUpgradeModal() {
 
 var _PLAN_RANK = { free: 0, pro: 1, business: 2 };
 
-function _renderUpgradeModal() {
+function _renderUpgradeModal(d) {
   _upgradePlan = null;
   var cancelRow = document.getElementById('upgrade-cancel-row');
   if (cancelRow) cancelRow.style.display = _upgradeCurrentPlan !== 'free' ? 'block' : 'none';
@@ -6501,11 +6517,22 @@ function _renderUpgradeModal() {
     }
   });
   _setUpgradeCardActive(null);
+  _payMethod = null;
+  ['kakao','card','tosspay'].forEach(function(m) {
+    var b = document.getElementById('pay-method-' + m);
+    if (b) { b.style.borderColor = 'var(--ghost-2)'; b.style.color = 'var(--text-mid)'; b.style.background = 'var(--surface-low)'; }
+  });
   var btn = document.getElementById('upgrade-pay-btn');
   btn.textContent = '플랜을 선택하세요';
   btn.style.opacity = '.4';
   btn.style.pointerEvents = 'none';
   document.getElementById('upgrade-msg').textContent = '';
+  /* 환불 버튼: 최근 paid 결제가 있으면 표시 */
+  var refundRow = document.getElementById('upgrade-refund-row');
+  if (refundRow) {
+    var hasPaid = d && d.payment_history && d.payment_history.some(function(h) { return h.status === 'paid'; });
+    refundRow.style.display = hasPaid ? 'block' : 'none';
+  }
 }
 
 function closeUpgradeModal(e) {
@@ -6644,16 +6671,40 @@ function closeProjSelectModal(e) {
 }
 
 function selectUpgradePlan(plan) {
-  // 현재 플랜 이하 선택 차단(이중 방어 — 카드도 pointer-events:none)
   if (_PLAN_RANK[plan] <= (_PLAN_RANK[_upgradeCurrentPlan] || 0)) return;
   _upgradePlan = plan;
   _setUpgradeCardActive(plan);
+  _updatePayBtn();
+}
+
+function selectPayMethod(method) {
+  _payMethod = method;
+  ['kakao','card','tosspay'].forEach(function(m) {
+    var b = document.getElementById('pay-method-' + m);
+    if (!b) return;
+    var active = m === method;
+    b.style.borderColor = active ? 'var(--text)' : 'var(--ghost-2)';
+    b.style.color = active ? 'var(--text)' : 'var(--text-mid)';
+    b.style.background = active ? 'var(--surface-hi)' : 'var(--surface-low)';
+  });
+  _updatePayBtn();
+}
+
+function _updatePayBtn() {
   var btn = document.getElementById('upgrade-pay-btn');
-  var price = plan === 'pro' ? '19,000' : '49,000';
-  var label = plan === 'pro' ? 'PRO' : 'BUSINESS';
-  btn.textContent = label + ' 결제하기 (₩' + price + '/월)';
-  btn.style.opacity = '1';
-  btn.style.pointerEvents = 'auto';
+  if (!_upgradePlan) {
+    btn.textContent = '플랜을 선택하세요';
+    btn.style.opacity = '.4'; btn.style.pointerEvents = 'none'; return;
+  }
+  if (!_payMethod) {
+    btn.textContent = '결제 수단을 선택하세요';
+    btn.style.opacity = '.4'; btn.style.pointerEvents = 'none'; return;
+  }
+  var price = _upgradePlan === 'pro' ? '19,000' : '49,000';
+  var label = _upgradePlan === 'pro' ? 'PRO' : 'BUSINESS';
+  var methodLabel = _payMethod === 'kakao' ? '카카오페이' : _payMethod === 'card' ? '카드' : '토스페이';
+  btn.textContent = label + ' 결제하기 · ' + methodLabel + ' (₩' + price + '/월)';
+  btn.style.opacity = '1'; btn.style.pointerEvents = 'auto';
 }
 
 function _setUpgradeCardActive(plan) {
@@ -6664,27 +6715,82 @@ function _setUpgradeCardActive(plan) {
 }
 
 async function startPayment() {
-  if (!_upgradePlan) return;
+  if (!_upgradePlan || !_payMethod) return;
+  /* 토스페이 customerId 보장 */
+  if (!_upgradeUserId) _upgradeUserId = 'vxu' + Date.now();
   var msg = document.getElementById('upgrade-msg');
   var btn = document.getElementById('upgrade-pay-btn');
-  msg.textContent = '카카오페이 결제창을 여는 중...';
+  var methodLabel = _payMethod === 'kakao' ? '카카오페이' : _payMethod === 'card' ? '카드' : '토스페이';
+  msg.textContent = methodLabel + ' 결제창을 여는 중...';
+  msg.style.color = 'var(--text-dim)';
   btn.style.opacity = '.5';
   btn.style.pointerEvents = 'none';
 
   try {
-    var response = await PortOne.requestIssueBillingKey({
+    if (_payMethod === 'card') {
+      /* KG이니시스: requestPayment (일반결제, REDIRECT) */
+      var planPrice = _upgradePlan === 'pro' ? 19000 : 49000;
+      var planLabel = _upgradePlan === 'pro' ? 'Pro' : 'Business';
+      var cardPid = 'vantix-card-' + _upgradePlan + '-' + Date.now();
+      sessionStorage.setItem('vx_billing_plan', _upgradePlan);
+      sessionStorage.setItem('vx_card_pid', cardPid);
+      var returnUrl = window.location.origin + window.location.pathname + '?pg_return=card&plan=' + _upgradePlan;
+      var resp = await PortOne.requestPayment({
+        storeId: '__PORTONE_STORE_ID__',
+        channelKey: '__PORTONE_CHANNEL_KEY_INICIS__',
+        paymentId: cardPid,
+        orderName: 'Vantix ' + planLabel,
+        totalAmount: planPrice,
+        currency: 'KRW',
+        redirectUrl: returnUrl,
+        windowType: { pc: 'REDIRECT', mobile: 'REDIRECTION' },
+        customer: { fullName: '고객' },
+      });
+      /* 모바일(비리다이렉트) 응답 처리 */
+      if (resp && resp.code) throw new Error(resp.message || '결제 실패');
+      if (resp && resp.paymentId) {
+        msg.textContent = '결제 확인 중...';
+        var r2 = await fetch('/api/payment/card-complete', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ paymentId: resp.paymentId, plan: _upgradePlan }),
+        });
+        var d2 = await r2.json();
+        if (!r2.ok) throw new Error(d2.detail || '결제 실패');
+        msg.style.color = '#0D9488';
+        msg.textContent = '✓ 결제 완료! 플랜이 업그레이드되었습니다.';
+        setTimeout(function() { document.getElementById('upgrade-modal-overlay').style.display = 'none'; location.reload(); }, 1500);
+      }
+      return; /* PC는 리다이렉트되므로 이 이후 코드 실행 안 됨 */
+    }
+
+    /* 카카오페이 / 토스페이: requestIssueBillingKey */
+    var pgParams = {};
+    if (_payMethod === 'kakao') {
+      pgParams = {
+        channelKey: '__PORTONE_CHANNEL_KEY__',
+        billingKeyMethod: 'EASY_PAY',
+        easyPay: { easyPayProvider: 'KAKAOPAY' },
+        windowType: { pc: 'IFRAME', mobile: 'REDIRECTION' },
+      };
+    } else if (_payMethod === 'tosspay') {
+      sessionStorage.setItem('vx_billing_plan', _upgradePlan);
+      pgParams = {
+        channelKey: '__PORTONE_CHANNEL_KEY_TOSSPAY__',
+        billingKeyMethod: 'EASY_PAY',
+        easyPay: { easyPayProvider: 'TOSSPAY' },
+        customer: { customerId: _upgradeUserId },
+        redirectUrl: window.location.origin + window.location.pathname + '?pg_return=tosspay&plan=' + _upgradePlan,
+        windowType: { pc: 'POPUP', mobile: 'REDIRECTION' },
+      };
+    }
+
+    var response = await PortOne.requestIssueBillingKey(Object.assign({
       storeId: '__PORTONE_STORE_ID__',
-      channelKey: '__PORTONE_CHANNEL_KEY__',
-      billingKeyMethod: 'EASY_PAY',
       issueId: 'issue-' + Date.now(),
       issueName: 'Vantix 구독 결제 수단 등록',
-      easyPay: { easyPayProvider: 'KAKAOPAY' },
-      windowType: { pc: 'IFRAME', mobile: 'REDIRECTION' },
-    });
+    }, pgParams));
 
-    if (response.code) {
-      throw new Error(response.message || '결제 수단 등록 실패');
-    }
+    if (response.code) throw new Error(response.message || '결제 수단 등록 실패');
 
     msg.textContent = '결제 처리 중...';
     var res = await fetch('/api/billing/issue', {
@@ -6706,6 +6812,42 @@ async function startPayment() {
     msg.textContent = err.message || '오류가 발생했습니다';
     btn.style.opacity = '1';
     btn.style.pointerEvents = 'auto';
+  }
+}
+
+/* ── KG이니시스 카드 REDIRECT 복귀 처리 ── */
+(function() {
+  var params = new URLSearchParams(window.location.search);
+  if (params.get('pg_return') !== 'card') return;
+  var plan = params.get('plan') || sessionStorage.getItem('vx_billing_plan') || '';
+  var paymentId = sessionStorage.getItem('vx_card_pid') || '';
+  history.replaceState(null, '', window.location.pathname);
+  sessionStorage.removeItem('vx_billing_plan');
+  sessionStorage.removeItem('vx_card_pid');
+  if (!paymentId || !plan) return;
+  fetch('/api/payment/card-complete', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ paymentId: paymentId, plan: plan }),
+  }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
+  .then(function(res) {
+    if (!res.ok) { alert('결제 실패: ' + (res.d.detail || '오류가 발생했습니다')); return; }
+    alert('✓ 결제 완료! 플랜이 업그레이드되었습니다.');
+    location.reload();
+  }).catch(function() { alert('결제 처리 중 오류가 발생했습니다.'); });
+})();
+
+async function requestRefundFromModal() {
+  if (!confirm('최근 결제를 환불 요청하시겠습니까?\n환불 처리 후 Free 플랜으로 변경됩니다.')) return;
+  try {
+    var res = await fetch('/api/billing/refund', { method: 'POST' });
+    var data = await res.json();
+    if (!res.ok) throw new Error(data.detail || '환불 실패');
+    alert('환불이 처리되었습니다. Free 플랜으로 변경되었습니다.');
+    document.getElementById('upgrade-modal-overlay').style.display = 'none';
+    location.reload();
+  } catch(e) {
+    alert('오류: ' + (e.message || '환불에 실패했습니다.'));
   }
 }
 

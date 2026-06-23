@@ -54,9 +54,11 @@ RESEND_API_KEY  = os.getenv("RESEND_API_KEY", "")
 RESEND_FROM     = os.getenv("RESEND_FROM", "onboarding@resend.dev")
 SUPPORT_EMAIL   = os.getenv("SUPPORT_EMAIL", "support@vantix.app")
 
-PORTONE_STORE_ID   = os.getenv("PORTONE_STORE_ID", "")
-PORTONE_CHANNEL_KEY = os.getenv("PORTONE_CHANNEL_KEY", "")
-PORTONE_API_SECRET = os.getenv("PORTONE_API_SECRET", "")
+PORTONE_STORE_ID            = os.getenv("PORTONE_STORE_ID", "")
+PORTONE_CHANNEL_KEY         = os.getenv("PORTONE_CHANNEL_KEY", "")
+PORTONE_CHANNEL_KEY_INICIS  = os.getenv("PORTONE_CHANNEL_KEY_INICIS", "")
+PORTONE_CHANNEL_KEY_TOSSPAY = os.getenv("PORTONE_CHANNEL_KEY_TOSSPAY", "")
+PORTONE_API_SECRET          = os.getenv("PORTONE_API_SECRET", "")
 
 PLAN_PRICES = {
     "pro":      19000,

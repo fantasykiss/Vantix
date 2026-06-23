@@ -335,7 +335,7 @@ from app.constants import (
     DEFAULT_PLAN, plan_info, plan_allows, plan_project_limit, plan_member_limit,
     PLAN_ORDER,
 )
-from config import RESEND_API_KEY, RESEND_FROM, SUPPORT_EMAIL, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_API_SECRET, PLAN_PRICES
+from config import RESEND_API_KEY, RESEND_FROM, SUPPORT_EMAIL, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_CHANNEL_KEY_INICIS, PORTONE_CHANNEL_KEY_TOSSPAY, PORTONE_API_SECRET, PLAN_PRICES
 import resend as _resend
 _resend.api_key = RESEND_API_KEY
 import httpx as _httpx
@@ -1957,6 +1957,8 @@ async def root(request: Request):
     html = html.replace("__IS_DEMO__", is_demo)
     html = html.replace("__PORTONE_STORE_ID__", PORTONE_STORE_ID)
     html = html.replace("__PORTONE_CHANNEL_KEY__", PORTONE_CHANNEL_KEY)
+    html = html.replace("__PORTONE_CHANNEL_KEY_INICIS__", PORTONE_CHANNEL_KEY_INICIS)
+    html = html.replace("__PORTONE_CHANNEL_KEY_TOSSPAY__", PORTONE_CHANNEL_KEY_TOSSPAY)
     return HTMLResponse(content=html)
 
 @app.get("/api/projects")
@@ -3251,6 +3253,42 @@ async def api_billing_issue(request: Request, uid: int = Depends(_require_login)
     return JSONResponse({"ok": True, "plan": plan, "payment_id": payment_id})
 
 
+@app.post("/api/payment/card-complete")
+async def api_payment_card_complete(request: Request, uid: int = Depends(_require_login)):
+    """KG이니시스 카드 일반결제 검증 후 플랜 업그레이드"""
+    body = await request.json()
+    payment_id = body.get("paymentId", "").strip()
+    plan = body.get("plan", "").strip()
+    if not payment_id or plan not in PLAN_PRICES:
+        raise HTTPException(status_code=400, detail="잘못된 요청")
+
+    resp = requests.get(
+        f"https://api.portone.io/payments/{payment_id}",
+        headers={"Authorization": f"PortOne {PORTONE_API_SECRET}"},
+        timeout=10,
+    )
+    if resp.status_code != 200:
+        raise HTTPException(status_code=400, detail="결제 검증 실패")
+    payment = resp.json()
+    if payment.get("status") != "PAID":
+        raise HTTPException(status_code=400, detail="결제가 완료되지 않았습니다")
+
+    now = time.time()
+    expires_at = now + 31 * 86400
+    with _users_db() as conn:
+        conn.execute("UPDATE vantix_billing_keys SET status='cancelled' WHERE user_id=? AND status='active'", (uid,))
+        row = conn.execute(
+            "INSERT INTO vantix_billing_keys (user_id, billing_key, plan, status, created_at, expires_at) VALUES (?,?,?,'active',?,?) RETURNING id",
+            (uid, "CARD_ONE_TIME", plan, now, expires_at)
+        ).fetchone()
+        bk_id = row["id"] if row else None
+        conn.execute(
+            "INSERT INTO vantix_payment_history (user_id, payment_id, billing_key_id, plan, amount, status, paid_at) VALUES (?,?,?,?,?,?,?)",
+            (uid, payment_id, bk_id, plan, PLAN_PRICES[plan], "paid", now)
+        )
+    return JSONResponse({"ok": True, "plan": plan, "payment_id": payment_id})
+
+
 @app.post("/api/billing/cancel")
 async def api_billing_cancel(request: Request, uid: int = Depends(_require_login)):
     """구독 취소 — 빌링키 비활성화 후 플랜을 free로"""
@@ -3327,6 +3365,7 @@ async def api_billing_status(request: Request, uid: int = Depends(_require_login
         sub.pop("billing_key", None)
     return JSONResponse({
         "plan": plan,
+        "user_id": str(uid),
         "active_subscription": sub,
         "payment_history": [dict(h) for h in history],
     })
@@ -3570,6 +3609,8 @@ async def connect_page(request: Request):
     html = html.replace("__DEMO_AVAILABLE__", demo_flag)
     html = html.replace("__PORTONE_STORE_ID__", PORTONE_STORE_ID)
     html = html.replace("__PORTONE_CHANNEL_KEY__", PORTONE_CHANNEL_KEY)
+    html = html.replace("__PORTONE_CHANNEL_KEY_INICIS__", PORTONE_CHANNEL_KEY_INICIS)
+    html = html.replace("__PORTONE_CHANNEL_KEY_TOSSPAY__", PORTONE_CHANNEL_KEY_TOSSPAY)
     return HTMLResponse(content=html)
 
 @app.post("/api/connect/demo")
