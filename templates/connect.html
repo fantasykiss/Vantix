@@ -1611,7 +1611,7 @@ window.selectConnectPayMethod = function(method) {
   var brand = {
     kakao:   { border: '#E8B600', color: '#3B1E08', bg: '#FFE812' },
     card:    { border: '#17181A', color: '#fff',    bg: '#17181A' },
-    tosspay: { border: '#0064FF', color: '#fff',    bg: '#0064FF' },
+    tosspay: { border: '#0064FF', color: '#0064FF', bg: '#fff' },
   };
   ['kakao','card','tosspay'].forEach(function(m) {
     var b = document.getElementById('cpm-' + m);
@@ -1679,7 +1679,7 @@ window.startConnectPayment = async function() {
         currency: 'KRW',
         payMethod: 'CARD',
         redirectUrl: returnUrl,
-        customer: { fullName: '고객', email: window._currentUserEmail },
+        customer: { fullName: '고객', email: window._currentUserEmail, phoneNumber: '01000000000' },
       });
       if (resp && resp.code) throw new Error(resp.message || '결제 실패');
       if (resp && resp.paymentId) {
