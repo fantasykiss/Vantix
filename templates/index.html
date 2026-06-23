@@ -6743,7 +6743,6 @@ async function startPayment() {
         totalAmount: planPrice,
         currency: 'KRW',
         redirectUrl: returnUrl,
-        windowType: { pc: 'REDIRECT', mobile: 'REDIRECTION' },
         customer: { fullName: '고객' },
       });
       /* 모바일(비리다이렉트) 응답 처리 */

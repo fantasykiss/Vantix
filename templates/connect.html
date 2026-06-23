@@ -1668,7 +1668,6 @@ window.startConnectPayment = async function() {
         totalAmount: planPrice,
         currency: 'KRW',
         redirectUrl: returnUrl,
-        windowType: { pc: 'REDIRECT', mobile: 'REDIRECTION' },
         customer: { fullName: '고객', email: window._currentUserEmail },
       });
       if (resp && resp.code) throw new Error(resp.message || '결제 실패');
