@@ -1,0 +1,37 @@
+services:
+
+  app:
+    build:
+      context: ..
+      dockerfile: onpremise/Dockerfile
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - DATABASE_URL=postgresql://vantix:vantix_pw@db:5432/vantix
+    volumes:
+      - vantix_data:/data
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: vantix
+      POSTGRES_USER: vantix
+      POSTGRES_PASSWORD: vantix_pw
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vantix"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  vantix_data:
+  postgres_data:
