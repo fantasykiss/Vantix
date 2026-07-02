@@ -1569,6 +1569,18 @@ async function vxSend(){
   </div>
 </div>
 
+<!-- ============================================================
+     결제 결과 모달 (성공 / 실패)
+     ============================================================ -->
+<div id="pay-result-modal" style="display:none; position:fixed; inset:0; z-index:10001; background:rgba(23,24,26,.65); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#F5F4EF; width:100%; max-width:380px; padding:44px 36px 36px; text-align:center;">
+    <div id="pay-result-icon" style="width:56px; height:56px; border-radius:50%; margin:0 auto 20px; display:flex; align-items:center; justify-content:center; font-size:26px;"></div>
+    <h2 id="pay-result-title" style="margin:0 0 10px; font-family:'Archivo',sans-serif; font-weight:700; font-size:22px; letter-spacing:-.025em; color:#17181A;"></h2>
+    <p id="pay-result-message" style="margin:0 0 28px; font-size:13px; color:#6A6E73; line-height:1.6;"></p>
+    <button onclick="window.closePaymentResultModal()" style="width:100%; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#fff; background:#17181A; border:none; padding:15px 24px; cursor:pointer;">확인</button>
+  </div>
+</div>
+
 <script type="module">
 var _payPlan = '';
 var _currentPlan = 'free';
@@ -1642,6 +1654,31 @@ window.closePaymentModal = function() {
   document.getElementById('pay-modal').style.display = 'none';
 };
 
+window.showPaymentResult = function(success, planLabel, errorMsg) {
+  var icon = document.getElementById('pay-result-icon');
+  var title = document.getElementById('pay-result-title');
+  var msg = document.getElementById('pay-result-message');
+  if (success) {
+    icon.style.background = 'rgba(45,212,191,.16)';
+    icon.style.color = '#0F766E';
+    icon.textContent = '✓';
+    title.textContent = '결제가 완료되었습니다';
+    msg.textContent = 'Vantix ' + (planLabel || '') + ' 플랜으로 업그레이드되었습니다. 매월 자동 갱신되며 언제든 해지할 수 있습니다.';
+  } else {
+    icon.style.background = 'rgba(220,38,38,.12)';
+    icon.style.color = '#DC2626';
+    icon.textContent = '✕';
+    title.textContent = '결제에 실패했습니다';
+    msg.textContent = errorMsg || '결제 처리 중 문제가 발생했습니다. 다시 시도해주세요.';
+  }
+  document.getElementById('pay-result-modal').style.display = 'flex';
+};
+
+window.closePaymentResultModal = function() {
+  document.getElementById('pay-result-modal').style.display = 'none';
+  if (window._payResultReload) { window._payResultReload = false; window.location.reload(); }
+};
+
 window.handlePlanCta = function(plan) {
   if (!window._isLoggedIn) {
     window._pendingPlan = plan;
@@ -1696,6 +1733,7 @@ window.startConnectPayment = async function() {
         window.closePaymentModal();
         window._currentPlan = plan;
         window.updatePlanButtons(plan);
+        window.showPaymentResult(true, planLabel);
       }
       return;
     }
@@ -1745,6 +1783,7 @@ window.startConnectPayment = async function() {
     window.closePaymentModal();
     window._currentPlan = plan;
     window.updatePlanButtons(plan);
+    window.showPaymentResult(true, planLabel);
 
   } catch(e) {
     errEl.textContent = e.message || '결제에 실패했습니다. 다시 시도해주세요.';
@@ -1767,24 +1806,28 @@ window.startConnectPayment = async function() {
     sessionStorage.removeItem('vx_card_pid');
     sessionStorage.removeItem('vx_billing_plan');
     if (!paymentId || !plan) return;
+    var cardPlanLabel = plan === 'pro' ? 'Pro' : plan === 'business' ? 'Business' : plan;
     fetch('/api/payment/card-complete', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ paymentId: paymentId, plan: plan }),
     }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
     .then(function(res) {
-      alert(res.ok ? '✓ 결제 완료! 플랜이 업그레이드되었습니다.' : '결제 실패: ' + (res.d.detail || '오류'));
-    }).catch(function() { alert('결제 처리 중 오류가 발생했습니다.'); });
+      window._payResultReload = res.ok;
+      window.showPaymentResult(res.ok, cardPlanLabel, res.d.detail);
+    }).catch(function() { window.showPaymentResult(false, cardPlanLabel, '결제 처리 중 오류가 발생했습니다.'); });
   } else if (pgReturn === 'tosspay') {
     var billingKey = params.get('billingKey') || '';
     sessionStorage.removeItem('vx_billing_plan');
     if (!billingKey || !plan) return;
+    var tossPlanLabel = plan === 'pro' ? 'Pro' : plan === 'business' ? 'Business' : plan;
     fetch('/api/billing/issue', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ billingKey: billingKey, plan: plan }),
     }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
     .then(function(res) {
-      alert(res.ok ? '✓ 결제 완료! 플랜이 업그레이드되었습니다.' : '결제 실패: ' + (res.d.detail || '오류'));
-    }).catch(function() { alert('결제 처리 중 오류가 발생했습니다.'); });
+      window._payResultReload = res.ok;
+      window.showPaymentResult(res.ok, tossPlanLabel, res.d.detail);
+    }).catch(function() { window.showPaymentResult(false, tossPlanLabel, '결제 처리 중 오류가 발생했습니다.'); });
   }
 })();
 

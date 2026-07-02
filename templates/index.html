@@ -6845,10 +6845,22 @@ async function startPayment() {
     body: JSON.stringify({ paymentId: paymentId, plan: plan }),
   }).then(function(r) { return r.json().then(function(d) { return { ok: r.ok, d: d }; }); })
   .then(function(res) {
-    if (!res.ok) { alert('결제 실패: ' + (res.d.detail || '오류가 발생했습니다')); return; }
-    alert('✓ 결제 완료! 플랜이 업그레이드되었습니다.');
-    location.reload();
-  }).catch(function() { alert('결제 처리 중 오류가 발생했습니다.'); });
+    document.getElementById('upgrade-modal-overlay').style.display = 'flex';
+    var msg = document.getElementById('upgrade-msg');
+    if (!res.ok) {
+      msg.style.color = 'var(--red)';
+      msg.textContent = res.d.detail || '결제에 실패했습니다. 다시 시도해주세요.';
+      return;
+    }
+    msg.style.color = '#0D9488';
+    msg.textContent = '✓ 결제 완료! 플랜이 업그레이드되었습니다.';
+    setTimeout(function() { location.reload(); }, 1500);
+  }).catch(function() {
+    document.getElementById('upgrade-modal-overlay').style.display = 'flex';
+    var msg = document.getElementById('upgrade-msg');
+    msg.style.color = 'var(--red)';
+    msg.textContent = '결제 처리 중 오류가 발생했습니다.';
+  });
 })();
 
 async function requestRefundFromModal() {
