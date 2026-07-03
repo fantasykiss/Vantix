@@ -9,6 +9,7 @@ import json
 import os
 import re
 import ssl
+import sys
 import threading
 import time
 import urllib.parse
@@ -3894,6 +3895,14 @@ def _warmup_then_preload():
     _preload_all_projects() # ② 완료 후 나머지 순차 워밍
 
 threading.Thread(target=_warmup_then_preload, daemon=True).start()
+
+# 로컬 `python main.py` 실행 시 이 파일은 모듈명 `__main__`으로 실행된다.
+# app/routers/*.py는 전부 `import main as _m`으로 공용 인프라를 참조하는데,
+# sys.modules에 "main"이 없으면 그 import가 이 파일을 처음부터 다시 실행시켜
+# _register_routers()가 재귀적으로 다시 호출되며 순환 임포트로 죽는다
+# (Railway는 `uvicorn main:app`으로 기동해 모듈명이 처음부터 "main"이라 이 문제가 없다).
+# 이미 정의가 끝난 현재 모듈을 "main"으로도 등록해 재실행을 막는다.
+sys.modules.setdefault("main", sys.modules[__name__])
 
 # 라우터 등록 — 모듈 레벨에서 무조건 실행돼야 함.
 # Railway는 `uvicorn main:app`으로 기동하므로 아래 `if __name__ == "__main__":` 블록을
