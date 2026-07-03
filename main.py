@@ -2825,6 +2825,13 @@ async def api_payment_card_complete(request: Request, uid: int = Depends(_requir
     payment = resp.json()
     if payment.get("status") != "PAID":
         raise HTTPException(status_code=400, detail="결제가 완료되지 않았습니다")
+    paid_amount = (payment.get("amount") or {}).get("total")
+    if paid_amount != PLAN_PRICES[plan]:
+        raise HTTPException(status_code=400, detail="결제 금액이 플랜 가격과 일치하지 않습니다")
+
+    with _users_db() as conn:
+        if conn.execute("SELECT 1 FROM vantix_payment_history WHERE payment_id=?", (payment_id,)).fetchone():
+            raise HTTPException(status_code=409, detail="이미 처리된 결제입니다")
 
     now = time.time()
     expires_at = now + 31 * 86400
@@ -2839,6 +2846,7 @@ async def api_payment_card_complete(request: Request, uid: int = Depends(_requir
             "INSERT INTO vantix_payment_history (user_id, payment_id, billing_key_id, plan, amount, status, paid_at) VALUES (?,?,?,?,?,?,?)",
             (uid, payment_id, bk_id, plan, PLAN_PRICES[plan], "paid", now)
         )
+    _set_user_plan(uid, plan)
     return JSONResponse({"ok": True, "plan": plan, "payment_id": payment_id})
 
 
