@@ -25,8 +25,8 @@ router = APIRouter()
 
 @router.get("/connect", response_class=HTMLResponse)
 async def connect_page(request: Request):
-    token = request.cookies.get("vx_session")
-    if _m._get_session(token or "") and _m._get_session_user_id(token or ""):
+    uid = _m._current_user_id(request)
+    if uid and _m._get_redmine_connection(uid):
         return RedirectResponse(url="/")
     template_path = os.path.join(os.path.dirname(_m.__file__), "templates", "connect.html")
     with open(template_path, "r", encoding="utf-8") as f:
