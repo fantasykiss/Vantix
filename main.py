@@ -2815,11 +2815,11 @@ async def api_payment_card_complete(request: Request, uid: int = Depends(_requir
     if not payment_id or plan not in PLAN_PRICES:
         raise HTTPException(status_code=400, detail="잘못된 요청")
 
-    resp = requests.get(
-        f"https://api.portone.io/payments/{payment_id}",
-        headers={"Authorization": f"PortOne {PORTONE_API_SECRET}"},
-        timeout=10,
-    )
+    with _httpx.Client(timeout=10) as client:
+        resp = client.get(
+            f"https://api.portone.io/payments/{payment_id}",
+            headers={"Authorization": f"PortOne {PORTONE_API_SECRET}"},
+        )
     if resp.status_code != 200:
         raise HTTPException(status_code=400, detail="결제 검증 실패")
     payment = resp.json()
