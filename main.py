@@ -1370,10 +1370,14 @@ def _dump_db_gzip() -> bytes:
     """pg_dump로 DB 전체를 덤프해 gzip 압축된 bytes로 반환 (암호화 없음)."""
     import subprocess
     import gzip
+    pg_dump_path = _find_pg_dump()
     result = subprocess.run(
-        [_find_pg_dump(), _DATABASE_URL, "--no-owner", "--no-privileges"],
-        capture_output=True, timeout=300, check=True,
+        [pg_dump_path, _DATABASE_URL, "--no-owner", "--no-privileges"],
+        capture_output=True, timeout=300,
     )
+    if result.returncode != 0:
+        stderr = result.stderr.decode(errors="replace").strip()[:800]
+        raise RuntimeError(f"pg_dump({pg_dump_path}) exit={result.returncode}: {stderr}")
     return gzip.compress(result.stdout)
 
 
