@@ -1,2 +1,8 @@
 [phases.setup]
-nixPkgs = ["postgresql_18"]
+aptPkgs = ["curl", "gnupg", "ca-certificates", "lsb-release"]
+cmds = [
+  'curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor -o /etc/apt/trusted.gpg.d/postgresql.gpg',
+  'echo "deb https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list',
+  'apt-get update',
+  'apt-get install -y postgresql-client-18'
+]
