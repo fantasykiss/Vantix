@@ -5,17 +5,22 @@ REFACTOR_PLAN.md Phase A — main.py에서 기계적으로 이전 (로직 변경
 원본 파일의 "ANALYTICS & FEEDBACK" 블록이 관리자 대시보드 라우트와 물리적으로
 붙어 있고 _build_filters/_require_admin을 공유하므로 하나의 라우터로 묶었다.
 """
+import hmac
 import os
+import secrets
 import time
 from datetime import datetime
 
 from fastapi import APIRouter, Depends, HTTPException, Request
-from fastapi.responses import HTMLResponse, JSONResponse
+from fastapi.responses import HTMLResponse, JSONResponse, Response
 
 from config import ADMIN_PASSWORD, PLAN_PRICES
 import main as _m
 
 router = APIRouter()
+
+ADMIN_SESSION_TTL = 86400 * 7  # 7일 — 로그인 쿠키 max_age와 동일
+_admin_sessions: dict[str, float] = {}  # token → 발급 시각 (쿠키엔 비밀번호 대신 이 토큰만 실림)
 
 
 @router.post("/api/track")
@@ -91,25 +96,37 @@ def _build_filters(period: str, env: str) -> tuple[str, tuple]:
 
 
 def _require_admin(request: Request):
-    auth = request.cookies.get("vx_admin")
-    if not ADMIN_PASSWORD or auth != ADMIN_PASSWORD:
+    token = request.cookies.get("vx_admin")
+    created = _admin_sessions.get(token or "")
+    if not token or created is None:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+    if time.time() - created > ADMIN_SESSION_TTL:
+        _admin_sessions.pop(token, None)
         raise HTTPException(status_code=401, detail="Unauthorized")
     return True
 
 
 @router.post("/api/admin/login")
 async def api_admin_login(request: Request):
+    client_ip = request.headers.get("X-Forwarded-For", request.client.host or "").split(",")[0].strip()
+    _m._check_rate_limit(f"admin_login:{client_ip}")
+
     body = await request.json()
     pw = body.get("password", "")
-    if not ADMIN_PASSWORD or pw != ADMIN_PASSWORD:
+    if not ADMIN_PASSWORD or not hmac.compare_digest(pw, ADMIN_PASSWORD):
         raise HTTPException(status_code=401, detail="비밀번호가 틀렸습니다.")
+    token = secrets.token_urlsafe(32)
+    _admin_sessions[token] = time.time()
     resp = JSONResponse({"ok": True})
-    resp.set_cookie("vx_admin", ADMIN_PASSWORD, httponly=True, samesite="lax", max_age=86400 * 7)
+    resp.set_cookie("vx_admin", token, httponly=True, samesite="lax", max_age=ADMIN_SESSION_TTL, secure=True)
     return resp
 
 
 @router.post("/api/admin/logout")
-async def api_admin_logout():
+async def api_admin_logout(request: Request):
+    token = request.cookies.get("vx_admin")
+    if token:
+        _admin_sessions.pop(token, None)
     resp = JSONResponse({"ok": True})
     resp.delete_cookie("vx_admin")
     return resp
@@ -426,6 +443,44 @@ async def api_admin_saas(_=Depends(_require_admin)):
         "mrr": mrr,
     }
     return {"summary": summary, "members": members, "payments": payments, "teams": teams}
+
+
+@router.get("/api/admin/backups")
+async def api_admin_backups(_=Depends(_require_admin)):
+    """최근 DB 백업 실행 이력 (성공/실패, 크기, 에러)"""
+    if not _m._DATABASE_URL:
+        return {"items": []}
+    try:
+        with _m._db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','YYYY-MM-DD HH24:MI') as ts_str,
+                           status, size_bytes, error
+                    FROM vantix_backup_log ORDER BY ts DESC LIMIT 30
+                """)
+                rows = cur.fetchall()
+        items = [{"ts_str": r[0], "status": r[1], "size_bytes": r[2], "error": r[3]} for r in rows]
+        return {"items": items}
+    except Exception as e:
+        print(f"[admin/backups] 오류: {e}")
+        return {"items": []}
+
+
+@router.get("/api/admin/backup/download")
+async def api_admin_backup_download(_=Depends(_require_admin)):
+    """지금 즉시 DB를 덤프해 gzip 압축된 .sql.gz로 다운로드 (관리자 인증 필요, 암호화 없이 그대로 받아서 바로 열람 가능)"""
+    if not _m._DATABASE_URL:
+        raise HTTPException(status_code=400, detail="DB가 설정되어 있지 않습니다")
+    try:
+        compressed = _m._dump_db_gzip()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"백업 생성 실패: {e}")
+    today = datetime.now().strftime("%Y%m%d")
+    return Response(
+        content=compressed,
+        media_type="application/gzip",
+        headers={"Content-Disposition": f'attachment; filename="vantix_backup_{today}.sql.gz"'},
+    )
 
 
 @router.get("/admin", response_class=HTMLResponse)

@@ -154,6 +154,15 @@ def _init_analytics_tables():
                         PRIMARY KEY (hist_key, date)
                     )
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS vantix_backup_log (
+                        id         SERIAL PRIMARY KEY,
+                        ts         DOUBLE PRECISION NOT NULL,
+                        status     TEXT NOT NULL,
+                        size_bytes INTEGER,
+                        error      TEXT
+                    )
+                """)
             conn.commit()
     except Exception as e:
         print(f"[analytics] DB 테이블 초기화 실패: {e}")
@@ -336,7 +345,7 @@ from app.constants import (
     DEFAULT_PLAN, plan_info, plan_allows, plan_project_limit, plan_member_limit,
     PLAN_ORDER,
 )
-from config import RESEND_API_KEY, RESEND_FROM, SUPPORT_EMAIL, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_CHANNEL_KEY_INICIS, PORTONE_CHANNEL_KEY_TOSSPAY, PORTONE_API_SECRET, PLAN_PRICES
+from config import RESEND_API_KEY, RESEND_FROM, SUPPORT_EMAIL, BACKUP_EMAIL, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_CHANNEL_KEY_INICIS, PORTONE_CHANNEL_KEY_TOSSPAY, PORTONE_API_SECRET, PLAN_PRICES
 import resend as _resend
 _resend.api_key = RESEND_API_KEY
 import httpx as _httpx
@@ -1340,8 +1349,79 @@ def _job_cleanup_callouts():
     except Exception as e:
         print(f"[callout cleanup] {e}")
 
+def _find_pg_dump() -> str:
+    """pg_dump 실행 파일 경로 탐색 — PATH에 없으면 흔한 설치 위치를 순서대로 확인
+    (로컬 Homebrew는 keg-only라 PATH에 안 잡히는 경우가 많고, Railway는 apt로 표준 위치에 설치됨)."""
+    import shutil
+    found = shutil.which("pg_dump")
+    if found:
+        return found
+    for candidate in ("/opt/homebrew/opt/libpq/bin/pg_dump", "/usr/bin/pg_dump", "/usr/lib/postgresql/*/bin/pg_dump"):
+        import glob
+        matches = glob.glob(candidate)
+        if matches:
+            return matches[0]
+        if os.path.isfile(candidate):
+            return candidate
+    return "pg_dump"  # 못 찾으면 그대로 시도 — 에러 메시지로 원인 파악 가능하게
+
+
+def _dump_db_gzip() -> bytes:
+    """pg_dump로 DB 전체를 덤프해 gzip 압축된 bytes로 반환 (암호화 없음)."""
+    import subprocess
+    import gzip
+    result = subprocess.run(
+        [_find_pg_dump(), _DATABASE_URL, "--no-owner", "--no-privileges"],
+        capture_output=True, timeout=300, check=True,
+    )
+    return gzip.compress(result.stdout)
+
+
+def _log_backup(status: str, size_bytes: int | None, error: str | None):
+    if not _DATABASE_URL:
+        return
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO vantix_backup_log (ts, status, size_bytes, error) VALUES (%s,%s,%s,%s)",
+                    (time.time(), status, size_bytes, error)
+                )
+            conn.commit()
+    except Exception as e:
+        print(f"[backup] 로그 기록 실패: {e}")
+
+
+def _job_db_backup():
+    """DB 전체를 pg_dump로 덤프 → gzip 압축 → Fernet 암호화 → 이메일 첨부 발송, 결과는 vantix_backup_log에 기록"""
+    if not _DATABASE_URL or not _fernet or not BACKUP_EMAIL:
+        return
+    try:
+        compressed = _dump_db_gzip()
+        encrypted = _fernet.encrypt(compressed)
+        today = datetime.now().strftime("%Y%m%d")
+        _resend.Emails.send({
+            "from": f"Vantix <{RESEND_FROM}>",
+            "to": [BACKUP_EMAIL],
+            "subject": f"[Vantix] DB 백업 {today}",
+            "html": f"<p>{today} 자동 DB 백업입니다. 첨부파일은 암호화되어 있습니다 (FERNET_KEY로 복호화).</p>",
+            "attachments": [{
+                "filename": f"vantix_backup_{today}.sql.gz.enc",
+                "content": list(encrypted),
+            }],
+        })
+        print(f"[backup] DB 백업 완료 및 발송: {today} ({len(encrypted)} bytes)")
+        _log_backup("ok", len(encrypted), None)
+    except Exception as e:
+        print(f"[backup] 실패: {e}")
+        _log_backup("failed", None, str(e)[:500])
+
+
 _scheduler = BackgroundScheduler(timezone="Asia/Seoul")
 _scheduler.add_job(_job_refresh_cache, "interval", minutes=30, id="cache_refresh")
+_scheduler.add_job(_job_db_backup, CronTrigger(
+    hour=4, minute=0, timezone="Asia/Seoul"
+), id="db_backup")
 _scheduler.add_job(_job_weekly_report, CronTrigger(
     day_of_week=REPORT_DAY, hour=REPORT_HOUR, minute=REPORT_MINUTE
 ), id="weekly_report")

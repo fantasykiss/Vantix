@@ -377,6 +377,10 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
         회원 · 결제
         <span class="nav-badge" id="nav-saas-cnt">-</span>
       </a>
+      <a class="nav-item" onclick="switchView('backup', this)" data-view="backup">
+        <span class="material-symbols-outlined">backup</span>
+        DB 백업
+      </a>
     </nav>
     <div class="sidebar-footer">
       <div class="live-pill">
@@ -724,6 +728,29 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
       </div>
     </div>
 
+    <!-- ════════ DB BACKUP VIEW ════════ -->
+    <div id="view-backup" class="view view-hidden">
+      <div style="margin-bottom:20px;">
+        <div style="font-size:18px;font-weight:800;color:#091426;letter-spacing:-.3px;">DB 백업</div>
+        <div style="font-size:12px;color:#75777d;margin-top:2px;">매일 새벽 4시 자동 백업 (암호화된 첨부파일 이메일 발송)</div>
+      </div>
+
+      <div class="card card-pad">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:600;color:#091426;">백업 이력</div>
+          <button id="backup-dl-btn" onclick="downloadBackup()" style="font-size:12px;font-weight:600;color:#fff;background:#0058be;border:none;border-radius:6px;padding:8px 14px;cursor:pointer;">지금 백업 다운로드</button>
+        </div>
+        <table class="conn-table">
+          <thead>
+            <tr><th>시각</th><th>상태</th><th>크기</th><th>비고</th></tr>
+          </thead>
+          <tbody id="backup-tbody">
+            <tr><td colspan="4" class="empty">로딩 중…</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- ════════ MOBILE FILTER SHEET (7일/전체/프로덕션/로컬) ════════ -->
     <div id="mobile-filter-sheet" style="display:none; position:fixed; bottom:60px; left:0; right:0; background:#fff; border-top:1px solid #e0e3e5; padding:14px 16px; z-index:99; box-shadow:0 -4px 16px rgba(0,0,0,.06);">
       <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#75777d;margin-bottom:8px;">기간</div>
@@ -834,7 +861,7 @@ function doLogout() {
 
 // ── View switching ───────────────────────────────────────────────
 function switchView(name, btn) {
-  var views = ['dashboard', 'analytics', 'events', 'feedback', 'saas'];
+  var views = ['dashboard', 'analytics', 'events', 'feedback', 'saas', 'backup'];
   views.forEach(function(v) {
     var el = document.getElementById('view-' + v);
     if (el) el.classList[v === name ? 'remove' : 'add']('view-hidden');
@@ -848,11 +875,12 @@ function switchView(name, btn) {
   var mobileItem = document.querySelector('.mobile-nav-item[data-view="' + name + '"]');
   if (mobileItem) mobileItem.classList.add('active');
   _currentView = name;
-  var titles = {dashboard: 'Dashboard', analytics: 'Analytics', events: '이벤트', feedback: '피드백', saas: '회원 · 결제'};
+  var titles = {dashboard: 'Dashboard', analytics: 'Analytics', events: '이벤트', feedback: '피드백', saas: '회원 · 결제', backup: 'DB 백업'};
   document.getElementById('topbar-title').textContent = titles[name] || name;
   if (name === 'events') loadEvents();
   if (name === 'feedback') loadFeedback();
   if (name === 'saas') loadSaas();
+  if (name === 'backup') loadBackups();
   closeMobileFilter();
 }
 
@@ -1292,6 +1320,47 @@ function loadConnections() {
         }
       }
     }).catch(console.error);
+}
+
+// ── DB Backup ──────────────────────────────────────────────────────
+function loadBackups() {
+  fetch('/api/admin/backups', {credentials: 'same-origin'})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var items = d.items || [];
+      var tbody = document.getElementById('backup-tbody');
+      if (!items.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">백업 기록이 없습니다</td></tr>'; return; }
+      tbody.innerHTML = items.map(function(b) {
+        var statusHtml = b.status === 'ok'
+          ? '<span style="color:#16a34a;font-weight:600;">성공</span>'
+          : '<span style="color:#c0392b;font-weight:600;">실패</span>';
+        var sizeStr = b.size_bytes ? (b.size_bytes / 1024).toFixed(0) + ' KB' : '-';
+        return '<tr>' +
+          '<td style="font-size:12px;">' + escHtml(b.ts_str) + '</td>' +
+          '<td>' + statusHtml + '</td>' +
+          '<td style="font-size:12px;">' + sizeStr + '</td>' +
+          '<td style="font-size:11px;color:#75777d;">' + escHtml(b.error || '') + '</td>' +
+        '</tr>';
+      }).join('');
+    }).catch(console.error);
+}
+
+function downloadBackup() {
+  var btn = document.getElementById('backup-dl-btn');
+  var origText = btn.textContent;
+  btn.textContent = '생성 중…'; btn.disabled = true;
+  fetch('/api/admin/backup/download', {credentials: 'same-origin'})
+    .then(function(r) { if (!r.ok) throw new Error('백업 생성 실패'); return r.blob(); })
+    .then(function(blob) {
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      var today = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      a.href = url; a.download = 'vantix_backup_' + today + '.sql.gz';
+      document.body.appendChild(a); a.click(); a.remove();
+      URL.revokeObjectURL(url);
+    })
+    .catch(function(e) { alert(e.message || '백업 다운로드 실패'); })
+    .finally(function() { btn.textContent = origText; btn.disabled = false; });
 }
 
 // ── Realtime visitors ─────────────────────────────────────────────
