@@ -126,6 +126,7 @@ def _init_analytics_tables():
                 cur.execute("""
                     ALTER TABLE vantix_feedback ADD COLUMN IF NOT EXISTS ip TEXT
                 """)
+                cur.execute("ALTER TABLE vantix_feedback ADD COLUMN IF NOT EXISTS resolved INTEGER DEFAULT 0")
                 cur.execute("ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS ip TEXT")
                 cur.execute("ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS user_agent TEXT")
                 cur.execute("ALTER TABLE analytics_events ADD COLUMN IF NOT EXISTS env TEXT")

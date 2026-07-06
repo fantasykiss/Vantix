@@ -206,6 +206,9 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
 .fb-meta { font-size: 11px; color: #75777d; }
 .fb-message { font-size: 13px; color: #191c1e; line-height: 1.5; white-space: pre-wrap; word-break: break-word; }
 .fb-sender { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 6px; font-size: 11px; color: #75777d; }
+.fb-item.fb-resolved { opacity: .55; }
+.fb-resolved-badge { font-size: 10px; font-weight: 700; color: #75777d; background: #f2f4f6; padding: 2px 8px; border-radius: 99px; }
+.fb-actions { margin-top: 8px; }
 
 /* ── Connections table ── */
 .conn-table { width: 100%; border-collapse: collapse; font-size: 12px; }
@@ -214,6 +217,10 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
 .conn-table tr:last-child td { border-bottom: none; }
 .conn-table tr:hover td { background: #f7f9fb; }
 .status-dot { display: inline-flex; align-items: center; gap: 5px; }
+.mini-btn { font-size: 10px; padding: 2px 7px; border: 1px solid #e0e3e5; background: #fff; border-radius: 5px; cursor: pointer; color: #45474c; margin-left: 4px; white-space: nowrap; }
+.mini-btn:hover { background: #f2f4f6; }
+.mini-btn.danger { color: #c0392b; border-color: #f2c9c2; }
+.mini-btn.danger:hover { background: #fdf1ef; }
 .status-dot::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #16a34a; flex-shrink: 0; display: inline-block; }
 
 /* ── KPI Popover ── */
@@ -732,24 +739,33 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
 
       <!-- 회원 목록 -->
       <div class="card" style="margin-bottom:16px;">
-        <div class="card-head"><div class="card-title">회원 목록</div><span style="font-size:11px;color:#75777d;" id="saas-members-count"></span></div>
+        <div class="card-head">
+          <div class="card-title">회원 목록</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <input id="saas-members-search" type="text" placeholder="이메일 검색…" oninput="onMembersSearch()"
+              style="font-size:12px;padding:6px 10px;border:1px solid #e0e3e5;border-radius:6px;width:180px;">
+            <span style="font-size:11px;color:#75777d;" id="saas-members-count"></span>
+          </div>
+        </div>
         <div style="overflow-x:auto;">
           <table class="conn-table">
-            <thead><tr><th>이메일</th><th>플랜</th><th>인증</th><th>Redmine</th><th>가입일</th></tr></thead>
+            <thead><tr><th>이메일</th><th>플랜</th><th>인증</th><th>Redmine</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead>
             <tbody id="saas-members-body"></tbody>
           </table>
         </div>
+        <div class="events-pagination" id="saas-members-pagination"></div>
       </div>
 
       <!-- 결제 이력 -->
       <div class="card" style="margin-bottom:16px;">
-        <div class="card-head"><div class="card-title">결제 이력</div></div>
+        <div class="card-head"><div class="card-title">결제 이력</div><span style="font-size:11px;color:#75777d;" id="saas-payments-count"></span></div>
         <div style="overflow-x:auto;">
           <table class="conn-table">
             <thead><tr><th>이메일</th><th>플랜</th><th>금액</th><th>상태</th><th>일시</th></tr></thead>
             <tbody id="saas-payments-body"></tbody>
           </table>
         </div>
+        <div class="events-pagination" id="saas-payments-pagination"></div>
       </div>
 
       <!-- 팀 현황 -->
@@ -932,8 +948,27 @@ function _planChip(plan) {
   var c = plan === 'business' ? '#7C3AED' : (plan === 'pro' ? '#0D9488' : '#75777d');
   return '<span style="font-size:10px;font-weight:700;text-transform:uppercase;color:' + c + ';border:1px solid ' + c + ';padding:1px 6px;border-radius:99px;">' + (plan || 'free') + '</span>';
 }
+var _paymentsPage = 1;
+function goToPaymentsPage(page) {
+  _paymentsPage = page;
+  loadSaas();
+}
+var _membersPage = 1, _membersQuery = '', _membersSearchDebounce = null;
+function goToMembersPage(page) {
+  _membersPage = page;
+  loadSaas();
+}
+function onMembersSearch() {
+  if (_membersSearchDebounce) clearTimeout(_membersSearchDebounce);
+  _membersSearchDebounce = setTimeout(function() {
+    _membersQuery = document.getElementById('saas-members-search').value.trim();
+    _membersPage = 1;
+    loadSaas();
+  }, 250);
+}
 function loadSaas() {
-  fetch('/api/admin/saas', {credentials: 'same-origin'})
+  var q = '/api/admin/saas?payments_page=' + _paymentsPage + '&members_page=' + _membersPage + '&q=' + encodeURIComponent(_membersQuery);
+  fetch(q, {credentials: 'same-origin'})
     .then(function(r) { return r.json(); })
     .then(function(d) {
       var s = d.summary || {};
@@ -949,16 +984,52 @@ function loadSaas() {
 
       // 회원
       var mb = document.getElementById('saas-members-body');
-      document.getElementById('saas-members-count').textContent = (d.members || []).length + '명';
+      var membersTotal = d.members_total || 0;
+      var membersPage  = d.members_page || 1;
+      var membersLimit = 50;
+      var membersPages = Math.max(1, Math.ceil(membersTotal / membersLimit));
+      var mStart = membersTotal ? (membersPage - 1) * membersLimit + 1 : 0;
+      var mEnd   = Math.min(membersPage * membersLimit, membersTotal);
+      document.getElementById('saas-members-count').textContent = membersTotal ? (membersTotal.toLocaleString() + '건 중 ' + mStart + '-' + mEnd) : '0명';
       mb.innerHTML = (d.members || []).map(function(m) {
-        return '<tr><td>' + (m.email || '') + '</td><td>' + _planChip(m.plan) + '</td>'
-          + '<td>' + (m.email_verified ? '✓' : '<span style="color:#c0392b;">미인증</span>') + '</td>'
+        var planSelect = '<select onchange="changeMemberPlan(' + m.id + ', this)" style="font-size:11px;padding:2px 4px;border:1px solid #e0e3e5;border-radius:4px;background:#fff;">' +
+          ['free', 'pro', 'business'].map(function(p) {
+            return '<option value="' + p + '"' + (p === m.plan ? ' selected' : '') + '>' + p + '</option>';
+          }).join('') + '</select>';
+        var verifyCell = m.email_verified
+          ? '✓'
+          : '<span style="color:#c0392b;">미인증</span><button class="mini-btn" onclick="forceVerifyMember(' + m.id + ')">인증처리</button>';
+        var statusBadge = m.is_active
+          ? '<span style="font-size:10px;font-weight:700;color:#0D9488;">활성</span>'
+          : '<span style="font-size:10px;font-weight:700;color:#c0392b;">정지</span>';
+        var manageBtns = (m.is_active
+          ? '<button class="mini-btn danger" onclick="toggleMemberSuspend(' + m.id + ', true)">정지</button>'
+          : '<button class="mini-btn" onclick="toggleMemberSuspend(' + m.id + ', false)">활성화</button>')
+          + '<button class="mini-btn danger" onclick="refundMember(' + m.id + ')">환불</button>';
+        return '<tr><td>' + escHtml(m.email || '') + '</td><td>' + planSelect + '</td>'
+          + '<td>' + verifyCell + '</td>'
           + '<td>' + (m.has_connection ? '✓' : '–') + '</td>'
-          + '<td style="color:#75777d;">' + _fmtDate(m.created_at) + '</td></tr>';
-      }).join('') || '<tr><td colspan="5" style="color:#75777d;text-align:center;padding:20px;">아직 회원이 없습니다</td></tr>';
+          + '<td style="color:#75777d;">' + _fmtDate(m.created_at) + '</td>'
+          + '<td>' + statusBadge + '</td>'
+          + '<td style="white-space:nowrap;">' + manageBtns + '</td></tr>';
+      }).join('') || '<tr><td colspan="7" style="color:#75777d;text-align:center;padding:20px;">' + (_membersQuery ? '검색 결과가 없습니다' : '아직 회원이 없습니다') + '</td></tr>';
+      var mPag = document.getElementById('saas-members-pagination');
+      if (mPag) {
+        mPag.innerHTML =
+          '<button ' + (membersPage <= 1 ? 'disabled' : '') + ' onclick="goToMembersPage(' + (membersPage - 1) + ')">이전</button>' +
+          '<span>' + membersPage + ' / ' + membersPages + '</span>' +
+          '<button ' + (membersPage >= membersPages ? 'disabled' : '') + ' onclick="goToMembersPage(' + (membersPage + 1) + ')">다음</button>';
+      }
 
       // 결제
       var pb = document.getElementById('saas-payments-body');
+      var paymentsTotal = d.payments_total || 0;
+      var paymentsPage  = d.payments_page || 1;
+      var paymentsLimit = 50;
+      var paymentsPages = Math.max(1, Math.ceil(paymentsTotal / paymentsLimit));
+      var pStart = paymentsTotal ? (paymentsPage - 1) * paymentsLimit + 1 : 0;
+      var pEnd   = Math.min(paymentsPage * paymentsLimit, paymentsTotal);
+      document.getElementById('saas-payments-count').textContent = paymentsTotal ? (paymentsTotal.toLocaleString() + '건 중 ' + pStart + '-' + pEnd) : '';
       pb.innerHTML = (d.payments || []).map(function(p) {
         var stColor = p.status === 'paid' ? '#0D9488' : '#c0392b';
         return '<tr><td>' + (p.email || '') + '</td><td>' + _planChip(p.plan) + '</td>'
@@ -966,6 +1037,13 @@ function loadSaas() {
           + '<td><span style="color:' + stColor + ';font-weight:600;">' + (p.status || '') + '</span></td>'
           + '<td style="color:#75777d;">' + _fmtDate(p.paid_at) + '</td></tr>';
       }).join('') || '<tr><td colspan="5" style="color:#75777d;text-align:center;padding:20px;">아직 결제 내역이 없습니다</td></tr>';
+      var pPag = document.getElementById('saas-payments-pagination');
+      if (pPag) {
+        pPag.innerHTML =
+          '<button ' + (paymentsPage <= 1 ? 'disabled' : '') + ' onclick="goToPaymentsPage(' + (paymentsPage - 1) + ')">이전</button>' +
+          '<span>' + paymentsPage + ' / ' + paymentsPages + '</span>' +
+          '<button ' + (paymentsPage >= paymentsPages ? 'disabled' : '') + ' onclick="goToPaymentsPage(' + (paymentsPage + 1) + ')">다음</button>';
+      }
 
       // 팀
       var tb = document.getElementById('saas-teams-body');
@@ -976,6 +1054,44 @@ function loadSaas() {
       }).join('') || '<tr><td colspan="4" style="color:#75777d;text-align:center;padding:20px;">아직 팀이 없습니다</td></tr>';
     })
     .catch(function(e) { console.error('loadSaas:', e); });
+}
+
+// ── 회원 관리 액션 ─────────────────────────────────────────────────
+function postMemberAction(uid, action, body) {
+  return fetch('/api/admin/members/' + uid + '/' + action, {
+    method: 'POST', credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify(body || {}),
+  }).then(function(r) {
+    if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || ('HTTP ' + r.status)); });
+    return r.json();
+  });
+}
+function changeMemberPlan(uid, selectEl) {
+  var plan = selectEl.value;
+  if (!confirm('이 회원의 플랜을 [' + plan + ']로 변경할까요? 결제 없이 즉시 반영됩니다.')) { loadSaas(); return; }
+  postMemberAction(uid, 'plan', {plan: plan})
+    .then(function() { loadSaas(); })
+    .catch(function(e) { alert('플랜 변경 실패: ' + e.message); loadSaas(); });
+}
+function toggleMemberSuspend(uid, suspend) {
+  var msg = suspend ? '이 계정을 정지할까요? 로그인이 즉시 차단됩니다.' : '이 계정을 다시 활성화할까요?';
+  if (!confirm(msg)) return;
+  postMemberAction(uid, suspend ? 'suspend' : 'reactivate')
+    .then(function() { loadSaas(); })
+    .catch(function(e) { alert('처리 실패: ' + e.message); });
+}
+function forceVerifyMember(uid) {
+  if (!confirm('이 계정의 이메일 인증을 강제로 완료 처리할까요?')) return;
+  postMemberAction(uid, 'verify-email')
+    .then(function() { loadSaas(); })
+    .catch(function(e) { alert('처리 실패: ' + e.message); });
+}
+function refundMember(uid) {
+  if (!confirm('이 회원의 최근 결제를 환불하고 플랜을 Free로 되돌릴까요? 이 작업은 되돌릴 수 없습니다.')) return;
+  postMemberAction(uid, 'refund')
+    .then(function() { loadSaas(); })
+    .catch(function(e) { alert('환불 실패: ' + e.message); });
 }
 
 // ── Mobile filter sheet ──────────────────────────────────────────
@@ -1343,14 +1459,15 @@ function loadFeedback() {
     .then(function(d) {
       var items = d.items || [];
       var cnt = items.length;
+      var unresolvedCnt = items.filter(function(i) { return !i.resolved; }).length;
       var sfcnt = document.getElementById('stat-feedback-cnt');
       if (sfcnt) sfcnt.textContent = cnt.toLocaleString();
       var nfcnt = document.getElementById('nav-fb-cnt');
-      if (nfcnt) nfcnt.textContent = cnt;
+      if (nfcnt) nfcnt.textContent = unresolvedCnt;
       var mfcnt = document.getElementById('mobile-fb-cnt');
-      if (mfcnt) { mfcnt.textContent = cnt; mfcnt.style.display = cnt ? 'flex' : 'none'; }
+      if (mfcnt) { mfcnt.textContent = unresolvedCnt; mfcnt.style.display = unresolvedCnt ? 'flex' : 'none'; }
       var fbcnt = document.getElementById('fb-count');
-      if (fbcnt) fbcnt.textContent = '총 ' + cnt + '건';
+      if (fbcnt) fbcnt.textContent = '총 ' + cnt + '건 · 미처리 ' + unresolvedCnt + '건';
       var el = document.getElementById('feedback-list');
       if (!items.length) { el.innerHTML = '<div class="empty">접수된 문의가 없습니다.</div>'; return; }
       el.innerHTML = items.map(function(item) {
@@ -1361,12 +1478,27 @@ function loadFeedback() {
         if (item.name)  parts.push('<span>👤 ' + escHtml(item.name) + '</span>');
         if (item.email) parts.push('<span>✉ ' + escHtml(item.email) + '</span>');
         if (item.ip)    parts.push('<span>🌐 ' + escHtml(item.ip) + (item.is_owner ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;background:#d8e2ff;color:#0058be;border-radius:3px;font-family:monospace;">나</span>' : '') + '</span>');
-        return '<div class="fb-item"><div class="fb-item-head">' + badge + '<span class="fb-meta">' + escHtml(item.ts) + '</span></div>' +
+        var resolveBtn = item.resolved
+          ? '<button class="mini-btn" onclick="toggleFeedbackResolved(' + item.id + ', false)">처리완료 취소</button>'
+          : '<button class="mini-btn" onclick="toggleFeedbackResolved(' + item.id + ', true)">처리완료로 표시</button>';
+        return '<div class="fb-item' + (item.resolved ? ' fb-resolved' : '') + '"><div class="fb-item-head">' + badge
+          + (item.resolved ? '<span class="fb-resolved-badge">처리완료</span>' : '')
+          + '<span class="fb-meta">' + escHtml(item.ts) + '</span></div>' +
           '<div class="fb-message">' + escHtml(item.message) + '</div>' +
           (parts.length ? '<div class="fb-sender">' + parts.join('') + '</div>' : '') +
+          '<div class="fb-actions">' + resolveBtn + '</div>' +
         '</div>';
       }).join('');
     }).catch(console.error);
+}
+function toggleFeedbackResolved(id, resolved) {
+  fetch('/api/admin/feedback/' + id + '/resolve', {
+    method: 'POST', credentials: 'same-origin',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({resolved: resolved}),
+  }).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function() { loadFeedback(); })
+    .catch(function(e) { alert('처리 실패: ' + e.message); });
 }
 
 // ── Connections ───────────────────────────────────────────────────

@@ -14,7 +14,10 @@ from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, Response
 
-from config import ADMIN_PASSWORD, PLAN_PRICES
+import httpx
+
+from app.constants import PLAN_ORDER
+from config import ADMIN_PASSWORD, PLAN_PRICES, PORTONE_API_SECRET
 import main as _m
 
 router = APIRouter()
@@ -304,16 +307,32 @@ async def api_admin_feedback(request: Request, _=Depends(_require_admin)):
         with _m._db_conn() as conn:
             with conn.cursor() as cur:
                 cur.execute("""
-                    SELECT id, type, message, name, email, ip, ts
-                    FROM vantix_feedback ORDER BY ts DESC LIMIT 200
+                    SELECT id, type, message, name, email, ip, ts, COALESCE(resolved, 0)
+                    FROM vantix_feedback ORDER BY resolved ASC, ts DESC LIMIT 200
                 """)
                 rows = cur.fetchall()
         items = [{"id": r[0], "type": r[1], "message": r[2], "name": r[3], "email": r[4],
-                  "ip": r[5], "ts": datetime.fromtimestamp(r[6]).strftime("%Y-%m-%d %H:%M")} for r in rows]
+                  "ip": r[5], "ts": datetime.fromtimestamp(r[6]).strftime("%Y-%m-%d %H:%M"),
+                  "resolved": bool(r[7])} for r in rows]
         return {"items": items}
     except Exception as e:
         print(f"[admin/feedback] 오류: {e}")
         return {"items": []}
+
+
+@router.post("/api/admin/feedback/{feedback_id}/resolve")
+async def api_admin_feedback_resolve(feedback_id: int, request: Request, _=Depends(_require_admin)):
+    """피드백 처리 상태 토글 (읽음/처리완료 표시용)."""
+    body = await request.json()
+    resolved = bool(body.get("resolved", True))
+    with _m._db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE vantix_feedback SET resolved=%s WHERE id=%s",
+                (1 if resolved else 0, feedback_id)
+            )
+        conn.commit()
+    return {"ok": True, "resolved": resolved}
 
 
 @router.get("/api/admin/connections")
@@ -434,27 +453,51 @@ async def api_admin_events(
 
 
 @router.get("/api/admin/saas")
-async def api_admin_saas(_=Depends(_require_admin)):
+async def api_admin_saas(payments_page: int = 1, members_page: int = 1, q: str = "", _=Depends(_require_admin)):
     """회원·결제·팀 운영 대시보드. 민감정보(비번해시·빌링키·API키)는 제외."""
     if not _m._DATABASE_URL:
-        return {"summary": {}, "members": [], "payments": [], "teams": []}
+        return {
+            "summary": {}, "members": [], "members_total": 0, "members_page": 1,
+            "payments": [], "payments_total": 0, "payments_page": 1, "teams": [],
+        }
+    payments_page = max(payments_page, 1)
+    payments_limit = 50
+    payments_offset = (payments_page - 1) * payments_limit
+    members_page = max(members_page, 1)
+    members_limit = 50
+    members_offset = (members_page - 1) * members_limit
+    q = q.strip()
     with _m._users_db() as conn:
-        # 회원 + Redmine 연결여부
-        members = [dict(r) for r in conn.execute("""
-            SELECT u.id, u.email, u.plan, u.created_at, u.email_verified,
+        # 전체 회원 수 (검색과 무관 — KPI 카드용)
+        total_members_all = conn.execute("SELECT COUNT(*) AS c FROM vantix_users WHERE is_active = 1").fetchone()["c"]
+
+        # 회원 + Redmine 연결여부 (이메일 검색 + 페이지네이션)
+        # is_active로 필터링하지 않음 — 정지된 회원도 목록에 보여야 관리자가 다시 활성화할 수 있음.
+        # 단, 회원탈퇴로 익명화된 계정(@deleted.local)은 되살릴 수 없으므로 목록에서 제외.
+        member_filter = "WHERE u.email NOT LIKE ?"
+        member_params: tuple = ("%@deleted.local",)
+        if q:
+            member_filter += " AND u.email ILIKE ?"
+            member_params += (f"%{q}%",)
+        members_total = conn.execute(
+            f"SELECT COUNT(*) AS c FROM vantix_users u {member_filter}", member_params
+        ).fetchone()["c"]
+        members = [dict(r) for r in conn.execute(f"""
+            SELECT u.id, u.email, u.plan, u.created_at, u.email_verified, u.is_active,
                    (rc.id IS NOT NULL) AS has_connection
             FROM vantix_users u
             LEFT JOIN vantix_redmine_connections rc ON rc.user_id = u.id
-            WHERE u.is_active = 1
-            ORDER BY u.created_at DESC
-        """).fetchall()]
-        # 결제 이력
+            {member_filter}
+            ORDER BY u.created_at DESC LIMIT ? OFFSET ?
+        """, member_params + (members_limit, members_offset)).fetchall()]
+        # 결제 이력 (페이지네이션)
+        payments_total = conn.execute("SELECT COUNT(*) AS c FROM vantix_payment_history").fetchone()["c"]
         payments = [dict(r) for r in conn.execute("""
             SELECT ph.payment_id, ph.plan, ph.amount, ph.status, ph.paid_at, u.email
             FROM vantix_payment_history ph
             JOIN vantix_users u ON u.id = ph.user_id
-            ORDER BY ph.paid_at DESC LIMIT 200
-        """).fetchall()]
+            ORDER BY ph.paid_at DESC LIMIT ? OFFSET ?
+        """, (payments_limit, payments_offset)).fetchall()]
         # 활성 구독 (플랜별)
         active_subs = {r["plan"]: r["c"] for r in conn.execute(
             "SELECT plan, COUNT(*) c FROM vantix_billing_keys WHERE status='active' GROUP BY plan"
@@ -476,12 +519,83 @@ async def api_admin_saas(_=Depends(_require_admin)):
     # MRR = 활성 구독 × 플랜 가격
     mrr = sum(active_subs.get(p, 0) * price for p, price in PLAN_PRICES.items())
     summary = {
-        "total_members": len(members),
+        "total_members": total_members_all,
         "plan_dist": plan_dist,
         "active_subscriptions": sum(active_subs.values()),
         "mrr": mrr,
     }
-    return {"summary": summary, "members": members, "payments": payments, "teams": teams}
+    return {
+        "summary": summary, "teams": teams,
+        "members": members, "members_total": members_total, "members_page": members_page,
+        "payments": payments, "payments_total": payments_total, "payments_page": payments_page,
+    }
+
+
+@router.post("/api/admin/members/{uid}/plan")
+async def api_admin_member_plan(uid: int, request: Request, _=Depends(_require_admin)):
+    """CS 대응용 — 관리자가 특정 회원의 플랜을 직접 변경 (결제 없이)."""
+    body = await request.json()
+    plan = (body.get("plan") or "").strip().lower()
+    if plan not in PLAN_ORDER:
+        raise HTTPException(status_code=400, detail="유효하지 않은 플랜입니다")
+    _m._set_user_plan(uid, plan)
+    return {"ok": True, "plan": plan}
+
+
+@router.post("/api/admin/members/{uid}/suspend")
+async def api_admin_member_suspend(uid: int, _=Depends(_require_admin)):
+    """계정 정지 — is_active=0. 삭제와 달리 이메일/비밀번호는 보존되어 되돌릴 수 있음."""
+    with _m._users_db() as conn:
+        conn.execute("UPDATE vantix_users SET is_active=0 WHERE id=?", (uid,))
+    return {"ok": True}
+
+
+@router.post("/api/admin/members/{uid}/reactivate")
+async def api_admin_member_reactivate(uid: int, _=Depends(_require_admin)):
+    with _m._users_db() as conn:
+        conn.execute("UPDATE vantix_users SET is_active=1 WHERE id=?", (uid,))
+    return {"ok": True}
+
+
+@router.post("/api/admin/members/{uid}/verify-email")
+async def api_admin_member_verify_email(uid: int, _=Depends(_require_admin)):
+    """CS 대응용 — 인증메일이 스팸함에 갇히는 등 문제로 인증을 못 받는 경우 강제 인증 처리."""
+    with _m._users_db() as conn:
+        conn.execute("UPDATE vantix_users SET email_verified=1, email_verify_token=NULL WHERE id=?", (uid,))
+    return {"ok": True}
+
+
+@router.post("/api/admin/members/{uid}/refund")
+async def api_admin_member_refund(uid: int, _=Depends(_require_admin)):
+    """해당 회원의 가장 최근 결제 건을 환불 + 구독취소 + 플랜을 free로.
+    /api/billing/refund(본인 셀프서비스)와 동일한 포트원 취소 로직을 관리자가 대상 유저를 지정해 실행."""
+    with _m._users_db() as conn:
+        ph = conn.execute(
+            "SELECT * FROM vantix_payment_history WHERE user_id=? AND status='paid' ORDER BY paid_at DESC LIMIT 1",
+            (uid,)
+        ).fetchone()
+    if not ph:
+        raise HTTPException(status_code=404, detail="환불할 결제 내역이 없습니다")
+
+    payment_id = ph["payment_id"]
+    with httpx.Client(timeout=15) as client:
+        resp = client.post(
+            f"https://api.portone.io/payments/{payment_id}/cancel",
+            headers={"Authorization": f"PortOne {PORTONE_API_SECRET}"},
+            json={"reason": "관리자 처리"},
+        )
+    if resp.status_code not in (200, 201):
+        try:
+            msg = resp.json().get("message", "환불 처리에 실패했습니다")
+        except Exception:
+            msg = "환불 처리에 실패했습니다"
+        raise HTTPException(status_code=502, detail=f"환불 실패: {msg}")
+
+    with _m._users_db() as conn:
+        conn.execute("UPDATE vantix_payment_history SET status='refunded' WHERE payment_id=?", (payment_id,))
+        conn.execute("UPDATE vantix_billing_keys SET status='cancelled' WHERE user_id=? AND status='active'", (uid,))
+    _m._set_user_plan(uid, "free")
+    return {"ok": True, "plan": "free", "refunded_payment_id": payment_id}
 
 
 @router.get("/api/admin/backups")
