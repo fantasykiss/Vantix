@@ -978,7 +978,7 @@ def _parse_ua(ua: str) -> dict:
         os_name = "기타"
     return {"device": device, "browser": browser, "os": os_name}
 
-_visitors = {}  # ip → last_seen
+_visitors = {}  # key(sid 또는 ip) → {"last_seen": datetime, "ip": str}
 VISITOR_TTL = 300  # 5분
 
 CACHE_TTL_SECONDS = 900       # 15분 캐시 유효시간 (stale-while-revalidate 적용으로 늘림)
@@ -989,7 +989,7 @@ _bg_refresh_lock: set = set() # 중복 백그라운드 갱신 방지
 
 def get_active_visitors():
     now = datetime.now()
-    return {ip: t for ip, t in _visitors.items() if (now - t).total_seconds() < VISITOR_TTL}
+    return {k: v for k, v in _visitors.items() if (now - v["last_seen"]).total_seconds() < VISITOR_TTL}
 
 
 def cache_key(project_id, updated_after, redmine_url=""):
@@ -2456,7 +2456,8 @@ async def api_risk_history(project_id: str = "", weeks: int = 12, s: dict = Depe
 @app.get("/api/visitors")
 async def visitors(request: Request, sid: str = ""):
     key = sid.strip() if sid.strip() else request.client.host
-    _visitors[key] = datetime.now()
+    ip = request.headers.get("X-Forwarded-For", request.client.host or "").split(",")[0].strip()
+    _visitors[key] = {"last_seen": datetime.now(), "ip": ip}
     active = get_active_visitors()
     return {"count": len(active)}
 

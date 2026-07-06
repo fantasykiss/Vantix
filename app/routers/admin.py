@@ -335,11 +335,47 @@ async def api_admin_connections(_=Depends(_require_admin)):
     return {"connections": connections, "total": len(connections)}
 
 
+@router.get("/api/admin/live-visitors")
+async def api_admin_live_visitors(_=Depends(_require_admin)):
+    """사이드바 '실시간 접속' 배지 상세 — 활성 세션별 IP + 마지막 활동 시각.
+    /api/visitors는 admin.html에서만 폴링하므로 이 카운트는 관리자 패널 접속자 기준."""
+    active = _m.get_active_visitors()
+    now = datetime.now()
+    items = []
+    for key, v in active.items():
+        age_sec = int((now - v["last_seen"]).total_seconds())
+        ip = v.get("ip", "")
+        items.append({"session": key[:12], "ip": ip, "is_owner": ip in _m.OWNER_IPS, "age_sec": age_sec})
+    items.sort(key=lambda x: x["age_sec"])
+    return {"items": items, "total": len(items)}
+
+
+# 프론트 컬럼 키 → 실제 DB 컬럼. 화이트리스트에 없는 값은 f-string ORDER BY에 절대 넣지 않는다 (SQL 인젝션 방지).
+# 디바이스/브라우저는 user_agent 파싱 결과라 DB 컬럼이 아니므로 정렬 대상에서 제외.
+_EVENT_SORT_COLUMNS = {
+    "session": "session_id",
+    "event": "event_type",
+    "page": "page",
+    "element": "element",
+    "ip": "ip",
+    "env": "env",
+    "ts": "ts",
+}
+
+
 @router.get("/api/admin/events")
-async def api_admin_events(request: Request, env: str = "", period: str = "7d", limit: int = 200, _=Depends(_require_admin)):
+async def api_admin_events(
+    request: Request, env: str = "", period: str = "7d",
+    page: int = 1, limit: int = 50, sort: str = "ts", order: str = "desc",
+    _=Depends(_require_admin),
+):
     if not _m._DATABASE_URL:
-        return {"items": []}
+        return {"items": [], "total": 0, "page": 1}
     tf, tp = _build_filters(period, env)
+    sort_col = _EVENT_SORT_COLUMNS.get(sort, "ts")
+    sort_dir = "ASC" if order == "asc" else "DESC"
+    page = max(page, 1)
+    offset = (page - 1) * limit
     now = time.time()
     period_start = (
         now - 86400 * 365 * 10 if period == "all" else
@@ -350,12 +386,15 @@ async def api_admin_events(request: Request, env: str = "", period: str = "7d", 
     try:
         with _m._db_conn() as conn:
             with conn.cursor() as cur:
+                cur.execute(f"SELECT COUNT(*) FROM analytics_events WHERE 1=1 {tf}", tp)
+                total = cur.fetchone()[0]
+
                 cur.execute(f"""
                     SELECT session_id, event_type, page, element, ip, user_agent, env,
                            TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','MM/DD HH24:MI:SS') as ts_str
                     FROM analytics_events WHERE 1=1 {tf}
-                    ORDER BY ts DESC LIMIT %s
-                """, tp + (limit,))
+                    ORDER BY {sort_col} {sort_dir} LIMIT %s OFFSET %s
+                """, tp + (limit, offset))
                 rows = cur.fetchall()
 
                 # IP별 최초 등장 시각
@@ -388,10 +427,10 @@ async def api_admin_events(request: Request, env: str = "", period: str = "7d", 
                 "is_new": is_new,
                 "is_owner": ip in _m.OWNER_IPS,
             })
-        return {"items": items}
+        return {"items": items, "total": total, "page": page, "limit": limit}
     except Exception as e:
         print(f"[admin/events] 오류: {e}")
-        return {"items": []}
+        return {"items": [], "total": 0, "page": 1}
 
 
 @router.get("/api/admin/saas")

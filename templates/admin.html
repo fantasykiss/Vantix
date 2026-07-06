@@ -94,7 +94,25 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
 .nav-badge { margin-left: auto; background: #e0e3e5; color: #45474c; font-size: 10px; font-weight: 700; padding: 1px 7px; border-radius: 99px; }
 .nav-item.active .nav-badge { background: #0058be; color: #fff; }
 .sidebar-footer { padding: 14px 10px; border-top: 1px solid #f0f2f4; }
-.live-pill { display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f2f4f6; border-radius: 8px; margin-bottom: 8px; }
+.live-pill { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 12px; background: #f2f4f6; border-radius: 8px; margin-bottom: 8px; cursor: default; }
+.live-popover {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  left: 0;
+  min-width: 240px;
+  max-width: 280px;
+  background: #fff;
+  border: 1px solid #e0e3e5;
+  border-radius: 10px;
+  box-shadow: 0 8px 28px rgba(9,20,38,.10);
+  padding: 12px 14px;
+  z-index: 300;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(6px);
+  transition: opacity .15s ease, transform .15s ease;
+}
+.live-pill:hover .live-popover { opacity: 1; pointer-events: auto; transform: translateY(0); }
 .live-dot { width: 8px; height: 8px; border-radius: 50%; background: #16a34a; animation: pulse 2s infinite; flex-shrink: 0; }
 @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.6;transform:scale(1.15)} }
 .live-text { font-size: 12px; color: #45474c; }
@@ -165,6 +183,13 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
 .events-table td { padding: 9px 16px; border-bottom: 1px solid #f0f2f4; color: #45474c; vertical-align: middle; }
 .events-table tr:last-child td { border-bottom: none; }
 .events-table tr:hover td { background: #f7f9fb; }
+.events-table th.sortable { cursor: pointer; user-select: none; }
+.events-table th.sortable:hover { color: #45474c; }
+.events-table th .sort-arrow { display: inline-block; margin-left: 4px; font-size: 9px; color: #0058be; }
+.events-pagination { display: flex; align-items: center; justify-content: center; gap: 12px; padding: 14px 16px; border-top: 1px solid #f0f2f4; }
+.events-pagination button { border: 1px solid #e0e3e5; background: #fff; border-radius: 6px; padding: 5px 12px; font-size: 11px; color: #45474c; cursor: pointer; }
+.events-pagination button:disabled { color: #c5c6cd; cursor: not-allowed; }
+.events-pagination span { font-size: 11px; color: #75777d; }
 .evt-tag { display: inline-flex; padding: 1px 7px; border-radius: 99px; font-size: 10px; font-weight: 700; }
 .evt-tag.click { background: #d8e2ff; color: #0058be; }
 .evt-tag.dwell { background: #dcfce7; color: #16a34a; }
@@ -386,6 +411,10 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
       <div class="live-pill">
         <div class="live-dot"></div>
         <span class="live-text">실시간 접속 <strong id="live-count">-</strong>명</span>
+        <div class="live-popover">
+          <div class="kpi-popover-title">실시간 접속 세션</div>
+          <div id="live-popover-list"><div style="font-size:12px;color:#75777d;">로딩 중…</div></div>
+        </div>
       </div>
       <button class="logout-btn" onclick="doLogout()">
         <span class="material-symbols-outlined" style="font-size:18px;">logout</span>
@@ -617,7 +646,7 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
     <div id="view-events" class="view view-hidden">
       <div style="margin-bottom:20px;">
         <div style="font-size:18px;font-weight:800;color:#091426;letter-spacing:-.3px;">이벤트 로그</div>
-        <div style="font-size:12px;color:#75777d;margin-top:2px;">최근 200건 / 실시간 사용자 행동 추적</div>
+        <div style="font-size:12px;color:#75777d;margin-top:2px;">실시간 사용자 행동 추적</div>
       </div>
       <div class="card">
         <div class="card-head">
@@ -627,9 +656,15 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
         <div style="overflow-x:auto;">
           <table class="events-table">
             <thead>
-              <tr>
-                <th>세션</th><th>유형</th><th>페이지</th><th>요소</th>
-                <th>IP</th><th>디바이스 / 브라우저</th><th>환경</th><th>시각</th>
+              <tr id="events-thead-row">
+                <th class="sortable" data-sort-key="session" onclick="sortEvents('session')">세션<span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort-key="event" onclick="sortEvents('event')">유형<span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort-key="page" onclick="sortEvents('page')">페이지<span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort-key="element" onclick="sortEvents('element')">요소<span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort-key="ip" onclick="sortEvents('ip')">IP<span class="sort-arrow"></span></th>
+                <th>디바이스 / 브라우저</th>
+                <th class="sortable" data-sort-key="env" onclick="sortEvents('env')">환경<span class="sort-arrow"></span></th>
+                <th class="sortable" data-sort-key="ts" onclick="sortEvents('ts')">시각<span class="sort-arrow"></span></th>
               </tr>
             </thead>
             <tbody id="events-table-body">
@@ -637,6 +672,7 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
             </tbody>
           </table>
         </div>
+        <div class="events-pagination" id="events-pagination"></div>
       </div>
     </div>
 
@@ -805,6 +841,7 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
 <!-- ══════════════════════ JS ══════════════════════ -->
 <script>
 var _currentEnv = '', _currentPeriod = '7d', _currentView = 'dashboard';
+var _eventsPage = 1, _eventsSort = 'ts', _eventsOrder = 'desc';
 var _visitorTimer = null, _loadDebounce = null, _ownerIps = [];
 
 // ── Init ────────────────────────────────────────────────────────
@@ -970,7 +1007,10 @@ function setPeriod(period, btn) {
 }
 function _debouncedLoad() {
   if (_loadDebounce) clearTimeout(_loadDebounce);
-  _loadDebounce = setTimeout(loadAnalytics, 200);
+  _loadDebounce = setTimeout(function() {
+    loadAnalytics();
+    if (_currentView === 'events') { _eventsPage = 1; loadEvents(); }
+  }, 200);
 }
 function _qs() {
   var q = '?period=' + _currentPeriod;
@@ -1220,34 +1260,80 @@ function renderSimpleBars(cid, items, lk, vk, fmt) {
 
 // ── Events Log ───────────────────────────────────────────────────
 function loadEvents() {
-  fetch('/api/admin/events' + _qs(), {credentials: 'same-origin'})
+  var q = _qs() + '&page=' + _eventsPage + '&sort=' + _eventsSort + '&order=' + _eventsOrder;
+  fetch('/api/admin/events' + q, {credentials: 'same-origin'})
     .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(renderEvents).catch(console.error);
 }
 
+function sortEvents(key) {
+  if (_eventsSort === key) {
+    _eventsOrder = _eventsOrder === 'asc' ? 'desc' : 'asc';
+  } else {
+    _eventsSort = key;
+    _eventsOrder = 'desc';
+  }
+  _eventsPage = 1;
+  updateSortArrows();
+  loadEvents();
+}
+
+function updateSortArrows() {
+  document.querySelectorAll('#events-thead-row th[data-sort-key]').forEach(function(th) {
+    var arrow = th.querySelector('.sort-arrow');
+    if (!arrow) return;
+    arrow.textContent = th.getAttribute('data-sort-key') === _eventsSort ? (_eventsOrder === 'asc' ? '▲' : '▼') : '';
+  });
+}
+
+function goToEventsPage(page) {
+  _eventsPage = page;
+  loadEvents();
+}
+
 function renderEvents(d) {
   var items = d.items || [];
+  var total = d.total || 0;
+  var limit = d.limit || 50;
+  var page  = d.page || 1;
+  var totalPages = Math.max(1, Math.ceil(total / limit));
+  var start = total ? (page - 1) * limit + 1 : 0;
+  var end   = Math.min(page * limit, total);
+
   var cnt = document.getElementById('events-count');
-  if (cnt) cnt.textContent = items.length + '건 (최근 200)';
+  if (cnt) cnt.textContent = total.toLocaleString() + '건 중 ' + start + '-' + end;
   var ncnt = document.getElementById('nav-events-cnt');
-  if (ncnt) ncnt.textContent = items.length;
+  if (ncnt) ncnt.textContent = total;
   var mcnt = document.getElementById('mobile-events-cnt');
-  if (mcnt) { mcnt.textContent = items.length; mcnt.style.display = items.length ? 'flex' : 'none'; }
+  if (mcnt) { mcnt.textContent = total; mcnt.style.display = total ? 'flex' : 'none'; }
+
   var tbody = document.getElementById('events-table-body');
-  if (!items.length) { tbody.innerHTML = '<tr><td colspan="8" class="empty">이벤트 없음</td></tr>'; return; }
-  tbody.innerHTML = items.map(function(item) {
-    var tagCls = item.event === 'click' ? 'click' : item.event === 'exit' ? 'exit' : 'dwell';
-    return '<tr>' +
-      '<td><code style="font-size:10px;color:#75777d;">' + escHtml(item.session) + '…</code></td>' +
-      '<td><span class="evt-tag ' + tagCls + '">' + escHtml(item.event) + '</span>' + (item.is_new ? ' <span class="new-badge">NEW</span>' : '') + '</td>' +
-      '<td>' + escHtml(item.page) + '</td>' +
-      '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(item.element) + '">' + escHtml(item.element) + '</td>' +
-      '<td style="font-size:11px;">' + escHtml(item.ip) + (item.is_owner ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;background:#d8e2ff;color:#0058be;border-radius:3px;font-family:monospace;">나</span>' : '') + '</td>' +
-      '<td>' + escHtml(item.device) + ' / ' + escHtml(item.browser) + '</td>' +
-      '<td><span style="font-size:10px;padding:2px 6px;background:#f2f4f6;color:#75777d;border-radius:4px;">' + escHtml(item.env) + '</span></td>' +
-      '<td style="color:#75777d;font-size:11px;white-space:nowrap;">' + escHtml(item.ts) + '</td>' +
-    '</tr>';
-  }).join('');
+  if (!items.length) {
+    tbody.innerHTML = '<tr><td colspan="8" class="empty">이벤트 없음</td></tr>';
+  } else {
+    tbody.innerHTML = items.map(function(item) {
+      var tagCls = item.event === 'click' ? 'click' : item.event === 'exit' ? 'exit' : 'dwell';
+      return '<tr>' +
+        '<td><code style="font-size:10px;color:#75777d;">' + escHtml(item.session) + '…</code></td>' +
+        '<td><span class="evt-tag ' + tagCls + '">' + escHtml(item.event) + '</span>' + (item.is_new ? ' <span class="new-badge">NEW</span>' : '') + '</td>' +
+        '<td>' + escHtml(item.page) + '</td>' +
+        '<td style="max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;" title="' + escHtml(item.element) + '">' + escHtml(item.element) + '</td>' +
+        '<td style="font-size:11px;">' + escHtml(item.ip) + (item.is_owner ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;background:#d8e2ff;color:#0058be;border-radius:3px;font-family:monospace;">나</span>' : '') + '</td>' +
+        '<td>' + escHtml(item.device) + ' / ' + escHtml(item.browser) + '</td>' +
+        '<td><span style="font-size:10px;padding:2px 6px;background:#f2f4f6;color:#75777d;border-radius:4px;">' + escHtml(item.env) + '</span></td>' +
+        '<td style="color:#75777d;font-size:11px;white-space:nowrap;">' + escHtml(item.ts) + '</td>' +
+      '</tr>';
+    }).join('');
+  }
+
+  var pag = document.getElementById('events-pagination');
+  if (pag) {
+    pag.innerHTML =
+      '<button ' + (page <= 1 ? 'disabled' : '') + ' onclick="goToEventsPage(' + (page - 1) + ')">이전</button>' +
+      '<span>' + page + ' / ' + totalPages + '</span>' +
+      '<button ' + (page >= totalPages ? 'disabled' : '') + ' onclick="goToEventsPage(' + (page + 1) + ')">다음</button>';
+  }
+  updateSortArrows();
 }
 
 // ── Feedback ─────────────────────────────────────────────────────
@@ -1385,9 +1471,28 @@ function pollVisitors() {
       if (el3) el3.textContent = cnt;
     }).catch(function() {});
 }
+function loadLiveVisitors() {
+  fetch('/api/admin/live-visitors', {credentials: 'same-origin'})
+    .then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(function(d) {
+      var items = d.items || [];
+      var el = document.getElementById('live-popover-list');
+      if (!el) return;
+      if (!items.length) { el.innerHTML = '<div style="font-size:12px;color:#75777d;">접속 중인 세션 없음</div>'; return; }
+      el.innerHTML = items.map(function(item) {
+        var badge = item.is_owner ? ' <span style="font-size:9px;font-weight:700;padding:1px 5px;background:#d8e2ff;color:#0058be;border-radius:3px;font-family:monospace;">나</span>' : '';
+        var ageStr = item.age_sec < 60 ? '방금' : Math.floor(item.age_sec / 60) + '분 전';
+        return '<div class="kpi-popover-row">' +
+          '<span class="kpi-popover-label kpi-popover-dot">' + escHtml(item.ip || '알 수 없음') + badge + '</span>' +
+          '<span class="kpi-popover-val" style="font-weight:400;color:#75777d;">' + ageStr + '</span>' +
+        '</div>';
+      }).join('');
+    }).catch(function() {});
+}
 function startVisitorPoll() {
   pollVisitors();
-  _visitorTimer = setInterval(pollVisitors, 30000);
+  loadLiveVisitors();
+  _visitorTimer = setInterval(function() { pollVisitors(); loadLiveVisitors(); }, 30000);
 }
 function stopVisitorPoll() {
   if (_visitorTimer) { clearInterval(_visitorTimer); _visitorTimer = null; }
