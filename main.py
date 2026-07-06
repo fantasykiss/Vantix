@@ -17,7 +17,7 @@ import urllib.request
 from collections import defaultdict
 from datetime import date, datetime, timedelta
 from fastapi import FastAPI, HTTPException, Request, Depends
-from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse, PlainTextResponse
 from fastapi.staticfiles import StaticFiles
 from passlib.context import CryptContext
 import uvicorn
@@ -162,6 +162,25 @@ def _init_analytics_tables():
                         status     TEXT NOT NULL,
                         size_bytes INTEGER,
                         error      TEXT
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS vantix_job_log (
+                        id      SERIAL PRIMARY KEY,
+                        job_id  TEXT NOT NULL,
+                        ts      DOUBLE PRECISION NOT NULL,
+                        status  TEXT NOT NULL,
+                        detail  TEXT
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS vantix_error_log (
+                        id      SERIAL PRIMARY KEY,
+                        ts      DOUBLE PRECISION NOT NULL,
+                        method  TEXT,
+                        path    TEXT,
+                        error   TEXT,
+                        traceback TEXT
                     )
                 """)
             conn.commit()
@@ -852,6 +871,33 @@ SSL_CONTEXT.check_hostname = False
 SSL_CONTEXT.verify_mode = ssl.CERT_NONE
 
 app = FastAPI()
+
+
+def _log_error(method: str, path: str, error: str, tb: str):
+    """미처리 예외(500) 전용 로그 — HTTPException(4xx)은 의도된 응답이므로 여기 안 남는다."""
+    if not _DATABASE_URL:
+        return
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO vantix_error_log (ts, method, path, error, traceback) VALUES (%s,%s,%s,%s,%s)",
+                    (time.time(), method, path, (error or "")[:500], (tb or "")[:4000])
+                )
+            conn.commit()
+    except Exception as e:
+        print(f"[error log] 기록 실패: {e}")
+
+
+@app.exception_handler(Exception)
+async def _unhandled_exception_handler(request: Request, exc: Exception):
+    import traceback
+    tb = traceback.format_exc()
+    print(f"[unhandled] {request.method} {request.url.path}: {exc}")
+    _log_error(request.method, request.url.path, str(exc), tb)
+    return PlainTextResponse("Internal Server Error", status_code=500)
+
+
 if os.path.isdir("etc"):
     app.mount("/devlog", StaticFiles(directory="etc"), name="devlog")
 if os.path.isdir("static"):
@@ -1422,24 +1468,50 @@ def _job_db_backup():
         _log_backup("failed", None, str(e)[:500])
 
 
+def _log_job(job_id: str, status: str, detail: str = ""):
+    """스케줄 작업 성공/실패 이력 — DB백업은 자체 vantix_backup_log가 있으므로 나머지 작업 전용."""
+    if not _DATABASE_URL:
+        return
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO vantix_job_log (job_id, ts, status, detail) VALUES (%s,%s,%s,%s)",
+                    (job_id, time.time(), status, (detail or "")[:500])
+                )
+            conn.commit()
+    except Exception as e:
+        print(f"[job log] 기록 실패: {e}")
+
+
+def _run_job(job_id: str, fn):
+    """스케줄러 잡을 감싸서 성공/실패를 vantix_job_log에 기록 (잡 자체 로직은 그대로)."""
+    try:
+        fn()
+        _log_job(job_id, "ok")
+    except Exception as e:
+        print(f"[{job_id}] 실패: {e}")
+        _log_job(job_id, "failed", str(e))
+
+
 _scheduler = BackgroundScheduler(timezone="Asia/Seoul")
-_scheduler.add_job(_job_refresh_cache, "interval", minutes=30, id="cache_refresh")
+_scheduler.add_job(lambda: _run_job("cache_refresh", _job_refresh_cache), "interval", minutes=30, id="cache_refresh")
 _scheduler.add_job(_job_db_backup, CronTrigger(
     hour=4, minute=0, timezone="Asia/Seoul"
 ), id="db_backup")
-_scheduler.add_job(_job_weekly_report, CronTrigger(
+_scheduler.add_job(lambda: _run_job("weekly_report", _job_weekly_report), CronTrigger(
     day_of_week=REPORT_DAY, hour=REPORT_HOUR, minute=REPORT_MINUTE
 ), id="weekly_report")
-_scheduler.add_job(save_risk_snapshot, CronTrigger(
+_scheduler.add_job(lambda: _run_job("risk_snapshot", save_risk_snapshot), CronTrigger(
     day_of_week='mon', hour=9, minute=0, timezone="Asia/Seoul"
 ), id="risk_snapshot")
-_scheduler.add_job(_job_send_monitor_alerts, CronTrigger(
+_scheduler.add_job(lambda: _run_job("monitor_alerts", _job_send_monitor_alerts), CronTrigger(
     hour=9, minute=5, timezone="Asia/Seoul"
 ), id="monitor_alerts")
-_scheduler.add_job(_job_cleanup_callouts, CronTrigger(
+_scheduler.add_job(lambda: _run_job("callout_cleanup", _job_cleanup_callouts), CronTrigger(
     hour=3, minute=0, timezone="Asia/Seoul"
 ), id="callout_cleanup")
-_scheduler.add_job(_job_billing_renewal, CronTrigger(
+_scheduler.add_job(lambda: _run_job("billing_renewal", _job_billing_renewal), CronTrigger(
     hour=2, minute=0, timezone="Asia/Seoul"
 ), id="billing_renewal")
 save_risk_snapshot()  # 서버 시작 시 즉시 1회 실행

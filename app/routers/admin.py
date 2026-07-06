@@ -5,7 +5,9 @@ REFACTOR_PLAN.md Phase A — main.py에서 기계적으로 이전 (로직 변경
 원본 파일의 "ANALYTICS & FEEDBACK" 블록이 관리자 대시보드 라우트와 물리적으로
 붙어 있고 _build_filters/_require_admin을 공유하므로 하나의 라우터로 묶었다.
 """
+import csv
 import hmac
+import io
 import os
 import secrets
 import time
@@ -24,6 +26,18 @@ router = APIRouter()
 
 ADMIN_SESSION_TTL = 86400 * 7  # 7일 — 로그인 쿠키 max_age와 동일
 _admin_sessions: dict[str, float] = {}  # token → 발급 시각 (쿠키엔 비밀번호 대신 이 토큰만 실림)
+
+
+def _csv_response(filename: str, header: list[str], rows: list[list]) -> Response:
+    buf = io.StringIO()
+    writer = csv.writer(buf)
+    writer.writerow(header)
+    writer.writerows(rows)
+    return Response(
+        content="﻿" + buf.getvalue(),  # BOM — 엑셀에서 한글 CSV 깨짐 방지
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.post("/api/track")
@@ -452,6 +466,28 @@ async def api_admin_events(
         return {"items": [], "total": 0, "page": 1}
 
 
+@router.get("/api/admin/export/events.csv")
+async def api_admin_export_events(env: str = "", period: str = "7d", sort: str = "ts", order: str = "desc", _=Depends(_require_admin)):
+    header = ["세션", "유형", "페이지", "요소", "IP", "환경", "시각"]
+    if not _m._DATABASE_URL:
+        return _csv_response("vantix_events.csv", header, [])
+    tf, tp = _build_filters(period, env)
+    sort_col = _EVENT_SORT_COLUMNS.get(sort, "ts")
+    sort_dir = "ASC" if order == "asc" else "DESC"
+    export_limit = 5000  # 다운로드 크기 제한 — 그 이상은 기간 필터를 좁혀서 받도록 유도
+    with _m._db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"""
+                SELECT session_id, event_type, page, element, ip, env,
+                       TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','YYYY-MM-DD HH24:MI:SS') as ts_str
+                FROM analytics_events WHERE 1=1 {tf}
+                ORDER BY {sort_col} {sort_dir} LIMIT %s
+            """, tp + (export_limit,))
+            rows = cur.fetchall()
+    out = [[r[0] or "", r[1] or "", r[2] or "", r[3] or "", r[4] or "", r[5] or "", r[6] or ""] for r in rows]
+    return _csv_response("vantix_events.csv", header, out)
+
+
 @router.get("/api/admin/saas")
 async def api_admin_saas(payments_page: int = 1, members_page: int = 1, q: str = "", _=Depends(_require_admin)):
     """회원·결제·팀 운영 대시보드. 민감정보(비번해시·빌링키·API키)는 제외."""
@@ -529,6 +565,53 @@ async def api_admin_saas(payments_page: int = 1, members_page: int = 1, q: str =
         "members": members, "members_total": members_total, "members_page": members_page,
         "payments": payments, "payments_total": payments_total, "payments_page": payments_page,
     }
+
+
+@router.get("/api/admin/export/members.csv")
+async def api_admin_export_members(q: str = "", _=Depends(_require_admin)):
+    q = q.strip()
+    if not _m._DATABASE_URL:
+        return _csv_response("vantix_members.csv", ["id", "이메일", "플랜", "상태", "인증", "Redmine연결", "가입일"], [])
+    with _m._users_db() as conn:
+        member_filter = "WHERE u.email NOT LIKE ?"
+        member_params: tuple = ("%@deleted.local",)
+        if q:
+            member_filter += " AND u.email ILIKE ?"
+            member_params += (f"%{q}%",)
+        rows = conn.execute(f"""
+            SELECT u.id, u.email, u.plan, u.is_active, u.email_verified, u.created_at,
+                   (rc.id IS NOT NULL) AS has_connection
+            FROM vantix_users u
+            LEFT JOIN vantix_redmine_connections rc ON rc.user_id = u.id
+            {member_filter}
+            ORDER BY u.created_at DESC
+        """, member_params).fetchall()
+    out = [[
+        r["id"], r["email"], r["plan"],
+        "활성" if r["is_active"] else "정지",
+        "인증됨" if r["email_verified"] else "미인증",
+        "연결됨" if r["has_connection"] else "-",
+        datetime.fromtimestamp(r["created_at"]).strftime("%Y-%m-%d %H:%M") if r["created_at"] else "",
+    ] for r in rows]
+    return _csv_response("vantix_members.csv", ["id", "이메일", "플랜", "상태", "인증", "Redmine연결", "가입일"], out)
+
+
+@router.get("/api/admin/export/payments.csv")
+async def api_admin_export_payments(_=Depends(_require_admin)):
+    if not _m._DATABASE_URL:
+        return _csv_response("vantix_payments.csv", ["결제ID", "이메일", "플랜", "금액", "상태", "일시"], [])
+    with _m._users_db() as conn:
+        rows = conn.execute("""
+            SELECT ph.payment_id, ph.plan, ph.amount, ph.status, ph.paid_at, u.email
+            FROM vantix_payment_history ph
+            JOIN vantix_users u ON u.id = ph.user_id
+            ORDER BY ph.paid_at DESC
+        """).fetchall()
+    out = [[
+        r["payment_id"], r["email"], r["plan"], r["amount"], r["status"],
+        datetime.fromtimestamp(r["paid_at"]).strftime("%Y-%m-%d %H:%M") if r["paid_at"] else "",
+    ] for r in rows]
+    return _csv_response("vantix_payments.csv", ["결제ID", "이메일", "플랜", "금액", "상태", "일시"], out)
 
 
 @router.post("/api/admin/members/{uid}/plan")
@@ -616,6 +699,55 @@ async def api_admin_backups(_=Depends(_require_admin)):
         return {"items": items}
     except Exception as e:
         print(f"[admin/backups] 오류: {e}")
+        return {"items": []}
+
+
+@router.get("/api/admin/job-log")
+async def api_admin_job_log(job_id: str = "", _=Depends(_require_admin)):
+    """DB백업 외 스케줄 작업(주간리포트/리스크스냅샷/청구갱신/모니터알림/캐시갱신/콜아웃정리) 실행 이력"""
+    if not _m._DATABASE_URL:
+        return {"items": []}
+    try:
+        with _m._db_conn() as conn:
+            with conn.cursor() as cur:
+                if job_id:
+                    cur.execute("""
+                        SELECT job_id, TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','YYYY-MM-DD HH24:MI') as ts_str,
+                               status, detail
+                        FROM vantix_job_log WHERE job_id = %s ORDER BY ts DESC LIMIT 50
+                    """, (job_id,))
+                else:
+                    cur.execute("""
+                        SELECT job_id, TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','YYYY-MM-DD HH24:MI') as ts_str,
+                               status, detail
+                        FROM vantix_job_log ORDER BY ts DESC LIMIT 50
+                    """)
+                rows = cur.fetchall()
+        items = [{"job_id": r[0], "ts_str": r[1], "status": r[2], "detail": r[3]} for r in rows]
+        return {"items": items}
+    except Exception as e:
+        print(f"[admin/job-log] 오류: {e}")
+        return {"items": []}
+
+
+@router.get("/api/admin/error-log")
+async def api_admin_error_log(_=Depends(_require_admin)):
+    """미처리 예외(500) 로그 — HTTPException(4xx)은 의도된 응답이라 여기 안 남는다."""
+    if not _m._DATABASE_URL:
+        return {"items": []}
+    try:
+        with _m._db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("""
+                    SELECT TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','YYYY-MM-DD HH24:MI:SS') as ts_str,
+                           method, path, error, traceback
+                    FROM vantix_error_log ORDER BY ts DESC LIMIT 100
+                """)
+                rows = cur.fetchall()
+        items = [{"ts_str": r[0], "method": r[1], "path": r[2], "error": r[3], "traceback": r[4]} for r in rows]
+        return {"items": items}
+    except Exception as e:
+        print(f"[admin/error-log] 오류: {e}")
         return {"items": []}
 
 

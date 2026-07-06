@@ -216,6 +216,8 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
 .conn-table td { padding: 10px 16px; border-bottom: 1px solid #f0f2f4; color: #45474c; vertical-align: middle; }
 .conn-table tr:last-child td { border-bottom: none; }
 .conn-table tr:hover td { background: #f7f9fb; }
+.conn-table tr.err-row { cursor: pointer; }
+.conn-table tr.err-tb td { background: #17181a; color: #d8dadd; font-family: 'IBM Plex Mono', monospace; font-size: 11px; white-space: pre-wrap; padding: 12px 16px; }
 .status-dot { display: inline-flex; align-items: center; gap: 5px; }
 .mini-btn { font-size: 10px; padding: 2px 7px; border: 1px solid #e0e3e5; background: #fff; border-radius: 5px; cursor: pointer; color: #45474c; margin-left: 4px; white-space: nowrap; }
 .mini-btn:hover { background: #f2f4f6; }
@@ -411,7 +413,7 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
       </a>
       <a class="nav-item" onclick="switchView('backup', this)" data-view="backup">
         <span class="material-symbols-outlined">backup</span>
-        DB 백업
+        시스템
       </a>
     </nav>
     <div class="sidebar-footer">
@@ -658,7 +660,10 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
       <div class="card">
         <div class="card-head">
           <div class="card-title">Events</div>
-          <span style="font-size:11px;color:#75777d;" id="events-count"></span>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:11px;color:#75777d;" id="events-count"></span>
+            <button class="mini-btn" onclick="downloadEventsCsv()">CSV 다운로드</button>
+          </div>
         </div>
         <div style="overflow-x:auto;">
           <table class="events-table">
@@ -745,6 +750,7 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
             <input id="saas-members-search" type="text" placeholder="이메일 검색…" oninput="onMembersSearch()"
               style="font-size:12px;padding:6px 10px;border:1px solid #e0e3e5;border-radius:6px;width:180px;">
             <span style="font-size:11px;color:#75777d;" id="saas-members-count"></span>
+            <button class="mini-btn" onclick="downloadMembersCsv()">CSV 다운로드</button>
           </div>
         </div>
         <div style="overflow-x:auto;">
@@ -758,7 +764,13 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
 
       <!-- 결제 이력 -->
       <div class="card" style="margin-bottom:16px;">
-        <div class="card-head"><div class="card-title">결제 이력</div><span style="font-size:11px;color:#75777d;" id="saas-payments-count"></span></div>
+        <div class="card-head">
+          <div class="card-title">결제 이력</div>
+          <div style="display:flex;align-items:center;gap:10px;">
+            <span style="font-size:11px;color:#75777d;" id="saas-payments-count"></span>
+            <button class="mini-btn" onclick="downloadPaymentsCsv()">CSV 다운로드</button>
+          </div>
+        </div>
         <div style="overflow-x:auto;">
           <table class="conn-table">
             <thead><tr><th>이메일</th><th>플랜</th><th>금액</th><th>상태</th><th>일시</th></tr></thead>
@@ -780,16 +792,16 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
       </div>
     </div>
 
-    <!-- ════════ DB BACKUP VIEW ════════ -->
+    <!-- ════════ SYSTEM VIEW (DB 백업 + 예약 작업 이력) ════════ -->
     <div id="view-backup" class="view view-hidden">
       <div style="margin-bottom:20px;">
-        <div style="font-size:18px;font-weight:800;color:#091426;letter-spacing:-.3px;">DB 백업</div>
-        <div style="font-size:12px;color:#75777d;margin-top:2px;">매일 새벽 4시 자동 백업 (암호화된 첨부파일 이메일 발송)</div>
+        <div style="font-size:18px;font-weight:800;color:#091426;letter-spacing:-.3px;">시스템</div>
+        <div style="font-size:12px;color:#75777d;margin-top:2px;">DB 백업 및 예약 작업 실행 현황</div>
       </div>
 
-      <div class="card card-pad">
+      <div class="card card-pad" style="margin-bottom:16px;">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
-          <div style="font-size:13px;font-weight:600;color:#091426;">백업 이력</div>
+          <div style="font-size:13px;font-weight:600;color:#091426;">DB 백업 이력 <span style="font-weight:400;color:#75777d;">— 매일 새벽 4시 자동 (암호화된 첨부파일 이메일 발송)</span></div>
           <button id="backup-dl-btn" onclick="downloadBackup()" style="font-size:12px;font-weight:600;color:#fff;background:#0058be;border:none;border-radius:6px;padding:8px 14px;cursor:pointer;">지금 백업 다운로드</button>
         </div>
         <table class="conn-table">
@@ -797,6 +809,42 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
             <tr><th>시각</th><th>상태</th><th>크기</th><th>비고</th></tr>
           </thead>
           <tbody id="backup-tbody">
+            <tr><td colspan="4" class="empty">로딩 중…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card card-pad">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <div style="font-size:13px;font-weight:600;color:#091426;">예약 작업 이력</div>
+          <select id="job-log-filter" onchange="loadJobLog()" style="font-size:12px;padding:5px 8px;border:1px solid #e0e3e5;border-radius:6px;">
+            <option value="">전체 작업</option>
+            <option value="weekly_report">주간 리포트</option>
+            <option value="risk_snapshot">리스크 스냅샷</option>
+            <option value="billing_renewal">청구 갱신</option>
+            <option value="monitor_alerts">모니터 알림</option>
+            <option value="cache_refresh">캐시 갱신</option>
+            <option value="callout_cleanup">콜아웃 정리</option>
+          </select>
+        </div>
+        <table class="conn-table">
+          <thead>
+            <tr><th>시각</th><th>작업</th><th>상태</th><th>비고</th></tr>
+          </thead>
+          <tbody id="job-log-tbody">
+            <tr><td colspan="4" class="empty">로딩 중…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card card-pad" style="margin-top:16px;">
+        <div style="font-size:13px;font-weight:600;color:#091426;margin-bottom:4px;">에러 로그</div>
+        <div style="font-size:11px;color:#75777d;margin-bottom:10px;">서버에서 처리되지 않은 예외(500). 행을 클릭하면 스택트레이스가 펼쳐집니다.</div>
+        <table class="conn-table">
+          <thead>
+            <tr><th>시각</th><th>메서드</th><th>경로</th><th>에러</th></tr>
+          </thead>
+          <tbody id="error-log-tbody">
             <tr><td colspan="4" class="empty">로딩 중…</td></tr>
           </tbody>
         </table>
@@ -928,12 +976,12 @@ function switchView(name, btn) {
   var mobileItem = document.querySelector('.mobile-nav-item[data-view="' + name + '"]');
   if (mobileItem) mobileItem.classList.add('active');
   _currentView = name;
-  var titles = {dashboard: 'Dashboard', analytics: 'Analytics', events: '이벤트', feedback: '피드백', saas: '회원 · 결제', backup: 'DB 백업'};
+  var titles = {dashboard: 'Dashboard', analytics: 'Analytics', events: '이벤트', feedback: '피드백', saas: '회원 · 결제', backup: '시스템'};
   document.getElementById('topbar-title').textContent = titles[name] || name;
   if (name === 'events') loadEvents();
   if (name === 'feedback') loadFeedback();
   if (name === 'saas') loadSaas();
-  if (name === 'backup') loadBackups();
+  if (name === 'backup') { loadBackups(); loadJobLog(); loadErrorLog(); }
   closeMobileFilter();
 }
 
@@ -965,6 +1013,12 @@ function onMembersSearch() {
     _membersPage = 1;
     loadSaas();
   }, 250);
+}
+function downloadMembersCsv() {
+  window.location.href = '/api/admin/export/members.csv?q=' + encodeURIComponent(_membersQuery);
+}
+function downloadPaymentsCsv() {
+  window.location.href = '/api/admin/export/payments.csv';
 }
 function loadSaas() {
   var q = '/api/admin/saas?payments_page=' + _paymentsPage + '&members_page=' + _membersPage + '&q=' + encodeURIComponent(_membersQuery);
@@ -1382,6 +1436,11 @@ function loadEvents() {
     .then(renderEvents).catch(console.error);
 }
 
+function downloadEventsCsv() {
+  var q = _qs() + '&sort=' + _eventsSort + '&order=' + _eventsOrder;
+  window.location.href = '/api/admin/export/events.csv' + q;
+}
+
 function sortEvents(key) {
   if (_eventsSort === key) {
     _eventsOrder = _eventsOrder === 'asc' ? 'desc' : 'asc';
@@ -1561,6 +1620,55 @@ function loadBackups() {
         '</tr>';
       }).join('');
     }).catch(console.error);
+}
+
+var _jobLabels = {
+  weekly_report: '주간 리포트', risk_snapshot: '리스크 스냅샷', billing_renewal: '청구 갱신',
+  monitor_alerts: '모니터 알림', cache_refresh: '캐시 갱신', callout_cleanup: '콜아웃 정리',
+};
+function loadJobLog() {
+  var jobId = document.getElementById('job-log-filter').value;
+  fetch('/api/admin/job-log?job_id=' + encodeURIComponent(jobId), {credentials: 'same-origin'})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var items = d.items || [];
+      var tbody = document.getElementById('job-log-tbody');
+      if (!items.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">실행 이력이 없습니다</td></tr>'; return; }
+      tbody.innerHTML = items.map(function(j) {
+        var statusHtml = j.status === 'ok'
+          ? '<span style="color:#16a34a;font-weight:600;">성공</span>'
+          : '<span style="color:#c0392b;font-weight:600;">실패</span>';
+        return '<tr>' +
+          '<td style="font-size:12px;">' + escHtml(j.ts_str) + '</td>' +
+          '<td style="font-size:12px;">' + escHtml(_jobLabels[j.job_id] || j.job_id) + '</td>' +
+          '<td>' + statusHtml + '</td>' +
+          '<td style="font-size:11px;color:#75777d;">' + escHtml(j.detail || '') + '</td>' +
+        '</tr>';
+      }).join('');
+    }).catch(console.error);
+}
+
+function loadErrorLog() {
+  fetch('/api/admin/error-log', {credentials: 'same-origin'})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var items = d.items || [];
+      var tbody = document.getElementById('error-log-tbody');
+      if (!items.length) { tbody.innerHTML = '<tr><td colspan="4" class="empty">에러 기록이 없습니다</td></tr>'; return; }
+      tbody.innerHTML = items.map(function(e, i) {
+        return '<tr class="err-row" onclick="toggleErrorTrace(' + i + ')">' +
+          '<td style="font-size:12px;">' + escHtml(e.ts_str) + '</td>' +
+          '<td style="font-size:12px;">' + escHtml(e.method || '') + '</td>' +
+          '<td style="font-size:12px;">' + escHtml(e.path || '') + '</td>' +
+          '<td style="font-size:11px;color:#c0392b;">' + escHtml(e.error || '') + '</td>' +
+        '</tr>' +
+        '<tr class="err-tb" id="err-tb-' + i + '" style="display:none;"><td colspan="4"><pre style="margin:0;">' + escHtml(e.traceback || '(스택트레이스 없음)') + '</pre></td></tr>';
+      }).join('');
+    }).catch(console.error);
+}
+function toggleErrorTrace(i) {
+  var row = document.getElementById('err-tb-' + i);
+  if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
 }
 
 function downloadBackup() {
