@@ -1560,7 +1560,6 @@ async function vxSend(){
     <div style="display:flex; gap:8px; margin-bottom:16px;">
       <button id="cpm-kakao" onclick="window.selectConnectPayMethod('kakao')" style="flex:1;padding:10px 4px 8px;border:1.5px solid #D4D2CB;background:#fff;color:#6A6E73;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;gap:5px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.48 3 2 6.69 2 11.25c0 2.88 1.74 5.42 4.38 6.97L5.5 21l4.13-2.17c.77.14 1.57.22 2.37.22 5.52 0 10-3.69 10-8.25S17.52 3 12 3z"/></svg>카카오페이</button>
       <button id="cpm-card" onclick="window.selectConnectPayMethod('card')" style="flex:1;padding:10px 4px 8px;border:1.5px solid #D4D2CB;background:#fff;color:#6A6E73;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;gap:5px;"><svg width="20" height="14" viewBox="0 0 24 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="1" width="22" height="15" rx="2"/><line x1="1" y1="6" x2="23" y2="6"/><line x1="4" y1="11" x2="8" y2="11"/></svg>신용카드</button>
-      <button id="cpm-tosspay" onclick="window.selectConnectPayMethod('tosspay')" style="flex:1;padding:10px 4px 8px;border:1.5px solid #D4D2CB;background:#fff;font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;font-family:'IBM Plex Mono',monospace;display:flex;flex-direction:column;align-items:center;gap:5px;"><svg id="cpm-tosspay-icon" width="20" height="20" viewBox="0 0 36 36" style="opacity:.4;transition:opacity .15s;flex-shrink:0"><circle cx="18" cy="18" r="16" fill="#0064FF"/><text x="18" y="25" text-anchor="middle" font-size="22" font-weight="900" fill="white" font-family="Arial,sans-serif">t</text></svg><span id="cpm-tosspay-label" style="color:#6A6E73">토스페이</span></button>
     </div>
     <button id="pay-kakaopay-btn" onclick="window.startConnectPayment()" style="width:100%; font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#fff; background:#9CA3AF; border:none; padding:16px 24px; cursor:not-allowed; display:flex; align-items:center; justify-content:center; gap:10px; transition:opacity .2s;">
       결제 수단을 선택하세요
@@ -1602,7 +1601,7 @@ window.openPaymentModal = function(plan) {
   document.getElementById('pay-modal-plan').textContent = names[plan] || plan;
   document.getElementById('pay-modal-price').textContent = prices[plan] || '';
   document.getElementById('pay-modal-error').style.display = 'none';
-  ['kakao','card','tosspay'].forEach(function(m) {
+  ['kakao','card'].forEach(function(m) {
     var b = document.getElementById('cpm-' + m);
     if (b) { b.style.borderColor = '#D4D2CB'; b.style.color = '#6A6E73'; b.style.background = '#fff'; }
   });
@@ -1623,9 +1622,8 @@ window.selectConnectPayMethod = function(method) {
   var brand = {
     kakao:   { border: '#E8B600', color: '#3B1E08', bg: '#FFE812' },
     card:    { border: '#17181A', color: '#fff',    bg: '#17181A' },
-    tosspay: { border: '#0064FF', color: '#17181A', bg: '#EEF4FF' },
   };
-  ['kakao','card','tosspay'].forEach(function(m) {
+  ['kakao','card'].forEach(function(m) {
     var b = document.getElementById('cpm-' + m);
     if (!b) return;
     if (m === method) {
