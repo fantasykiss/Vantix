@@ -183,6 +183,22 @@ def _init_analytics_tables():
                         traceback TEXT
                     )
                 """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS vantix_admin_action_log (
+                        id        SERIAL PRIMARY KEY,
+                        ts        DOUBLE PRECISION NOT NULL,
+                        action    TEXT NOT NULL,
+                        target_id TEXT,
+                        detail    TEXT,
+                        ip        TEXT
+                    )
+                """)
+                cur.execute("""
+                    CREATE TABLE IF NOT EXISTS vantix_admin_sessions (
+                        token   TEXT PRIMARY KEY,
+                        created DOUBLE PRECISION NOT NULL
+                    )
+                """)
             conn.commit()
     except Exception as e:
         print(f"[analytics] DB 테이블 초기화 실패: {e}")
@@ -873,6 +889,21 @@ SSL_CONTEXT.verify_mode = ssl.CERT_NONE
 app = FastAPI()
 
 
+@app.get("/health")
+async def health_check():
+    """외부 업타임 모니터링(Railway/UptimeRobot 등)용 헬스체크. DB 연결까지 확인."""
+    db_ok = True
+    if _DATABASE_URL:
+        try:
+            with _db_conn() as conn:
+                with conn.cursor() as cur:
+                    cur.execute("SELECT 1")
+        except Exception:
+            db_ok = False
+    status_code = 200 if db_ok else 503
+    return JSONResponse({"ok": db_ok, "db": db_ok}, status_code=status_code)
+
+
 def _log_error(method: str, path: str, error: str, tb: str):
     """미처리 예외(500) 전용 로그 — HTTPException(4xx)은 의도된 응답이므로 여기 안 남는다."""
     if not _DATABASE_URL:
@@ -887,6 +918,11 @@ def _log_error(method: str, path: str, error: str, tb: str):
             conn.commit()
     except Exception as e:
         print(f"[error log] 기록 실패: {e}")
+    _send_ops_alert(
+        "[Vantix] 서버 에러 발생",
+        f"<p>{method} {path} 처리 중 미처리 예외가 발생했습니다.</p><pre>{(error or '')[:500]}</pre>",
+        "error_spike", cooldown=1800,
+    )
 
 
 @app.exception_handler(Exception)
@@ -1428,6 +1464,20 @@ def _dump_db_gzip() -> bytes:
     return gzip.compress(result.stdout)
 
 
+def _verify_backup_dump(compressed: bytes, encrypted: bytes) -> None:
+    """실제 복구 가능성 최소 검증 — 별도 DB에 복원해보진 않지만, 최소한
+    (1) pg_dump 출력이 손상되지 않았고 핵심 테이블을 포함하는지,
+    (2) 암호화 왕복이 원본과 정확히 일치하는지 확인해 '깨진 백업'을 조기 발견한다."""
+    import gzip
+    raw = gzip.decompress(compressed)
+    if b"PostgreSQL database dump" not in raw[:4000]:
+        raise RuntimeError("백업 덤프에 pg_dump 헤더가 없습니다 (손상 의심)")
+    if b"vantix_users" not in raw:
+        raise RuntimeError("백업 덤프에 핵심 테이블(vantix_users)이 없습니다")
+    if _fernet.decrypt(encrypted) != compressed:
+        raise RuntimeError("암호화 왕복 검증 실패 — 복호화 결과가 원본과 다릅니다")
+
+
 def _log_backup(status: str, size_bytes: int | None, error: str | None):
     if not _DATABASE_URL:
         return
@@ -1450,6 +1500,7 @@ def _job_db_backup():
     try:
         compressed = _dump_db_gzip()
         encrypted = _fernet.encrypt(compressed)
+        _verify_backup_dump(compressed, encrypted)
         today = datetime.now().strftime("%Y%m%d")
         _resend.Emails.send({
             "from": f"Vantix <{RESEND_FROM}>",
@@ -1466,6 +1517,11 @@ def _job_db_backup():
     except Exception as e:
         print(f"[backup] 실패: {e}")
         _log_backup("failed", None, str(e)[:500])
+        _send_ops_alert(
+            "[Vantix] DB 백업 실패",
+            f"<p>DB 자동 백업이 실패했습니다.</p><pre>{str(e)[:500]}</pre>",
+            "backup_failed", cooldown=3600,
+        )
 
 
 def _log_job(job_id: str, status: str, detail: str = ""):
@@ -1484,6 +1540,59 @@ def _log_job(job_id: str, status: str, detail: str = ""):
         print(f"[job log] 기록 실패: {e}")
 
 
+_last_ops_alert: dict[str, float] = {}  # alert key → 마지막 발송 시각 (스팸 방지 쿨다운)
+
+
+def _send_ops_alert(subject: str, html: str, key: str, cooldown: float = 1800):
+    """운영 알림(에러 급증/잡 실패/백업 실패) — 같은 key는 쿨다운 동안 재발송 안 함."""
+    if not BACKUP_EMAIL:
+        return
+    now = time.time()
+    if now - _last_ops_alert.get(key, 0) < cooldown:
+        return
+    _last_ops_alert[key] = now
+    try:
+        _resend.Emails.send({
+            "from": f"Vantix <{RESEND_FROM}>",
+            "to": [BACKUP_EMAIL],
+            "subject": subject,
+            "html": html,
+        })
+    except Exception as e:
+        print(f"[ops alert] 발송 실패: {e}")
+
+
+def _send_admin_lockout_alert(ip: str, attempts: int):
+    """admin 로그인 반복 실패 시 소유자에게 알림 — 무차별 대입 시도를 눈치채도록."""
+    if not BACKUP_EMAIL:
+        return
+    try:
+        _resend.Emails.send({
+            "from": f"Vantix <{RESEND_FROM}>",
+            "to": [BACKUP_EMAIL],
+            "subject": "[Vantix] 관리자 로그인 반복 실패 감지",
+            "html": f"<p>IP <b>{ip}</b>에서 관리자 로그인이 {attempts}회 연속 실패해 30분간 잠금 처리했습니다. 본인이 아니라면 비밀번호 변경을 검토하세요.</p>",
+        })
+    except Exception as e:
+        print(f"[admin lockout alert] 발송 실패: {e}")
+
+
+def _log_admin_action(action: str, target_id: str = "", detail: str = "", ip: str = ""):
+    """admin이 회원 정지/환불/플랜변경 등을 실행할 때마다 vantix_admin_action_log에 기록."""
+    if not _DATABASE_URL:
+        return
+    try:
+        with _db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO vantix_admin_action_log (ts, action, target_id, detail, ip) VALUES (%s,%s,%s,%s,%s)",
+                    (time.time(), action, str(target_id), (detail or "")[:500], ip)
+                )
+            conn.commit()
+    except Exception as e:
+        print(f"[admin action log] 기록 실패: {e}")
+
+
 def _run_job(job_id: str, fn):
     """스케줄러 잡을 감싸서 성공/실패를 vantix_job_log에 기록 (잡 자체 로직은 그대로)."""
     try:
@@ -1492,6 +1601,11 @@ def _run_job(job_id: str, fn):
     except Exception as e:
         print(f"[{job_id}] 실패: {e}")
         _log_job(job_id, "failed", str(e))
+        _send_ops_alert(
+            f"[Vantix] 예약 작업 실패: {job_id}",
+            f"<p>예약 작업 <b>{job_id}</b>이(가) 실패했습니다.</p><pre>{str(e)[:500]}</pre>",
+            f"job_failed:{job_id}", cooldown=3600,
+        )
 
 
 _scheduler = BackgroundScheduler(timezone="Asia/Seoul")
@@ -2553,7 +2667,7 @@ async def api_auth_signup(request: Request):
     email = (body.get("email") or "").strip().lower()
     password = body.get("password") or ""
 
-    if not email or not re.match(r"^[^@]+@[^@]+\.[^@]+$", email):
+    if not email or len(email) > 254 or not re.match(r"^[^@]+@[^@]+\.[^@]+$", email):
         raise HTTPException(status_code=400, detail="유효한 이메일을 입력하세요")
     if len(password) < 8:
         raise HTTPException(status_code=400, detail="비밀번호는 8자 이상이어야 합니다")

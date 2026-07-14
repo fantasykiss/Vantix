@@ -1479,7 +1479,7 @@ html, body {
 
     <!-- Actions (right) -->
     <div class="topbar-actions">
-      <button id="topbar-refresh-btn" class="icon-btn" title="강제 갱신" onclick="handleRefresh()" style="border:none;background:none;">
+      <button id="topbar-refresh-btn" class="icon-btn" title="강제 갱신" data-track="새로고침" onclick="handleRefresh()" style="border:none;background:none;">
         <svg id="topbar-refresh-icon" width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M2 7a5 5 0 1 0 1-3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round"/><path d="M2 2v3h3" stroke="currentColor" stroke-width="1.1" stroke-linecap="round" stroke-linejoin="round"/></svg>
       </button>
       <!-- 통합 설정 드롭다운 -->
@@ -2387,6 +2387,7 @@ function renderProjectNav(projects) {
     ? '<span class="nav-tag" style="color:' + allRiskBarColor + '">' + (allLvlMap[_allProjectsRiskLevel] || _allProjectsRiskLevel.toUpperCase()) + '</span>'
     : '<span class="nav-arrow">▸</span>';
   allRow.innerHTML = '<span>전체 프로젝트</span>' + allTagHtml;
+  allRow.dataset.track = '프로젝트 전환: 전체 프로젝트';
   allRow.onclick = function() {
     if (_expandedProjects.has('__all__')) {
       _expandedProjects.delete('__all__');
@@ -2409,6 +2410,7 @@ function renderProjectNav(projects) {
       var srow = document.createElement('div');
       srow.className = 'nav-item sub-nav' + (sv.key === _currentSubView ? ' active' : '');
       srow.innerHTML = '<span>' + sv.label + '</span>';
+      srow.dataset.track = '서브뷰 전환: ' + sv.label;
       srow.onclick = (function(svk) {
         return function(e) { e.stopPropagation(); showSubView(svk); };
       })(sv.key);
@@ -2420,6 +2422,7 @@ function renderProjectNav(projects) {
     var row = document.createElement('div');
     var isActive = p.identifier === currentProjectId;
     row.className = 'nav-item' + (isActive ? ' active' : '');
+    row.dataset.track = '프로젝트 전환: ' + (p.name || p.identifier);
 
     // 리스크 세로바 색상 (name → identifier 순서로 fallback)
     var riskLevel = _projectRiskMap[p.name] || _projectRiskMap[p.identifier] || '';
@@ -3461,6 +3464,7 @@ async function handleRefresh() {
   try {
     _lastGroupsData = null; _lastGroupsProjectId = null;
     _lastVersionsData = null; _lastVersionsProjectId = null;
+    _clientDataCache = {};
     await fetch('/api/cache/clear');
     await loadAll();
     if (_currentSubView === 'groups') loadGroups();

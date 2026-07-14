@@ -27,6 +27,12 @@ router = APIRouter()
 ADMIN_SESSION_TTL = 86400 * 7  # 7일 — 로그인 쿠키 max_age와 동일
 _admin_sessions: dict[str, float] = {}  # token → 발급 시각 (쿠키엔 비밀번호 대신 이 토큰만 실림)
 
+ADMIN_LOGIN_MAX_FAILURES = 5
+ADMIN_LOGIN_FAILURE_WINDOW = 900   # 15분 내 5회 실패 시
+ADMIN_LOGIN_LOCKOUT = 1800         # 30분 잠금
+_admin_login_failures: dict[str, list[float]] = {}  # ip → 실패 시각 목록
+_admin_login_locked_until: dict[str, float] = {}    # ip → 잠금 해제 시각
+
 
 def _csv_response(filename: str, header: list[str], rows: list[list]) -> Response:
     buf = io.StringIO()
@@ -112,6 +118,53 @@ def _build_filters(period: str, env: str) -> tuple[str, tuple]:
     return clause, tuple(params)
 
 
+def _hydrate_admin_sessions():
+    """서버 재시작으로 메모리 세션이 날아가도 로그인이 풀리지 않도록 DB에서 복원."""
+    if not _m._DATABASE_URL:
+        return
+    try:
+        now = time.time()
+        with _m._db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM vantix_admin_sessions WHERE created < %s", (now - ADMIN_SESSION_TTL,))
+                cur.execute("SELECT token, created FROM vantix_admin_sessions")
+                for token, created in cur.fetchall():
+                    _admin_sessions[token] = created
+            conn.commit()
+    except Exception as e:
+        print(f"[admin session hydrate] 실패: {e}")
+
+
+def _persist_admin_session(token: str, created: float):
+    if not _m._DATABASE_URL:
+        return
+    try:
+        with _m._db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute(
+                    "INSERT INTO vantix_admin_sessions (token, created) VALUES (%s,%s) ON CONFLICT (token) DO NOTHING",
+                    (token, created)
+                )
+            conn.commit()
+    except Exception as e:
+        print(f"[admin session persist] 실패: {e}")
+
+
+def _delete_admin_session(token: str):
+    if not _m._DATABASE_URL:
+        return
+    try:
+        with _m._db_conn() as conn:
+            with conn.cursor() as cur:
+                cur.execute("DELETE FROM vantix_admin_sessions WHERE token=%s", (token,))
+            conn.commit()
+    except Exception as e:
+        print(f"[admin session delete] 실패: {e}")
+
+
+_hydrate_admin_sessions()
+
+
 def _require_admin(request: Request):
     token = request.cookies.get("vx_admin")
     created = _admin_sessions.get(token or "")
@@ -119,7 +172,13 @@ def _require_admin(request: Request):
         raise HTTPException(status_code=401, detail="Unauthorized")
     if time.time() - created > ADMIN_SESSION_TTL:
         _admin_sessions.pop(token, None)
+        _delete_admin_session(token)
         raise HTTPException(status_code=401, detail="Unauthorized")
+    if request.method not in ("GET", "HEAD", "OPTIONS"):
+        csrf_cookie = request.cookies.get("vx_admin_csrf")
+        csrf_header = request.headers.get("X-Admin-CSRF")
+        if not csrf_cookie or not csrf_header or not hmac.compare_digest(csrf_cookie, csrf_header):
+            raise HTTPException(status_code=403, detail="CSRF token mismatch")
     return True
 
 
@@ -128,14 +187,32 @@ async def api_admin_login(request: Request):
     client_ip = request.headers.get("X-Forwarded-For", request.client.host or "").split(",")[0].strip()
     _m._check_rate_limit(f"admin_login:{client_ip}")
 
+    locked_until = _admin_login_locked_until.get(client_ip, 0)
+    if time.time() < locked_until:
+        raise HTTPException(status_code=429, detail="로그인 실패가 반복되어 잠시 잠겼습니다. 나중에 다시 시도하세요.")
+
     body = await request.json()
     pw = body.get("password", "")
     if not ADMIN_PASSWORD or not hmac.compare_digest(pw, ADMIN_PASSWORD):
+        now = time.time()
+        attempts = [t for t in _admin_login_failures.get(client_ip, []) if now - t < ADMIN_LOGIN_FAILURE_WINDOW]
+        attempts.append(now)
+        _admin_login_failures[client_ip] = attempts
+        if len(attempts) >= ADMIN_LOGIN_MAX_FAILURES:
+            _admin_login_locked_until[client_ip] = now + ADMIN_LOGIN_LOCKOUT
+            _admin_login_failures.pop(client_ip, None)
+            _m._send_admin_lockout_alert(client_ip, len(attempts))
         raise HTTPException(status_code=401, detail="비밀번호가 틀렸습니다.")
+
+    _admin_login_failures.pop(client_ip, None)
     token = secrets.token_urlsafe(32)
-    _admin_sessions[token] = time.time()
-    resp = JSONResponse({"ok": True})
+    created = time.time()
+    _admin_sessions[token] = created
+    _persist_admin_session(token, created)
+    csrf_token = secrets.token_urlsafe(32)
+    resp = JSONResponse({"ok": True, "csrf": csrf_token})
     resp.set_cookie("vx_admin", token, httponly=True, samesite="lax", max_age=ADMIN_SESSION_TTL, secure=True)
+    resp.set_cookie("vx_admin_csrf", csrf_token, httponly=False, samesite="lax", max_age=ADMIN_SESSION_TTL, secure=True)
     return resp
 
 
@@ -144,8 +221,10 @@ async def api_admin_logout(request: Request):
     token = request.cookies.get("vx_admin")
     if token:
         _admin_sessions.pop(token, None)
+        _delete_admin_session(token)
     resp = JSONResponse({"ok": True})
     resp.delete_cookie("vx_admin")
+    resp.delete_cookie("vx_admin_csrf")
     return resp
 
 
@@ -346,6 +425,7 @@ async def api_admin_feedback_resolve(feedback_id: int, request: Request, _=Depen
                 (1 if resolved else 0, feedback_id)
             )
         conn.commit()
+    _m._log_admin_action("feedback_resolve", feedback_id, f"resolved={resolved}", _client_ip(request))
     return {"ok": True, "resolved": resolved}
 
 
@@ -585,6 +665,7 @@ async def api_admin_export_members(q: str = "", _=Depends(_require_admin)):
             LEFT JOIN vantix_redmine_connections rc ON rc.user_id = u.id
             {member_filter}
             ORDER BY u.created_at DESC
+            LIMIT 5000
         """, member_params).fetchall()
     out = [[
         r["id"], r["email"], r["plan"],
@@ -606,12 +687,17 @@ async def api_admin_export_payments(_=Depends(_require_admin)):
             FROM vantix_payment_history ph
             JOIN vantix_users u ON u.id = ph.user_id
             ORDER BY ph.paid_at DESC
+            LIMIT 5000
         """).fetchall()
     out = [[
         r["payment_id"], r["email"], r["plan"], r["amount"], r["status"],
         datetime.fromtimestamp(r["paid_at"]).strftime("%Y-%m-%d %H:%M") if r["paid_at"] else "",
     ] for r in rows]
     return _csv_response("vantix_payments.csv", ["결제ID", "이메일", "플랜", "금액", "상태", "일시"], out)
+
+
+def _client_ip(request: Request) -> str:
+    return request.headers.get("X-Forwarded-For", request.client.host or "").split(",")[0].strip()
 
 
 @router.post("/api/admin/members/{uid}/plan")
@@ -622,34 +708,38 @@ async def api_admin_member_plan(uid: int, request: Request, _=Depends(_require_a
     if plan not in PLAN_ORDER:
         raise HTTPException(status_code=400, detail="유효하지 않은 플랜입니다")
     _m._set_user_plan(uid, plan)
+    _m._log_admin_action("plan_change", uid, f"→ {plan}", _client_ip(request))
     return {"ok": True, "plan": plan}
 
 
 @router.post("/api/admin/members/{uid}/suspend")
-async def api_admin_member_suspend(uid: int, _=Depends(_require_admin)):
+async def api_admin_member_suspend(uid: int, request: Request, _=Depends(_require_admin)):
     """계정 정지 — is_active=0. 삭제와 달리 이메일/비밀번호는 보존되어 되돌릴 수 있음."""
     with _m._users_db() as conn:
         conn.execute("UPDATE vantix_users SET is_active=0 WHERE id=?", (uid,))
+    _m._log_admin_action("suspend", uid, "", _client_ip(request))
     return {"ok": True}
 
 
 @router.post("/api/admin/members/{uid}/reactivate")
-async def api_admin_member_reactivate(uid: int, _=Depends(_require_admin)):
+async def api_admin_member_reactivate(uid: int, request: Request, _=Depends(_require_admin)):
     with _m._users_db() as conn:
         conn.execute("UPDATE vantix_users SET is_active=1 WHERE id=?", (uid,))
+    _m._log_admin_action("reactivate", uid, "", _client_ip(request))
     return {"ok": True}
 
 
 @router.post("/api/admin/members/{uid}/verify-email")
-async def api_admin_member_verify_email(uid: int, _=Depends(_require_admin)):
+async def api_admin_member_verify_email(uid: int, request: Request, _=Depends(_require_admin)):
     """CS 대응용 — 인증메일이 스팸함에 갇히는 등 문제로 인증을 못 받는 경우 강제 인증 처리."""
     with _m._users_db() as conn:
         conn.execute("UPDATE vantix_users SET email_verified=1, email_verify_token=NULL WHERE id=?", (uid,))
+    _m._log_admin_action("verify_email", uid, "", _client_ip(request))
     return {"ok": True}
 
 
 @router.post("/api/admin/members/{uid}/refund")
-async def api_admin_member_refund(uid: int, _=Depends(_require_admin)):
+async def api_admin_member_refund(uid: int, request: Request, _=Depends(_require_admin)):
     """해당 회원의 가장 최근 결제 건을 환불 + 구독취소 + 플랜을 free로.
     /api/billing/refund(본인 셀프서비스)와 동일한 포트원 취소 로직을 관리자가 대상 유저를 지정해 실행."""
     with _m._users_db() as conn:
@@ -678,6 +768,7 @@ async def api_admin_member_refund(uid: int, _=Depends(_require_admin)):
         conn.execute("UPDATE vantix_payment_history SET status='refunded' WHERE payment_id=?", (payment_id,))
         conn.execute("UPDATE vantix_billing_keys SET status='cancelled' WHERE user_id=? AND status='active'", (uid,))
     _m._set_user_plan(uid, "free")
+    _m._log_admin_action("refund", uid, f"payment_id={payment_id}", _client_ip(request))
     return {"ok": True, "plan": "free", "refunded_payment_id": payment_id}
 
 
@@ -749,6 +840,50 @@ async def api_admin_error_log(_=Depends(_require_admin)):
     except Exception as e:
         print(f"[admin/error-log] 오류: {e}")
         return {"items": []}
+
+
+@router.get("/api/admin/action-log")
+async def api_admin_action_log(action: str = "", _=Depends(_require_admin)):
+    """관리자가 회원 대상으로 실행한 정지/복구/환불/플랜변경/인증 액션 이력."""
+    if not _m._DATABASE_URL:
+        return {"items": []}
+    try:
+        with _m._db_conn() as conn:
+            with conn.cursor() as cur:
+                if action:
+                    cur.execute("""
+                        SELECT TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','YYYY-MM-DD HH24:MI:SS') as ts_str,
+                               action, target_id, detail, ip
+                        FROM vantix_admin_action_log WHERE action = %s ORDER BY ts DESC LIMIT 200
+                    """, (action,))
+                else:
+                    cur.execute("""
+                        SELECT TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','YYYY-MM-DD HH24:MI:SS') as ts_str,
+                               action, target_id, detail, ip
+                        FROM vantix_admin_action_log ORDER BY ts DESC LIMIT 200
+                    """)
+                rows = cur.fetchall()
+        items = [{"ts_str": r[0], "action": r[1], "target_id": r[2], "detail": r[3], "ip": r[4]} for r in rows]
+        return {"items": items}
+    except Exception as e:
+        print(f"[admin/action-log] 오류: {e}")
+        return {"items": []}
+
+
+@router.get("/api/admin/export/action-log.csv")
+async def api_admin_export_action_log(_=Depends(_require_admin)):
+    if not _m._DATABASE_URL:
+        return _csv_response("vantix_admin_action_log.csv", ["시간", "액션", "대상ID", "상세", "IP"], [])
+    with _m._db_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute("""
+                SELECT TO_CHAR(TO_TIMESTAMP(ts) AT TIME ZONE 'Asia/Seoul','YYYY-MM-DD HH24:MI:SS') as ts_str,
+                       action, target_id, detail, ip
+                FROM vantix_admin_action_log ORDER BY ts DESC LIMIT 5000
+            """)
+            rows = cur.fetchall()
+    out = [[r[0], r[1], r[2], r[3], r[4]] for r in rows]
+    return _csv_response("vantix_admin_action_log.csv", ["시간", "액션", "대상ID", "상세", "IP"], out)
 
 
 @router.get("/api/admin/backup/download")

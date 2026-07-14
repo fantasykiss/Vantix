@@ -753,9 +753,15 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
             <button class="mini-btn" onclick="downloadMembersCsv()">CSV 다운로드</button>
           </div>
         </div>
+        <div id="members-bulk-bar" style="display:none;align-items:center;gap:10px;padding:8px 20px;background:#eff6ff;border-bottom:1px solid #e0e3e5;">
+          <span style="font-size:12px;color:#0058be;font-weight:600;"><span id="members-bulk-count">0</span>명 선택됨</span>
+          <button class="mini-btn" onclick="bulkMemberAction('suspend')">일괄 정지</button>
+          <button class="mini-btn" onclick="bulkMemberAction('reactivate')">일괄 활성화</button>
+          <button class="mini-btn" onclick="clearMemberSelection()" style="margin-left:auto;">선택 해제</button>
+        </div>
         <div style="overflow-x:auto;">
           <table class="conn-table">
-            <thead><tr><th>이메일</th><th>플랜</th><th>인증</th><th>Redmine</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead>
+            <thead><tr><th style="width:28px;"><input type="checkbox" id="members-select-all" onchange="toggleAllMembers(this)"></th><th>이메일</th><th>플랜</th><th>인증</th><th>Redmine</th><th>가입일</th><th>상태</th><th>관리</th></tr></thead>
             <tbody id="saas-members-body"></tbody>
           </table>
         </div>
@@ -846,6 +852,33 @@ body { background: #f7f9fb; color: #191c1e; font-family: 'DM Sans', -apple-syste
           </thead>
           <tbody id="error-log-tbody">
             <tr><td colspan="4" class="empty">로딩 중…</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="card card-pad" style="margin-top:16px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">
+          <div style="font-size:13px;font-weight:600;color:#091426;">관리자 액션 로그</div>
+          <div style="display:flex;gap:8px;align-items:center;">
+            <select id="action-log-filter" onchange="loadActionLog()" style="font-size:12px;padding:5px 8px;border:1px solid #e0e3e5;border-radius:6px;">
+              <option value="">전체 액션</option>
+              <option value="plan_change">플랜 변경</option>
+              <option value="suspend">정지</option>
+              <option value="reactivate">복구</option>
+              <option value="verify_email">이메일 인증</option>
+              <option value="refund">환불</option>
+              <option value="feedback_resolve">피드백 처리</option>
+            </select>
+            <button onclick="downloadActionLogCsv()" style="font-size:12px;font-weight:600;color:#0058be;background:#fff;border:1px solid #0058be;border-radius:6px;padding:5px 12px;cursor:pointer;">CSV 내보내기</button>
+          </div>
+        </div>
+        <div style="font-size:11px;color:#75777d;margin-bottom:10px;">관리자가 회원 대상으로 실행한 정지·복구·환불·플랜변경·인증 처리 이력 (admin 계정이 단일이라 "누가"는 접속 IP로 대체).</div>
+        <table class="conn-table">
+          <thead>
+            <tr><th>시각</th><th>액션</th><th>대상 uid</th><th>상세</th><th>IP</th></tr>
+          </thead>
+          <tbody id="action-log-tbody">
+            <tr><td colspan="5" class="empty">로딩 중…</td></tr>
           </tbody>
         </table>
       </div>
@@ -981,7 +1014,7 @@ function switchView(name, btn) {
   if (name === 'events') loadEvents();
   if (name === 'feedback') loadFeedback();
   if (name === 'saas') loadSaas();
-  if (name === 'backup') { loadBackups(); loadJobLog(); loadErrorLog(); }
+  if (name === 'backup') { loadBackups(); loadJobLog(); loadErrorLog(); loadActionLog(); }
   closeMobileFilter();
 }
 
@@ -1002,6 +1035,7 @@ function goToPaymentsPage(page) {
   loadSaas();
 }
 var _membersPage = 1, _membersQuery = '', _membersSearchDebounce = null;
+var _selectedMembers = new Set();
 function goToMembersPage(page) {
   _membersPage = page;
   loadSaas();
@@ -1054,19 +1088,22 @@ function loadSaas() {
           ? '✓'
           : '<span style="color:#c0392b;">미인증</span><button class="mini-btn" onclick="forceVerifyMember(' + m.id + ')">인증처리</button>';
         var statusBadge = m.is_active
-          ? '<span style="font-size:10px;font-weight:700;color:#0D9488;">활성</span>'
-          : '<span style="font-size:10px;font-weight:700;color:#c0392b;">정지</span>';
+          ? '<span style="display:inline-flex;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;background:#d1fae5;color:#0D9488;">활성</span>'
+          : '<span style="display:inline-flex;padding:2px 8px;border-radius:99px;font-size:10px;font-weight:700;background:#fee2e2;color:#c0392b;">정지</span>';
         var manageBtns = (m.is_active
           ? '<button class="mini-btn danger" onclick="toggleMemberSuspend(' + m.id + ', true)">정지</button>'
           : '<button class="mini-btn" onclick="toggleMemberSuspend(' + m.id + ', false)">활성화</button>')
           + '<button class="mini-btn danger" onclick="refundMember(' + m.id + ')">환불</button>';
-        return '<tr><td>' + escHtml(m.email || '') + '</td><td>' + planSelect + '</td>'
+        var checked = _selectedMembers.has(m.id) ? ' checked' : '';
+        return '<tr><td><input type="checkbox" class="member-row-check" data-uid="' + m.id + '"' + checked + ' onchange="toggleMemberSelect(' + m.id + ', this)"></td>'
+          + '<td style="max-width:240px;overflow-wrap:break-word;">' + escHtml(m.email || '') + '</td><td>' + planSelect + '</td>'
           + '<td>' + verifyCell + '</td>'
           + '<td>' + (m.has_connection ? '✓' : '–') + '</td>'
           + '<td style="color:#75777d;">' + _fmtDate(m.created_at) + '</td>'
           + '<td>' + statusBadge + '</td>'
           + '<td style="white-space:nowrap;">' + manageBtns + '</td></tr>';
-      }).join('') || '<tr><td colspan="7" style="color:#75777d;text-align:center;padding:20px;">' + (_membersQuery ? '검색 결과가 없습니다' : '아직 회원이 없습니다') + '</td></tr>';
+      }).join('') || '<tr><td colspan="8" style="color:#75777d;text-align:center;padding:20px;">' + (_membersQuery ? '검색 결과가 없습니다' : '아직 회원이 없습니다') + '</td></tr>';
+      updateMembersBulkBar();
       var mPag = document.getElementById('saas-members-pagination');
       if (mPag) {
         mPag.innerHTML =
@@ -1114,7 +1151,7 @@ function loadSaas() {
 function postMemberAction(uid, action, body) {
   return fetch('/api/admin/members/' + uid + '/' + action, {
     method: 'POST', credentials: 'same-origin',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'X-Admin-CSRF': csrfHeader()},
     body: JSON.stringify(body || {}),
   }).then(function(r) {
     if (!r.ok) return r.json().then(function(e) { throw new Error(e.detail || ('HTTP ' + r.status)); });
@@ -1146,6 +1183,51 @@ function refundMember(uid) {
   postMemberAction(uid, 'refund')
     .then(function() { loadSaas(); })
     .catch(function(e) { alert('환불 실패: ' + e.message); });
+}
+
+// ── 회원 일괄 선택/처리 ───────────────────────────────────────────
+function toggleMemberSelect(uid, checkboxEl) {
+  if (checkboxEl.checked) _selectedMembers.add(uid); else _selectedMembers.delete(uid);
+  updateMembersBulkBar();
+}
+function toggleAllMembers(checkboxEl) {
+  document.querySelectorAll('.member-row-check').forEach(function(cb) {
+    cb.checked = checkboxEl.checked;
+    var uid = parseInt(cb.dataset.uid, 10);
+    if (checkboxEl.checked) _selectedMembers.add(uid); else _selectedMembers.delete(uid);
+  });
+  updateMembersBulkBar();
+}
+function clearMemberSelection() {
+  _selectedMembers.clear();
+  var selAll = document.getElementById('members-select-all');
+  if (selAll) selAll.checked = false;
+  document.querySelectorAll('.member-row-check').forEach(function(cb) { cb.checked = false; });
+  updateMembersBulkBar();
+}
+function updateMembersBulkBar() {
+  var bar = document.getElementById('members-bulk-bar');
+  var countEl = document.getElementById('members-bulk-count');
+  if (!bar) return;
+  if (_selectedMembers.size > 0) {
+    bar.style.display = 'flex';
+    countEl.textContent = _selectedMembers.size;
+  } else {
+    bar.style.display = 'none';
+  }
+}
+function bulkMemberAction(action) {
+  var uids = Array.from(_selectedMembers);
+  if (!uids.length) return;
+  var msg = action === 'suspend'
+    ? uids.length + '명의 계정을 정지할까요? 로그인이 즉시 차단됩니다.'
+    : uids.length + '명의 계정을 다시 활성화할까요?';
+  if (!confirm(msg)) return;
+  Promise.all(uids.map(function(uid) { return postMemberAction(uid, action).catch(function(e) { return e; }); }))
+    .then(function() {
+      clearMemberSelection();
+      loadSaas();
+    });
 }
 
 // ── Mobile filter sheet ──────────────────────────────────────────
@@ -1553,7 +1635,7 @@ function loadFeedback() {
 function toggleFeedbackResolved(id, resolved) {
   fetch('/api/admin/feedback/' + id + '/resolve', {
     method: 'POST', credentials: 'same-origin',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'X-Admin-CSRF': csrfHeader()},
     body: JSON.stringify({resolved: resolved}),
   }).then(function(r) { if (!r.ok) throw new Error(r.status); return r.json(); })
     .then(function() { loadFeedback(); })
@@ -1671,6 +1753,32 @@ function toggleErrorTrace(i) {
   if (row) row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
 }
 
+var _actionLabels = {
+  plan_change: '플랜 변경', suspend: '정지', reactivate: '복구', verify_email: '이메일 인증', refund: '환불', feedback_resolve: '피드백 처리',
+};
+function loadActionLog() {
+  var action = document.getElementById('action-log-filter').value;
+  fetch('/api/admin/action-log?action=' + encodeURIComponent(action), {credentials: 'same-origin'})
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      var items = d.items || [];
+      var tbody = document.getElementById('action-log-tbody');
+      if (!items.length) { tbody.innerHTML = '<tr><td colspan="5" class="empty">실행 이력이 없습니다</td></tr>'; return; }
+      tbody.innerHTML = items.map(function(a) {
+        return '<tr>' +
+          '<td style="font-size:12px;">' + escHtml(a.ts_str) + '</td>' +
+          '<td style="font-size:12px;">' + escHtml(_actionLabels[a.action] || a.action) + '</td>' +
+          '<td style="font-size:12px;">' + escHtml(a.target_id || '') + '</td>' +
+          '<td style="font-size:11px;color:#75777d;">' + escHtml(a.detail || '') + '</td>' +
+          '<td style="font-size:11px;color:#75777d;">' + escHtml(a.ip || '') + '</td>' +
+        '</tr>';
+      }).join('');
+    }).catch(console.error);
+}
+function downloadActionLogCsv() {
+  window.location.href = '/api/admin/export/action-log.csv';
+}
+
 function downloadBackup() {
   var btn = document.getElementById('backup-dl-btn');
   var origText = btn.textContent;
@@ -1746,6 +1854,10 @@ function getTodayLabel() {
 function escHtml(s) {
   if (!s) return '';
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+function csrfHeader() {
+  var m = document.cookie.match(/(?:^|; )vx_admin_csrf=([^;]*)/);
+  return m ? decodeURIComponent(m[1]) : '';
 }
 </script>
 </body>
