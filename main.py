@@ -1611,7 +1611,7 @@ def _run_job(job_id: str, fn):
 _scheduler = BackgroundScheduler(timezone="Asia/Seoul")
 _scheduler.add_job(lambda: _run_job("cache_refresh", _job_refresh_cache), "interval", minutes=30, id="cache_refresh")
 _scheduler.add_job(_job_db_backup, CronTrigger(
-    hour=4, minute=0, timezone="Asia/Seoul"
+    day_of_week='sun', hour=4, minute=0, timezone="Asia/Seoul"
 ), id="db_backup")
 _scheduler.add_job(lambda: _run_job("weekly_report", _job_weekly_report), CronTrigger(
     day_of_week=REPORT_DAY, hour=REPORT_HOUR, minute=REPORT_MINUTE
