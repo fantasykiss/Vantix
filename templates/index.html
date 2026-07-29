@@ -6446,7 +6446,6 @@ function submitFeedback() {
       <div style="font-size:10px;font-weight:700;letter-spacing:.12em;color:var(--text-dim);margin-bottom:8px;">결제 수단</div>
       <div style="display:flex;gap:8px;">
         <button id="pay-method-kakao" onclick="selectPayMethod('kakao')" style="flex:1;padding:10px 4px 8px;border:1.5px solid var(--ghost-2);background:var(--surface-low);color:var(--text-mid);font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;font-family:var(--dm);display:flex;flex-direction:column;align-items:center;gap:5px;"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.48 3 2 6.69 2 11.25c0 2.88 1.74 5.42 4.38 6.97L5.5 21l4.13-2.17c.77.14 1.57.22 2.37.22 5.52 0 10-3.69 10-8.25S17.52 3 12 3z"/></svg>카카오페이</button>
-        <button id="pay-method-card" onclick="selectPayMethod('card')" style="flex:1;padding:10px 4px 8px;border:1.5px solid var(--ghost-2);background:var(--surface-low);color:var(--text-mid);font-size:10px;font-weight:700;cursor:pointer;transition:all .15s;font-family:var(--dm);display:flex;flex-direction:column;align-items:center;gap:5px;"><svg width="20" height="14" viewBox="0 0 24 17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="1" y="1" width="22" height="15" rx="2"/><line x1="1" y1="6" x2="23" y2="6"/><line x1="4" y1="11" x2="8" y2="11"/></svg>신용카드</button>
       </div>
     </div>
     <!-- footer / action -->
@@ -6530,7 +6529,7 @@ function _renderUpgradeModal(d) {
   });
   _setUpgradeCardActive(null);
   _payMethod = null;
-  ['kakao','card'].forEach(function(m) {
+  ['kakao'].forEach(function(m) {
     var b = document.getElementById('pay-method-' + m);
     if (b) { b.style.borderColor = 'var(--ghost-2)'; b.style.color = 'var(--text-mid)'; b.style.background = 'var(--surface-low)'; }
   });
@@ -6693,9 +6692,8 @@ function selectPayMethod(method) {
   _payMethod = method;
   var brand = {
     kakao:   { border: '#E8B600', color: '#3B1E08', bg: '#FFE812' },
-    card:    { border: 'var(--text)', color: 'var(--surface-low)', bg: 'var(--text)' },
   };
-  ['kakao','card'].forEach(function(m) {
+  ['kakao'].forEach(function(m) {
     var b = document.getElementById('pay-method-' + m);
     if (!b) return;
     if (m === method) {
