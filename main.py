@@ -2178,8 +2178,21 @@ async def root(request: Request):
     from config import DEFAULT_UPDATED_AFTER, DEFAULT_PROJECT_ID
     token = request.cookies.get("vx_session")
     s = _get_session(token or "")
+    revived_token = None
     if not s:
-        return RedirectResponse(url="/connect")
+        # vx_session만 유실된 경우(로그인 시 DB 조회 실패 등으로 vx_user_id와 어긋난 경우)
+        # vx_user_id + 저장된 Redmine 연결로 세션을 즉시 재발급해 /connect ↔ / 무한 리다이렉트를 방지
+        user_id_str = request.cookies.get("vx_user_id")
+        uid = int(user_id_str) if user_id_str and user_id_str.isdigit() else None
+        conn_info = _get_redmine_connection(uid) if uid else None
+        if conn_info:
+            revived_token = str(_uuid.uuid4())
+            _save_session(revived_token, conn_info["redmine_url"], conn_info["api_key"], time.time())
+            _tag_session_user(revived_token, uid)
+            token = revived_token
+            s = _get_session(token)
+        if not s:
+            return RedirectResponse(url="/connect")
     template_path = os.path.join(os.path.dirname(__file__), "templates", "index.html")
     with open(template_path, "r", encoding="utf-8") as f:
         html = f.read()
@@ -2194,7 +2207,10 @@ async def root(request: Request):
     html = html.replace("__PORTONE_CHANNEL_KEY__", PORTONE_CHANNEL_KEY)
     html = html.replace("__PORTONE_CHANNEL_KEY_INICIS__", PORTONE_CHANNEL_KEY_INICIS)
     html = html.replace("__PORTONE_CHANNEL_KEY_TOSSPAY__", PORTONE_CHANNEL_KEY_TOSSPAY)
-    return HTMLResponse(content=html)
+    response = HTMLResponse(content=html)
+    if revived_token:
+        response.set_cookie("vx_session", revived_token, httponly=True, max_age=SESSION_TTL, samesite="lax", secure=True)
+    return response
 
 @app.get("/api/projects")
 async def api_projects(request: Request, s: dict = Depends(_require_session)):
