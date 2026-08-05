@@ -381,7 +381,7 @@ from app.constants import (
     DEFAULT_PLAN, plan_info, plan_allows, plan_project_limit, plan_member_limit,
     PLAN_ORDER,
 )
-from config import RESEND_API_KEY, RESEND_FROM, SUPPORT_EMAIL, BACKUP_EMAIL, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_CHANNEL_KEY_INICIS, PORTONE_CHANNEL_KEY_TOSSPAY, PORTONE_API_SECRET, PLAN_PRICES
+from config import RESEND_API_KEY, RESEND_FROM, SUPPORT_EMAIL, BACKUP_EMAIL, PORTONE_STORE_ID, PORTONE_CHANNEL_KEY, PORTONE_CHANNEL_KEY_INICIS, PORTONE_CHANNEL_KEY_TOSSPAY, PORTONE_API_SECRET, PLAN_PRICES, PAYMENTS_ENABLED
 import resend as _resend
 _resend.api_key = RESEND_API_KEY
 import httpx as _httpx
@@ -3030,6 +3030,8 @@ def _charge_billing_key(billing_key: str, payment_id: str, plan: str, user_id: i
 @app.post("/api/billing/issue")
 async def api_billing_issue(request: Request, uid: int = Depends(_require_login)):
     """프론트에서 발급받은 빌링키로 즉시 첫 결제 후 플랜 업그레이드"""
+    if not PAYMENTS_ENABLED:
+        raise HTTPException(status_code=403, detail="현재 베타 기간으로 결제를 지원하지 않습니다")
     # 멤버는 결제 불가 — 오너만 결제 (멤버는 오너 플랜 상속)
     if _get_workspace_role(uid) != "owner":
         raise HTTPException(status_code=403, detail="결제는 워크스페이스 오너만 가능합니다")
@@ -3097,6 +3099,8 @@ async def api_billing_issue(request: Request, uid: int = Depends(_require_login)
 @app.post("/api/payment/card-complete")
 async def api_payment_card_complete(request: Request, uid: int = Depends(_require_login)):
     """KG이니시스 카드 일반결제 검증 후 플랜 업그레이드"""
+    if not PAYMENTS_ENABLED:
+        raise HTTPException(status_code=403, detail="현재 베타 기간으로 결제를 지원하지 않습니다")
     body = await request.json()
     payment_id = body.get("paymentId", "").strip()
     plan = body.get("plan", "").strip()

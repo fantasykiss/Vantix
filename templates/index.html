@@ -6420,17 +6420,19 @@ function submitFeedback() {
       <div id="upgrade-card-pro" onclick="selectUpgradePlan('pro')" style="border:2px solid var(--ghost-2);padding:16px;cursor:pointer;transition:border-color .15s;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <div class="plan-label" style="font-size:12px;font-weight:700;color:#0D9488;letter-spacing:.08em;">PRO</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text);">₩19,000 <span style="font-size:10px;font-weight:400;color:var(--text-dim);">/ 월</span></div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);"><span style="text-decoration:line-through;opacity:.5;">₩19,000</span> <span style="font-size:10px;font-weight:400;color:var(--text-dim);">/ 월</span></div>
         </div>
         <div style="font-size:11px;color:var(--text-mid);line-height:1.6;"><s style="opacity:.45;">프로젝트 5개</s> <span style="color:#10b981;font-weight:700;">프로젝트 무제한</span> 기간 한정 · AI 분석 · 이메일 리포트</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-top:6px;">베타 테스트 중</div>
       </div>
       <!-- business card -->
       <div id="upgrade-card-business" onclick="selectUpgradePlan('business')" style="border:2px solid var(--ghost-2);padding:16px;cursor:pointer;transition:border-color .15s;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
           <div class="plan-label" style="font-size:12px;font-weight:700;color:#7C3AED;letter-spacing:.08em;">BUSINESS</div>
-          <div style="font-size:14px;font-weight:700;color:var(--text);">₩49,000 <span style="font-size:10px;font-weight:400;color:var(--text-dim);">/ 월</span></div>
+          <div style="font-size:14px;font-weight:700;color:var(--text);"><span style="text-decoration:line-through;opacity:.5;">₩49,000</span> <span style="font-size:10px;font-weight:400;color:var(--text-dim);">/ 월</span></div>
         </div>
         <div style="font-size:11px;color:var(--text-mid);line-height:1.6;">프로젝트 무제한 · AI 분석 · 이메일 리포트 · 우선 지원</div>
+        <div style="font-size:10px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--text-dim);margin-top:6px;">베타 테스트 중</div>
       </div>
       <!-- cancel subscription (shown only when not free) -->
       <div id="upgrade-cancel-row" style="display:none;text-align:center;padding-top:4px;">
@@ -6682,6 +6684,8 @@ function closeProjSelectModal(e) {
 }
 
 function selectUpgradePlan(plan) {
+  alert('베타 기간입니다. 현재는 유료 플랜 결제를 지원하지 않습니다.');
+  return;
   if (_PLAN_RANK[plan] <= (_PLAN_RANK[_upgradeCurrentPlan] || 0)) return;
   _upgradePlan = plan;
   _setUpgradeCardActive(plan);

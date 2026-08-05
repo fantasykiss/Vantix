@@ -426,7 +426,8 @@
               <li style="display:flex; gap:12px;"><span style="color:#2DD4BF;">✓</span> 팀원 20명 (오너 포함)</li>
             </ul>
             <div id="plan-cta-pro" style="margin-top:auto;">
-              <a href="#" onclick="handlePlanCta('pro');return false;" class="plan-cta-teal" style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#15171A; background:#2DD4BF; text-decoration:none; padding:15px 24px; text-align:center; display:block;">Pro 시작하기</a>
+              <a href="#" onclick="handlePlanCta('pro');return false;" class="plan-cta-teal" style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#15171A; background:#2DD4BF; text-decoration:none; padding:15px 24px; text-align:center; display:block;"><span style="text-decoration:line-through;">Pro 시작하기</span></a>
+              <div style="text-align:center; margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#A9ADB2;">베타 테스트 중</div>
             </div>
           </div>
 
@@ -447,7 +448,8 @@
               <li style="display:flex; gap:12px;"><span style="color:#0F766E;">✓</span> <span>Slack 알림 연동 <span style="font-size:11px; color:#0F766E; font-weight:600;">(준비 중)</span></span></li>
             </ul>
             <div id="plan-cta-biz" style="margin-top:auto;">
-              <a href="#" onclick="handlePlanCta('business');return false;" class="plan-cta-outline" style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#17181A; text-decoration:none; padding:15px 24px; border:1px solid rgba(23,24,26,.28); text-align:center; display:block;">비즈니스 시작하기</a>
+              <a href="#" onclick="handlePlanCta('business');return false;" class="plan-cta-outline" style="font-family:'IBM Plex Mono',monospace; font-size:13px; letter-spacing:.08em; text-transform:uppercase; color:#17181A; text-decoration:none; padding:15px 24px; border:1px solid rgba(23,24,26,.28); text-align:center; display:block;"><span style="text-decoration:line-through;">비즈니스 시작하기</span></a>
+              <div style="text-align:center; margin-top:8px; font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:#6A6E73;">베타 테스트 중</div>
             </div>
           </div>
 
@@ -1676,6 +1678,8 @@ window.closePaymentResultModal = function() {
 };
 
 window.handlePlanCta = function(plan) {
+  alert('베타 기간입니다. 현재는 유료 플랜 결제를 지원하지 않습니다.');
+  return;
   if (!window._isLoggedIn) {
     window._pendingPlan = plan;
     sessionStorage.setItem('vx_pending_plan', plan);
@@ -1870,8 +1874,10 @@ window.updatePlanButtons = function(plan, showRefund) {
   if (plan === 'free') {
     var proRefund = showRefund === 'pro' ? '<button onclick="requestRefund()" style="' + S_REFUND + '">결제 환불 요청</button>' : '';
     var bizRefund = showRefund === 'business' ? '<button onclick="requestRefund()" style="' + S_REFUND + '">결제 환불 요청</button>' : '';
-    proCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'pro\');return false;" class="plan-cta-teal" style="' + S_TEAL + '">Pro 시작하기</a>' + proRefund;
-    bizCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'business\');return false;" class="plan-cta-outline" style="' + S_OUTLINE + '">비즈니스 시작하기</a>' + bizRefund;
+    var S_BETA_DARK = 'display:block;text-align:center;margin-top:8px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#A9ADB2;';
+    var S_BETA_LIGHT = 'display:block;text-align:center;margin-top:8px;font-family:\'IBM Plex Mono\',monospace;font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:#6A6E73;';
+    proCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'pro\');return false;" class="plan-cta-teal" style="' + S_TEAL + '"><span style="text-decoration:line-through;">Pro 시작하기</span></a><div style="' + S_BETA_DARK + '">베타 테스트 중</div>' + proRefund;
+    bizCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'business\');return false;" class="plan-cta-outline" style="' + S_OUTLINE + '"><span style="text-decoration:line-through;">비즈니스 시작하기</span></a><div style="' + S_BETA_LIGHT + '">베타 테스트 중</div>' + bizRefund;
   } else if (plan === 'pro') {
     proCta.innerHTML = '<button onclick="cancelSubscription()" style="' + S_DANGER_DARK + '">구독 취소</button><button onclick="requestRefund()" style="' + S_REFUND.replace('color:#6A6E73','color:#A9ADB2') + '">결제 환불 요청</button>';
     bizCta.innerHTML = '<a href="#" onclick="handlePlanCta(\'business\');return false;" class="plan-cta-outline" style="' + S_OUTLINE + '">비즈니스로 업그레이드</a>';

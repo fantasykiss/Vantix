@@ -61,6 +61,8 @@ PORTONE_CHANNEL_KEY_INICIS  = os.getenv("PORTONE_CHANNEL_KEY_INICIS", "")
 PORTONE_CHANNEL_KEY_TOSSPAY = os.getenv("PORTONE_CHANNEL_KEY_TOSSPAY", "")
 PORTONE_API_SECRET          = os.getenv("PORTONE_API_SECRET", "")
 
+PAYMENTS_ENABLED = os.getenv("PAYMENTS_ENABLED", "false").lower() == "true"
+
 PLAN_PRICES = {
     "pro":      19000,
     "business": 49000,
