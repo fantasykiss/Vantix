@@ -1,0 +1,9 @@
+# 언어 통계(Linguist) 조정 — 저장소를 Python 백엔드 프로젝트로 표시
+#
+# templates/*.html 은 서버가 렌더하는 단일파일 SPA(인라인 CSS/JS 포함)로
+# 파일당 수십만 바이트라 HTML 이 통계를 지배한다. 하이라이트는 유지하되
+# 언어 집계에서만 제외한다.
+templates/*.html linguist-detectable=false
+static/** linguist-vendored
+fonts/** linguist-vendored
+docs/** linguist-documentation
