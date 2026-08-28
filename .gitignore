@@ -27,3 +27,10 @@ start-vantix.sh
 # Claude Code 프로젝트 지침 (로컬 개발용, 저장소엔 미포함)
 CLAUDE.md
 
+# 개인 개발 아카이브 / 내부 운영 문서 (저장소 미포함)
+etc/
+_cleanup_review/
+launch-checklist.md
+vantix_devlog_전체.md
+__*_test.txt
+
