@@ -23,7 +23,7 @@ python main.py            # http://localhost:8000
 
 ## QA 자동화
 
-품질 검증은 단위 → API 통합 → E2E 3계층으로 자동화되어 있다.
+품질 검증은 단위 → API 통합 → E2E 3계층으로 자동화되어 있음.
 
 ```bash
 pip install -r requirements-dev.txt
