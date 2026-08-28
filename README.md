@@ -101,11 +101,11 @@ ruff check .                 # 린트
 |---|---|---|
 | `unit` | `tests/unit/` | 요금제 게이팅, 담당자→부서 파싱 |
 | `api` | `tests/api/` | 헬스체크·대시보드 계약·리스크 스코어·인증·결제 차단 |
-| `e2e` | `tests/e2e/` | 로그인 → 대시보드 → 리포트 사용자 시나리오 (Playwright) |
+| `e2e` | `tests/e2e/` | 데모 세션 → 대시보드 KPI·리스크 위젯 렌더 검증 (Playwright, 배포 데모 대상) |
 
 - **운영 DB 보호** — 테스트는 `.env` 로딩을 무력화하고 `TEST_DATABASE_URL`로만 DB에 접근. 미설정 시 DB 테스트 자동 skip
 - **CI** — `.github/workflows/ci.yml` (push·PR): ruff + `postgres:16` 서비스로 unit/api 실행, JUnit 리포트 요약
-- **E2E** — `.github/workflows/e2e.yml`: 수동 실행 (`workflow_dispatch`)
+- **E2E** — `.github/workflows/e2e.yml`: 배포된 라이브 데모 대상 Playwright 실행 (주간 스케줄 + 수동), secret·DB 불필요
 - **결함 추적** — 자동화로 발견한 실제 버그를 회귀 테스트로 고정 (예: `/api/report/share` `NameError`)
 
 ### QA 문서

@@ -1,33 +1,24 @@
 name: E2E
 
 # 채용공고: "E2E 테스트 케이스 설계 및 자동화 스크립트 작성(사용자 시나리오 기반)".
-# 실행 중인 앱 + 테스트 계정 secret 이 필요해 CI 와 분리한다.
-# 수동 실행(workflow_dispatch)만 — secret 미설정 환경에서 자동 실패를 만들지 않도록
-# schedule 트리거는 secret 구성 후 활성화한다.
+#
+# 배포된 라이브 데모(Railway)를 대상으로 데모 세션 기반 사용자 시나리오를 검증한다.
+# 로그인 계정·secret·DB 불필요. 수동 실행 + 배포 후 확인용 스케줄.
 on:
   workflow_dispatch:
+    inputs:
+      base_url:
+        description: "테스트 대상 URL"
+        default: "https://web-production-cdd14.up.railway.app"
+        required: false
+  schedule:
+    - cron: "0 22 * * 1"   # 매주 화요일 07:00 KST
 
 jobs:
   e2e:
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        image: postgres:16
-        env:
-          POSTGRES_USER: vantix
-          POSTGRES_PASSWORD: vantix
-          POSTGRES_DB: vantix_e2e
-        ports: ["5432:5432"]
-        options: >-
-          --health-cmd "pg_isready -U vantix"
-          --health-interval 10s --health-timeout 5s --health-retries 5
     env:
-      DATABASE_URL: postgresql://vantix:vantix@localhost:5432/vantix_e2e
-      PAYMENTS_ENABLED: "false"
-      FERNET_KEY: ${{ secrets.E2E_FERNET_KEY }}
-      E2E_BASE_URL: http://localhost:8000
-      E2E_LOGIN_EMAIL: ${{ secrets.E2E_LOGIN_EMAIL }}
-      E2E_LOGIN_PASSWORD: ${{ secrets.E2E_LOGIN_PASSWORD }}
+      E2E_BASE_URL: ${{ github.event.inputs.base_url || 'https://web-production-cdd14.up.railway.app' }}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -37,15 +28,10 @@ jobs:
       - run: pip install -r requirements-dev.txt
       - name: Install Playwright browser (chromium)
         run: python -m playwright install --with-deps chromium
-      - name: Boot app
-        run: |
-          nohup python main.py > app.log 2>&1 &
-          for i in $(seq 1 30); do
-            curl -sf http://localhost:8000/health && break
-            sleep 1
-          done
-      - name: Run E2E
-        run: pytest -m e2e -q
-      - name: App log (on failure)
-        if: failure()
-        run: tail -n 100 app.log
+      - name: Run E2E against ${{ env.E2E_BASE_URL }}
+        run: pytest -m e2e -q --junitxml=e2e-report.xml
+      - name: Publish test summary
+        if: always()
+        uses: test-summary/action@v2
+        with:
+          paths: e2e-report.xml
