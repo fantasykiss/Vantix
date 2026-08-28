@@ -3681,7 +3681,7 @@ async def api_report_share(
     html = body.get("html", "")
     if not html:
         return JSONResponse({"ok": False, "error": "html이 없습니다"}, status_code=400)
-    token = uuid.uuid4().hex
+    token = _uuid.uuid4().hex
     now   = time.time()
     # 만료된 리포트 정리
     expired = [k for k, v in _report_store.items() if now - v["created_at"] > REPORT_TTL]

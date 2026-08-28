@@ -1,0 +1,23 @@
+# QA 자동화 도구 설정 (테스트/린트). 런타임 패키징 설정 아님.
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+extend-exclude = [
+    "venv",
+    "etc",
+    "onpremise",
+    "_cleanup_review",
+    "main_backup_*.py",
+]
+
+[tool.ruff.lint]
+# 핵심: 구문오류(E9)와 pyflakes(F) — 정의되지 않은 이름·깨진 f-string 등 '진짜 버그'.
+# 레거시 스타일 규칙(라인길이, import 정렬 등)은 의도적으로 제외한다.
+select = ["E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# 레거시 구간 — 점진적 정리 대상. F821(미정의 이름)·E9(구문오류)는 강제한다.
+"main.py" = ["F401", "F403", "F405", "F811", "F841", "F541"]
+"app/**" = ["F401", "F403", "F405", "F811", "F841", "F541"]
+"config.py" = ["F401"]

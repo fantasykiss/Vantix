@@ -1,0 +1,62 @@
+name: CI
+
+# 채용공고: "CI/CD 파이프라인에 대한 API 통합 자동화 테스트 및 주기적 실행"
+on:
+  push:
+    branches: [main, dev]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint (ruff)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install ruff
+      - name: ruff check
+        run: ruff check . --output-format=github
+
+  test:
+    name: Unit + API tests
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vantix
+          POSTGRES_PASSWORD: vantix
+          POSTGRES_DB: vantix_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U vantix"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      # 테스트 전용 DB — 운영 DATABASE_URL 과 절대 공유하지 않는다
+      TEST_DATABASE_URL: postgresql://vantix:vantix@localhost:5432/vantix_test
+      PAYMENTS_ENABLED: "false"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - name: Install deps
+        run: pip install -r requirements-dev.txt
+      - name: Run pytest (unit + api, e2e 제외)
+        run: pytest -m "not e2e" --junitxml=report.xml -q
+      - name: Publish test summary
+        if: always()
+        uses: test-summary/action@v2
+        with:
+          paths: report.xml

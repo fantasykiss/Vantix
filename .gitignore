@@ -13,3 +13,10 @@ sessions.json
 *.db-journal
 *.sqlite
 *.sqlite3
+
+# QA 자동화 / 테스트 아티팩트
+.pytest_cache/
+.ruff_cache/
+report.xml
+test-results/
+

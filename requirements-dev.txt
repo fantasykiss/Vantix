@@ -1,0 +1,9 @@
+# QA 자동화 / 개발 전용 의존성 (운영 requirements.txt와 분리)
+# 설치:  source venv/bin/activate && pip install -r requirements-dev.txt
+-r requirements.txt
+
+pytest==9.1.1
+pytest-playwright==0.8.0
+pytest-base-url==2.1.0
+playwright==1.62.0
+ruff
