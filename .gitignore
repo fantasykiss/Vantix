@@ -24,3 +24,6 @@ test-results/
 monitor_config.json
 start-vantix.sh
 
+# Claude Code 프로젝트 지침 (로컬 개발용, 저장소엔 미포함)
+CLAUDE.md
+

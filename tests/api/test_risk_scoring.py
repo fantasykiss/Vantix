@@ -1,6 +1,6 @@
 """프로젝트 리스크 점수/등급 회귀 테스트.
 
-공식 (CLAUDE.md):
+공식 (main.py `build_dashboard_data` 참조):
     score = overdue/total*60 + urgent/total*30 + pending/total*10
     Critical >= 30 | High >= 15 | Medium >= 5 | Low < 5
 

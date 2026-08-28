@@ -55,4 +55,4 @@ ruff check .                 # 린트
 ## 아키텍처
 
 `main.py` 단일 파일(약 4,200줄)에 HTML 템플릿 · 라우트 · 캐시 · Redmine 호출 · 리스크
-스코어링이 모두 들어 있다. 자세한 내용은 [CLAUDE.md](CLAUDE.md).
+스코어링이 모두 들어 있다. 코드베이스 맵은 [docs/STRUCTURE.md](docs/STRUCTURE.md) 참조.
