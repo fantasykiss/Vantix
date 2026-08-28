@@ -18,7 +18,7 @@ Vantix는 Redmine REST API를 주기적으로 읽어
 
 - 프로젝트별 **리스크 점수**(마감 초과·긴급·대기 가중치)를 자동 산출하고
 - 담당자·부서별 부하와 마일스톤 진행을 집계하며
-- LLM으로 **"무엇을 먼저 조치해야 하는가"**를 자연어로 요약한다.
+- LLM으로 **무엇을 먼저 조치해야 하는가**를 자연어로 요약한다.
 
 ## 스크린샷
 
@@ -93,7 +93,7 @@ pip install -r requirements-dev.txt
 
 pytest                       # 단위 + API (기본, e2e 제외)
 pytest -m unit               # 순수 로직만 (밀리초)
-pytest -m e2e                # 브라우저 E2E (서버 기동 + 테스트 계정 필요)
+E2E_BASE_URL=<배포URL> pytest -m e2e   # 브라우저 E2E (데모 세션, 계정 불필요)
 ruff check .                 # 린트
 ```
 
